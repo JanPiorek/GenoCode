@@ -67,9 +67,9 @@ every construct in the language corresponds to exactly one block.
 creature Flower
 // Petals laid round the centre, each a squashed cone, in rings that shrink and turn.
 
-gene rings  = 3   in 1..6 step 1    // how many rings of petals
-gene shrink = 0.7 in 0.4..0.95      // each ring's size compared with the ring outside it
-gene twist  = 29  in 0..180         // how far each ring turns from the last
+gene rings  = 3   in 1..6 step 1  // how many rings of petals
+gene shrink = 0.7 in 0.4..0.95    // each ring's size compared with the ring outside it
+gene twist  = 29  in 0..180       // how far each ring turns from the last
 gene heart  = hsv(47, 0.9, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
 
 branch {
@@ -88,9 +88,9 @@ repeat rings {
 
 part whorl(scale) {
   gene petals = 7   in 3..16 step 1
-  gene length = 4   in 1.5..7
+  gene reach  = 4   in 1.5..7   // how long each petal is
   gene width  = 1.4 in 0.3..3
-  gene cup    = 23  in -57..69      // how far the petals curl
+  gene cup    = 23  in -57..69  // how far the petals curl
   gene petal  = hsv(324, 0.7, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
 
   colour petal
@@ -100,8 +100,8 @@ part whorl(scale) {
       roll 360 * i / petals
       pitch 90 - cup
       grow scale
-      forward length / 2
-      lay { grow (width, width * 0.3, length) }
+      forward reach / 2
+      lay { grow (width, width * 0.3, reach) }
     }
   }
 }
@@ -113,7 +113,7 @@ part whorl(scale) {
 - `branch { … }` saves the turtle, runs the block, and puts the turtle back as it was.
 - `lay { … }` stretches only the shape being laid. The turtle itself isn't changed.
 - The creature has nine genes: `rings`, `shrink`, `twist`, `heart`, `whorl.petals`,
-  `whorl.length`, `whorl.width`, `whorl.cup` and `whorl.petal`.
+  `whorl.reach`, `whorl.width`, `whorl.cup` and `whorl.petal`.
 
 ## 3. Files
 
@@ -141,7 +141,8 @@ Parts and functions can be used before they are defined. There are no forward de
 ## 4. Lexical structure
 
 **Statements** end at the end of a line or at `;`. A line continues onto the next when it ends
-inside unclosed `(` `)` or `[` `]`, or ends with an operator, a comma, `..` or `=`. Blocks are
+inside unclosed `(` `)` or `[` `]`, or ends with an operator, a comma, `..` or `=`. Brackets can't
+hold braces, so a `{` or `}` ends any brackets left open before it. Blocks are
 written with `{` `}`. An opening `{` must be on the same line as the statement it belongs to.
 
 **Comments** are `//` to the end of the line, or `/* … */`, which may span lines but doesn't nest.
@@ -226,16 +227,16 @@ gene body    = cone from [ball, cone, tube]                   // choice
 gene limb    = leg from [leg, fin, wing]                      // part choice
 ```
 
-| Kind           | Form                     | Rules                                                                                                              |
-| -------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| number         | `= v in min..max`        | `min ≤ v ≤ max`, `min < max`                                                                                       |
-| stepped number | `= v in min..max step s` | `s > 0`. `v` should be `min + k·s` for a whole `k` (a warning otherwise)                                           |
-| log number     | `= v in min..max log`    | `0 < min`. Can't be combined with `step`                                                                           |
-| vector         | `= v in min..max`        | each axis separately, as for numbers. `log` is allowed if every axis's range is above zero                         |
-| colour         | `= c in min..max`        | each channel separately, with hue on a circle ([section 6.4](#64-colour-genes))                                    |
-| bool           | `= true` or `= false`    | no range                                                                                                           |
-| choice         | `= v from [a, b, …]`     | at least two options, all of one type: numbers, vectors, colours, shapes or pattern kinds. `v` must be one of them |
-| part choice    | `= p from [p1, p2, …]`   | options are names of parts that all take the same number of parameters ([section 6.5](#65-part-genes))             |
+| Kind           | Form                     | Rules                                                                                                                                                      |
+| -------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| number         | `= v in min..max`        | `min ≤ v ≤ max`, `min < max`                                                                                                                               |
+| stepped number | `= v in min..max step s` | `s > 0`. `v` should be `min + k·s` for a whole `k` (a warning otherwise)                                                                                   |
+| log number     | `= v in min..max log`    | `0 < min`. Can't be combined with `step`                                                                                                                   |
+| vector         | `= v in min..max`        | each axis separately: `min ≤ v ≤ max` on every axis. An axis whose min and max are equal stays fixed. `log` is allowed if every axis's range is above zero |
+| colour         | `= c in min..max`        | each channel separately, as for vectors, with hue on a circle ([section 6.4](#64-colour-genes))                                                            |
+| bool           | `= true` or `= false`    | no range                                                                                                                                                   |
+| choice         | `= v from [a, b, …]`     | at least two options, all of one type: numbers, vectors, colours, shapes or pattern kinds. `v` must be one of them                                         |
+| part choice    | `= p from [p1, p2, …]`   | options are names of parts that all take the same number of parameters ([section 6.5](#65-part-genes))                                                     |
 
 Values, bounds and options must be **constant expressions**: literals, built-in constants, colour
 and shape names, and arithmetic and built-in maths functions applied to constant expressions.
@@ -293,9 +294,9 @@ symmetric x {
   limb(2, side)
 }
 
-part leg(length, side)  { … }
-part fin(length, side)  { … }
-part wing(length, side) { … }
+part leg(reach, side)  { … }
+part fin(reach, side)  { … }
+part wing(reach, side) { … }
 ```
 
 - Every part in the list must take the same number of parameters. Functions can't be listed.
@@ -389,8 +390,8 @@ while size > 0.1 { … }
 ## 10. Parts and functions
 
 ```
-part leg(length, bend) {        // draws
-  forward length
+part leg(reach, bend) {        // draws
+  forward reach
   pitch bend
   lay
 }
@@ -667,9 +668,9 @@ place of the braces, form a background file:
 background Northern_Lights
 
 gene kind  = aurora from [aurora, plasma, marble, cells]
-gene hue   = 260 in 0..360
-gene seed  = 12 in 0..99 step 1
-gene pulse = 30 in 0..90
+gene hue   = 260    in 0..360
+gene seed  = 12     in 0..99 step 1
+gene pulse = 30     in 0..90
 
 fill pattern(kind, hue + pulse * music.bass, seed)
 ```
@@ -832,7 +833,8 @@ These describe the turtle, not the shape transform.
 
 `random` is deterministic too. Each build starts a fresh sequence, seeded from the creature's
 **`seed` gene**, and every call to `random` takes the next number in that sequence. A creature that
-uses `random` automatically has the gene `seed`: a whole number from 0 to 4,294,967,295, which
+uses `random` automatically has the gene `seed`: a whole number from 0 to 4,294,967,295, starting
+at 0, which
 mutation replaces with a new random value rather than nudging, and which doesn't blend when
 morphing ([section 19](#19-genetics)). The sequence is generated by mulberry32 (a 32-bit generator):
 

@@ -1,0 +1,412 @@
+// The syntax tree. The parser builds it, and the checker, formatter, interpreter and block editor
+// all work from it. It keeps comments, so code can be printed back without losing them.
+
+import type { Span } from "./source.js";
+
+export interface Comment {
+  /** The comment as written, including `//` or `/* … *\/`. */
+  text: string;
+  span: Span;
+  /** 0-based lines of the comment's start and end. */
+  line: number;
+  endLine: number;
+  /** Nothing but whitespace comes before it on its line. */
+  ownLine: boolean;
+  /** A blank line comes before it. */
+  blankBefore: boolean;
+}
+
+// ---------- expressions ----------
+
+export type Expr =
+  | NumberLit
+  | BoolLit
+  | StringLit
+  | HexLit
+  | NameRef
+  | TurtleRef
+  | TimeRef
+  | BeatRef
+  | MusicRef
+  | VectorLit
+  | Unary
+  | Binary
+  | Member
+  | CallExpr
+  | GradientLit
+  | ErrorExpr;
+
+export interface NumberLit {
+  kind: "Number";
+  span: Span;
+  value: number;
+  /** As written, without any `°`. */
+  raw: string;
+  degree: boolean;
+}
+
+export interface BoolLit {
+  kind: "Bool";
+  span: Span;
+  value: boolean;
+}
+
+export interface StringLit {
+  kind: "String";
+  span: Span;
+  value: string;
+}
+
+export interface HexLit {
+  kind: "Hex";
+  span: Span;
+  raw: string;
+}
+
+export interface NameRef {
+  kind: "Name";
+  span: Span;
+  name: string;
+}
+
+export interface TurtleRef {
+  kind: "Turtle";
+  span: Span;
+  field: string;
+  fieldSpan: Span;
+}
+
+export interface TimeRef {
+  kind: "Time";
+  span: Span;
+}
+
+export interface BeatRef {
+  kind: "Beat";
+  span: Span;
+}
+
+export interface MusicRef {
+  kind: "Music";
+  span: Span;
+  field: string;
+  fieldSpan: Span;
+}
+
+export interface VectorLit {
+  kind: "Vector";
+  span: Span;
+  x: Expr;
+  y: Expr;
+  z: Expr;
+}
+
+export type UnaryOp = "-" | "not";
+
+export interface Unary {
+  kind: "Unary";
+  span: Span;
+  op: UnaryOp;
+  operand: Expr;
+}
+
+export type BinaryOp =
+  "or" | "and" | "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "*" | "/" | "%" | "^";
+
+export interface Binary {
+  kind: "Binary";
+  span: Span;
+  op: BinaryOp;
+  opSpan: Span;
+  left: Expr;
+  right: Expr;
+}
+
+export interface Member {
+  kind: "Member";
+  span: Span;
+  object: Expr;
+  name: string;
+  nameSpan: Span;
+}
+
+export interface CallExpr {
+  kind: "Call";
+  span: Span;
+  callee: Expr;
+  args: Expr[];
+}
+
+export interface GradientStop {
+  colour: Expr;
+  at: Expr | undefined;
+}
+
+export interface GradientLit {
+  kind: "Gradient";
+  span: Span;
+  stops: GradientStop[];
+}
+
+export interface ErrorExpr {
+  kind: "ErrorExpr";
+  span: Span;
+}
+
+// ---------- statements ----------
+
+/** Fields every statement and declaration has. */
+export interface StmtBase {
+  span: Span;
+  /** Comments on their own lines directly above. */
+  leading: Comment[];
+  /** A comment at the end of the statement's line (simple statements and genes only). */
+  trailing: Comment | undefined;
+  /** A blank line comes before it (or before its leading comments). */
+  blankBefore: boolean;
+}
+
+export interface Block {
+  span: Span;
+  items: Stmt[];
+  /** A comment after `{` on the same line. */
+  open: Comment | undefined;
+  /** Comments after the last statement, before `}`. */
+  endComments: Comment[];
+  /** A comment after `}` on the same line. */
+  close: Comment | undefined;
+}
+
+export type Stmt =
+  | GeneDecl
+  | PartDecl
+  | FunctionDecl
+  | BackgroundDecl
+  | DanceDecl
+  | Let
+  | Assign
+  | PartCall
+  | Return
+  | Print
+  | If
+  | Repeat
+  | For
+  | While
+  | BranchStmt
+  | Symmetric
+  | Lay
+  | Reshape
+  | Command
+  | Rotate
+  | Mirror
+  | Material
+  | Fill
+  | Effect
+  | ErrorStmt;
+
+export type GeneRange =
+  | { kind: "Range"; min: Expr; max: Expr; step: Expr | undefined; log: boolean }
+  | { kind: "Choice"; options: Expr[] };
+
+export interface GeneDecl extends StmtBase {
+  kind: "Gene";
+  name: string;
+  nameSpan: Span;
+  value: Expr;
+  range: GeneRange | undefined;
+}
+
+export interface Param {
+  name: string;
+  span: Span;
+}
+
+export interface PartDecl extends StmtBase {
+  kind: "Part";
+  name: string;
+  nameSpan: Span;
+  params: Param[];
+  body: Block;
+}
+
+export interface FunctionDecl extends StmtBase {
+  kind: "Function";
+  name: string;
+  nameSpan: Span;
+  params: Param[];
+  body: Block;
+}
+
+export interface BackgroundDecl extends StmtBase {
+  kind: "Background";
+  body: Block;
+}
+
+export interface DanceDecl extends StmtBase {
+  kind: "Dance";
+  body: Block;
+}
+
+export interface Let extends StmtBase {
+  kind: "Let";
+  name: string;
+  nameSpan: Span;
+  value: Expr;
+}
+
+export type AssignOp = "=" | "+=" | "-=" | "*=" | "/=";
+
+export interface Assign extends StmtBase {
+  kind: "Assign";
+  name: string;
+  nameSpan: Span;
+  op: AssignOp;
+  value: Expr;
+}
+
+export interface PartCall extends StmtBase {
+  kind: "PartCall";
+  name: string;
+  nameSpan: Span;
+  args: Expr[];
+}
+
+export interface Return extends StmtBase {
+  kind: "Return";
+  value: Expr | undefined;
+}
+
+export interface Print extends StmtBase {
+  kind: "Print";
+  args: Expr[];
+}
+
+export interface IfBranch {
+  condition: Expr;
+  block: Block;
+}
+
+export interface If extends StmtBase {
+  kind: "If";
+  branches: IfBranch[];
+  elseBlock: Block | undefined;
+}
+
+export interface Repeat extends StmtBase {
+  kind: "Repeat";
+  count: Expr;
+  as: Param | undefined;
+  block: Block;
+}
+
+export interface For extends StmtBase {
+  kind: "For";
+  variable: Param;
+  from: Expr;
+  to: Expr;
+  by: Expr | undefined;
+  block: Block;
+}
+
+export interface While extends StmtBase {
+  kind: "While";
+  condition: Expr;
+  block: Block;
+}
+
+export interface BranchStmt extends StmtBase {
+  kind: "Branch";
+  block: Block;
+}
+
+export type Axis = "x" | "y" | "z";
+
+export interface Symmetric extends StmtBase {
+  kind: "Symmetric";
+  axis: Axis;
+  block: Block;
+}
+
+export interface Lay extends StmtBase {
+  kind: "Lay";
+  block: Block | undefined;
+}
+
+export interface Reshape extends StmtBase {
+  kind: "Reshape";
+  block: Block;
+}
+
+export type CommandName = "forward" | "back" | "move" | "pitch" | "yaw" | "roll" | "grow";
+
+export interface Command extends StmtBase {
+  kind: "Command";
+  command: CommandName;
+  value: Expr;
+}
+
+export interface Rotate extends StmtBase {
+  kind: "Rotate";
+  angle: Expr;
+  axis: Expr;
+}
+
+export interface Mirror extends StmtBase {
+  kind: "Mirror";
+  axis: Axis;
+}
+
+export type MaterialProperty = "shape" | "colour" | "shine" | "sharpness" | "texture";
+
+export interface Material extends StmtBase {
+  kind: "Material";
+  property: MaterialProperty;
+  /** The word as written: `colour` or `color` for the colour property. */
+  keyword: string;
+  value: Expr;
+}
+
+export interface Fill extends StmtBase {
+  kind: "Fill";
+  value: Expr;
+}
+
+/** A setting in a dance effect line: a bare word, or a value. Provisional (section 17). */
+export type EffectArg = { kind: "Word"; text: string; span: Span } | { kind: "Value"; expr: Expr };
+
+export interface Effect extends StmtBase {
+  kind: "Effect";
+  name: string;
+  args: EffectArg[];
+}
+
+export interface ErrorStmt extends StmtBase {
+  kind: "ErrorStmt";
+}
+
+// ---------- files ----------
+
+export type FileKind = "creature" | "background" | "dance";
+
+export interface SourceFile {
+  kind: FileKind;
+  name: string;
+  nameSpan: Span;
+  /** Comments before the header line. */
+  headerComments: Comment[];
+  /** Comment lines directly below the header. */
+  description: Comment[];
+  items: Stmt[];
+  /** Comments after the last item. */
+  endComments: Comment[];
+  span: Span;
+}
+
+export const EFFECT_NAMES: ReadonlySet<string> = new Set([
+  "morph",
+  "zoom",
+  "spin",
+  "turn",
+  "reverse",
+  "flat",
+]);

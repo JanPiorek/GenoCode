@@ -1,0 +1,794 @@
+// Builds a creature: runs the checked program with a set of gene values and inputs, and collects
+// the shapes it lays (docs/LANGUAGE.md section 20).
+
+import type { Block, Expr, FunctionDecl, PartDecl, Stmt } from "./ast.js";
+import { BUILTIN_CONSTANTS, BUILTIN_FUNCTIONS } from "./builtins.js";
+import type { CheckResult } from "./checker.js";
+import { hexColour, makeGradient, sampleGradient } from "./colour.js";
+import type { GeneInfo } from "./genes.js";
+import { mulberry32 } from "./noise.js";
+import type { Diagnostic, Span } from "./source.js";
+import {
+  cloneFrame,
+  frameMatrix,
+  grow,
+  move,
+  multiply,
+  newFrame,
+  rotateAround,
+  turn,
+  type Frame,
+  type V3,
+} from "./turtle.js";
+import {
+  binaryOp,
+  formatValue,
+  isColour,
+  isVec,
+  member,
+  negate,
+  not,
+  roundHalfUp,
+  SHAPES,
+  typeLabel,
+  typeOf,
+  ValueError,
+  vec,
+  type Colour,
+  type Pattern,
+  type ShapeName,
+  type Value,
+} from "./values.js";
+
+export interface MusicInputs {
+  bass: number;
+  mid: number;
+  high: number;
+  level: number;
+  hit: number;
+}
+
+/** Time and music (section 16). Everything left out is 0: the rest pose. */
+export interface Inputs {
+  time: number;
+  beat: number;
+  music: MusicInputs;
+}
+
+export interface Limits {
+  shapes: number;
+  steps: number;
+  depth: number;
+}
+
+export const DEFAULT_LIMITS: Readonly<Limits> = { shapes: 50_000, steps: 10_000_000, depth: 200 };
+
+export interface BuildOptions {
+  /** Gene values by full name. Genes left out keep the value written in the code. */
+  genes?: ReadonlyMap<string, Value>;
+  inputs?: Partial<Omit<Inputs, "music">> & { music?: Partial<MusicInputs> };
+  limits?: Partial<Limits>;
+}
+
+export interface LaidShape {
+  shape: ShapeName;
+  /** 4×4 placement matrix, column-major, from the shape's own space to the world. */
+  matrix: number[];
+  colour: Colour;
+  shine: number;
+  sharpness: number;
+  /** Null for no texture. */
+  texture: Pattern | null;
+  /** The placement reverses handedness (the shape is drawn mirrored). */
+  mirrored: boolean;
+}
+
+export interface BuildResult {
+  shapes: LaidShape[];
+  diagnostics: Diagnostic[];
+  /** What `print` wrote, one entry per call. */
+  printed: string[];
+  /** The build ran to the end without errors (it may still have warnings). */
+  ok: boolean;
+}
+
+export interface BackgroundResult {
+  /** A pattern, colour or gradient; undefined if there's no background or it failed. */
+  fill: Value | undefined;
+  diagnostics: Diagnostic[];
+  printed: string[];
+}
+
+/** Builds a checked creature. */
+export function build(program: CheckResult, options: BuildOptions = {}): BuildResult {
+  const run = new Run(program, options);
+  if (!program.ok || program.file.kind !== "creature") {
+    return {
+      shapes: [],
+      diagnostics: [
+        {
+          severity: "error",
+          message: program.ok
+            ? "This file isn't a creature."
+            : "The file has errors, so it can't be built.",
+          span: program.file.nameSpan,
+        },
+      ],
+      printed: [],
+      ok: false,
+    };
+  }
+  run.guarded(() => run.runCreature());
+  return { shapes: run.shapes, diagnostics: run.finish(), printed: run.printed, ok: !run.failed };
+}
+
+/** Works out a creature's or background file's background (section 15). */
+export function buildBackground(
+  program: CheckResult,
+  options: BuildOptions = {},
+): BackgroundResult {
+  const run = new Run(program, options);
+  if (!program.ok || program.background === undefined) {
+    return { fill: undefined, diagnostics: [], printed: [] };
+  }
+  run.guarded(() => run.runSection(program.background!, "background"));
+  return {
+    fill: run.failed ? undefined : run.fill,
+    diagnostics: run.finish(),
+    printed: run.printed,
+  };
+}
+
+class RuntimeError extends Error {
+  constructor(
+    readonly span: Span,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+class LimitReached extends Error {
+  constructor(
+    readonly span: Span,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+class ReturnSignal {
+  constructor(readonly value: Value | undefined) {}
+}
+
+interface Binding {
+  value: Value;
+  mutable: boolean;
+}
+
+class Env {
+  readonly vars = new Map<string, Binding>();
+  constructor(readonly parent: Env | undefined) {}
+
+  lookup(name: string): Binding | undefined {
+    for (let e: Env | undefined = this; e; e = e.parent) {
+      const b = e.vars.get(name);
+      if (b) return b;
+    }
+    return undefined;
+  }
+}
+
+interface DrawState {
+  turtle: Frame;
+  shapeFrame: Frame;
+  shape: ShapeName;
+  colour: Colour;
+  shine: number;
+  sharpness: number;
+  texture: Pattern | null;
+}
+
+function cloneState(s: DrawState): DrawState {
+  return { ...s, turtle: cloneFrame(s.turtle), shapeFrame: cloneFrame(s.shapeFrame) };
+}
+
+const WHITE: Colour = { type: "colour", h: 0, s: 0, v: 1, a: 1 };
+
+class Run {
+  shapes: LaidShape[] = [];
+  printed: string[] = [];
+  failed = false;
+  fill: Value | undefined;
+  private readonly diagnostics: Diagnostic[] = [];
+  private readonly limits: Limits;
+  private readonly inputs: Inputs;
+  private random: () => number = () => 0;
+  private readonly genesByOwner = new Map<string | undefined, GeneInfo[]>();
+  private readonly globals = new Set<string>();
+  private steps = 0;
+  private depth = 0;
+  private skipped = 0;
+  private skippedSpan: Span | undefined;
+  private shapeMode = 0;
+  private module = new Env(undefined);
+  private state: DrawState = {
+    turtle: newFrame(),
+    shapeFrame: newFrame(),
+    shape: "ball",
+    colour: WHITE,
+    shine: 0,
+    sharpness: 0,
+    texture: null,
+  };
+
+  constructor(
+    private readonly program: CheckResult,
+    private readonly options: BuildOptions,
+  ) {
+    this.limits = { ...DEFAULT_LIMITS, ...options.limits };
+    const i = options.inputs ?? {};
+    this.inputs = {
+      time: i.time ?? 0,
+      beat: i.beat ?? 0,
+      music: { bass: 0, mid: 0, high: 0, level: 0, hit: 0, ...i.music },
+    };
+    for (const g of program.genes) {
+      const key = g.section === "creature" ? g.owner : g.section;
+      if (!this.genesByOwner.has(key)) this.genesByOwner.set(key, []);
+      this.genesByOwner.get(key)!.push(g);
+    }
+    for (const item of program.file.items) if (item.kind === "Let") this.globals.add(item.name);
+  }
+
+  /** Runs `f`, turning errors and limits into diagnostics. */
+  guarded(f: () => void): void {
+    try {
+      f();
+    } catch (e) {
+      if (e instanceof RuntimeError) {
+        this.failed = true;
+        this.diagnostics.push({ severity: "error", message: e.message, span: e.span });
+      } else if (e instanceof LimitReached) {
+        this.diagnostics.push({ severity: "warning", message: e.message, span: e.span });
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  finish(): Diagnostic[] {
+    if (this.skipped > 0) {
+      this.diagnostics.push({
+        severity: "warning",
+        message: `${this.skipped} shape${this.skipped === 1 ? " was" : "s were"} left out because ${this.skipped === 1 ? "its" : "their"} placement wasn't a finite number.`,
+        span: this.skippedSpan!,
+      });
+    }
+    return this.diagnostics;
+  }
+
+  private geneValue(g: GeneInfo | undefined): Value | undefined {
+    if (g === undefined) return undefined;
+    const given = this.options.genes?.get(g.fullName);
+    if (given === undefined) return g.value;
+    if (typeOf(given) !== typeOf(g.value)) {
+      throw new RuntimeError(
+        g.span,
+        `The gene \`${g.fullName}\` was given ${typeLabel(typeOf(given))}, but it holds ${typeLabel(typeOf(g.value))}.`,
+      );
+    }
+    return given;
+  }
+
+  private bindGenes(env: Env, owner: string | undefined): void {
+    for (const g of this.genesByOwner.get(owner) ?? []) {
+      if (g.fullName === "seed") continue;
+      env.vars.set(g.name, { value: this.geneValue(g)!, mutable: false });
+    }
+  }
+
+  private startRandom(): void {
+    const seed = this.geneValue(this.program.genes.find((g) => g.fullName === "seed"));
+    this.random = mulberry32(typeof seed === "number" ? seed : 0);
+  }
+
+  runCreature(): void {
+    this.startRandom();
+    this.bindGenes(this.module, undefined);
+    this.execItems(this.program.file.items, this.module);
+  }
+
+  runSection(items: Stmt[], section: "background" | "dance"): void {
+    this.startRandom();
+    const env = new Env(undefined);
+    this.bindGenes(env, section);
+    this.execItems(items, new Env(env));
+  }
+
+  // ---------- statements ----------
+
+  private tick(span: Span): void {
+    if (++this.steps > this.limits.steps) {
+      throw new LimitReached(
+        span,
+        `The build stopped after ${this.limits.steps.toLocaleString("en")} steps. Is there a loop that never ends?`,
+      );
+    }
+  }
+
+  private execItems(items: Stmt[], env: Env): void {
+    for (const s of items) this.exec(s, env);
+  }
+
+  private execBlock(block: Block, env: Env, setup?: (env: Env) => void): void {
+    const inner = new Env(env);
+    setup?.(inner);
+    this.execItems(block.items, inner);
+  }
+
+  /** The frame that turtle commands act on: the shape transform inside reshape and lay blocks. */
+  private frame(): Frame {
+    return this.shapeMode > 0 ? this.state.shapeFrame : this.state.turtle;
+  }
+
+  private exec(s: Stmt, env: Env): void {
+    this.tick(s.span);
+    switch (s.kind) {
+      case "Gene":
+      case "Part":
+      case "Function":
+      case "Background":
+      case "Dance":
+      case "Effect":
+      case "ErrorStmt":
+        return;
+      case "Let":
+        env.vars.set(s.name, { value: this.eval(s.value, env), mutable: true });
+        return;
+      case "Assign": {
+        const value = this.eval(s.value, env);
+        const b = env.lookup(s.name);
+        if (b === undefined) throw new RuntimeError(s.nameSpan, this.unsetMessage(s.name));
+        if (s.op === "=") b.value = value;
+        else {
+          const op = s.op[0] as "+" | "-" | "*" | "/";
+          b.value = this.guard(s.span, () => binaryOp(op, b.value, value));
+        }
+        return;
+      }
+      case "PartCall":
+        this.callPart(
+          s.name,
+          s.args.map((a) => this.eval(a, env)),
+          s.nameSpan,
+          env,
+        );
+        return;
+      case "Return":
+        throw new ReturnSignal(s.value ? this.eval(s.value, env) : undefined);
+      case "Print":
+        this.printed.push(s.args.map((a) => formatValue(this.eval(a, env))).join(" "));
+        return;
+      case "If": {
+        for (const b of s.branches) {
+          if (this.bool(b.condition, env, "A condition")) {
+            this.execBlock(b.block, env);
+            return;
+          }
+        }
+        if (s.elseBlock) this.execBlock(s.elseBlock, env);
+        return;
+      }
+      case "Repeat": {
+        const n = roundHalfUp(this.num(s.count, env, "`repeat`"));
+        for (let k = 0; k < n; k++) {
+          this.tick(s.span);
+          this.execBlock(s.block, env, (inner) => {
+            if (s.as) inner.vars.set(s.as.name, { value: k, mutable: false });
+          });
+        }
+        return;
+      }
+      case "For": {
+        const from = this.num(s.from, env, "`for`");
+        const to = this.num(s.to, env, "`for`");
+        const by = s.by ? this.num(s.by, env, "`for`") : 1;
+        if (by === 0) throw new RuntimeError(s.by!.span, "`by 0` would never finish.");
+        for (let k = 0; ; k++) {
+          const v = from + k * by;
+          if (by > 0 ? v > to : v < to) break;
+          this.tick(s.span);
+          this.execBlock(s.block, env, (inner) =>
+            inner.vars.set(s.variable.name, { value: v, mutable: false }),
+          );
+        }
+        return;
+      }
+      case "While":
+        while (this.bool(s.condition, env, "A condition")) {
+          this.tick(s.span);
+          this.execBlock(s.block, env);
+        }
+        return;
+      case "Branch":
+        this.branch(() => this.execBlock(s.block, env));
+        return;
+      case "Symmetric": {
+        const axis = { x: 0, y: 1, z: 2 }[s.axis];
+        const flip: V3 = [1, 1, 1];
+        flip[axis] = -1;
+        this.branch(() =>
+          this.execBlock(s.block, env, (inner) =>
+            inner.vars.set("side", { value: 1, mutable: false }),
+          ),
+        );
+        this.branch(() => {
+          grow(this.state.turtle, flip);
+          this.execBlock(s.block, env, (inner) =>
+            inner.vars.set("side", { value: -1, mutable: false }),
+          );
+        });
+        return;
+      }
+      case "Lay": {
+        if (s.block === undefined) {
+          this.lay(s.span);
+          return;
+        }
+        const saved = cloneFrame(this.state.shapeFrame);
+        this.shapeMode++;
+        try {
+          this.execBlock(s.block, env);
+        } finally {
+          this.shapeMode--;
+        }
+        this.lay(s.span);
+        this.state.shapeFrame = saved;
+        return;
+      }
+      case "Reshape":
+        this.shapeMode++;
+        try {
+          this.execBlock(s.block, env);
+        } finally {
+          this.shapeMode--;
+        }
+        return;
+      case "Command": {
+        const f = this.frame();
+        switch (s.command) {
+          case "forward":
+            move(f, [0, 0, this.num(s.value, env, "`forward`")]);
+            return;
+          case "back":
+            move(f, [0, 0, -this.num(s.value, env, "`back`")]);
+            return;
+          case "move":
+            move(f, this.vector(s.value, env, "`move`"));
+            return;
+          case "pitch":
+            turn(f, 0, this.num(s.value, env, "`pitch`"));
+            return;
+          case "yaw":
+            turn(f, 1, this.num(s.value, env, "`yaw`"));
+            return;
+          case "roll":
+            turn(f, 2, this.num(s.value, env, "`roll`"));
+            return;
+          case "grow": {
+            const v = this.eval(s.value, env);
+            if (typeof v === "number") grow(f, [v, v, v]);
+            else if (isVec(v)) grow(f, [v.x, v.y, v.z]);
+            else
+              throw new RuntimeError(
+                s.value.span,
+                `\`grow\` needs a number or a vector, not ${typeLabel(typeOf(v))}.`,
+              );
+            return;
+          }
+        }
+        return;
+      }
+      case "Rotate": {
+        const angle = this.num(s.angle, env, "`rotate`");
+        rotateAround(this.frame(), this.vector(s.axis, env, "`around`"), angle);
+        return;
+      }
+      case "Mirror": {
+        const flip: V3 = [1, 1, 1];
+        flip[{ x: 0, y: 1, z: 2 }[s.axis]] = -1;
+        grow(this.frame(), flip);
+        return;
+      }
+      case "Material":
+        this.material(s, env);
+        return;
+      case "Fill":
+        this.fill = this.eval(s.value, env);
+        return;
+    }
+  }
+
+  private material(s: Extract<Stmt, { kind: "Material" }>, env: Env): void {
+    const v = this.eval(s.value, env);
+    const wrong = (what: string): never => {
+      throw new RuntimeError(
+        s.value.span,
+        `\`${s.keyword}\` needs ${what}, not ${typeLabel(typeOf(v))}.`,
+      );
+    };
+    switch (s.property) {
+      case "shape":
+        if (typeof v === "number") this.state.shape = SHAPES[Math.abs(roundHalfUp(v)) % 6]!;
+        else if (typeof v === "object" && v.type === "shape") this.state.shape = v.name;
+        else wrong("a shape or a number");
+        return;
+      case "colour":
+        if (!isColour(v)) wrong("a colour");
+        this.state.colour = v as Colour;
+        return;
+      case "shine":
+      case "sharpness":
+        if (typeof v !== "number") return wrong("a number");
+        this.state[s.property] = Math.min(1, Math.max(0, v));
+        return;
+      case "texture":
+        if (typeof v !== "object" || v.type !== "pattern") return wrong("a pattern");
+        this.state.texture = v.kind === null ? null : v;
+        return;
+    }
+  }
+
+  private branch(f: () => void): void {
+    const saved = cloneState(this.state);
+    try {
+      f();
+    } finally {
+      this.state = saved;
+    }
+  }
+
+  private lay(span: Span): void {
+    if (this.shapes.length >= this.limits.shapes) {
+      throw new LimitReached(
+        span,
+        `The build stopped at ${this.limits.shapes.toLocaleString("en")} shapes, the most a creature can have.`,
+      );
+    }
+    const st = this.state;
+    const matrix = multiply(frameMatrix(st.turtle), frameMatrix(st.shapeFrame));
+    if (!matrix.every(Number.isFinite)) {
+      this.skipped++;
+      this.skippedSpan ??= span;
+      return;
+    }
+    this.shapes.push({
+      shape: st.shape,
+      matrix,
+      colour: st.colour,
+      shine: st.shine,
+      sharpness: st.sharpness,
+      texture: st.texture,
+      mirrored: st.turtle.mirrored !== st.shapeFrame.mirrored,
+    });
+  }
+
+  // ---------- calls ----------
+
+  private enter(span: Span): void {
+    if (++this.depth > this.limits.depth) {
+      throw new LimitReached(
+        span,
+        `The build stopped: parts and functions were nested more than ${this.limits.depth} deep.`,
+      );
+    }
+  }
+
+  private bindParams(env: Env, decl: PartDecl | FunctionDecl, args: Value[]): void {
+    decl.params.forEach((p, i) => env.vars.set(p.name, { value: args[i]!, mutable: true }));
+  }
+
+  private callPart(name: string, args: Value[], span: Span, env: Env): void {
+    let partName = name;
+    const b = env.lookup(name);
+    if (b && typeof b.value === "object" && b.value.type === "part") partName = b.value.name;
+    const decl = this.program.parts.get(partName);
+    if (decl === undefined) throw new RuntimeError(span, `There's no part called \`${partName}\`.`);
+    this.enter(span);
+    const callEnv = new Env(this.module);
+    this.bindParams(callEnv, decl, args);
+    this.bindGenes(callEnv, decl.name);
+    try {
+      this.execItems(decl.body.items, callEnv);
+    } catch (e) {
+      if (!(e instanceof ReturnSignal)) throw e;
+    } finally {
+      this.depth--;
+    }
+  }
+
+  private callFunction(decl: FunctionDecl, args: Value[], span: Span): Value {
+    this.enter(span);
+    const callEnv = new Env(this.module);
+    this.bindParams(callEnv, decl, args);
+    this.bindGenes(callEnv, decl.name);
+    try {
+      this.execItems(decl.body.items, callEnv);
+    } catch (e) {
+      if (e instanceof ReturnSignal && e.value !== undefined) return e.value;
+      throw e;
+    } finally {
+      this.depth--;
+    }
+    throw new RuntimeError(
+      decl.nameSpan,
+      `The function \`${decl.name}\` ended without returning a value.`,
+    );
+  }
+
+  // ---------- expressions ----------
+
+  private guard<T>(span: Span, f: () => T): T {
+    try {
+      return f();
+    } catch (e) {
+      if (e instanceof ValueError) throw new RuntimeError(span, e.message);
+      throw e;
+    }
+  }
+
+  private unsetMessage(name: string): string {
+    return this.globals.has(name)
+      ? `\`${name}\` hasn't been given a value yet: its \`let\` hasn't run.`
+      : `There's nothing called \`${name}\`.`;
+  }
+
+  private num(e: Expr, env: Env, what: string): number {
+    const v = this.eval(e, env);
+    if (typeof v !== "number")
+      throw new RuntimeError(e.span, `${what} needs a number, not ${typeLabel(typeOf(v))}.`);
+    return v;
+  }
+
+  private bool(e: Expr, env: Env, what: string): boolean {
+    const v = this.eval(e, env);
+    if (typeof v !== "boolean")
+      throw new RuntimeError(e.span, `${what} must be a bool, not ${typeLabel(typeOf(v))}.`);
+    return v;
+  }
+
+  private vector(e: Expr, env: Env, what: string): V3 {
+    const v = this.eval(e, env);
+    if (!isVec(v))
+      throw new RuntimeError(e.span, `${what} needs a vector, not ${typeLabel(typeOf(v))}.`);
+    return [v.x, v.y, v.z];
+  }
+
+  private eval(e: Expr, env: Env): Value {
+    this.tick(e.span);
+    switch (e.kind) {
+      case "Number":
+        return e.value;
+      case "Bool":
+        return e.value;
+      case "String":
+        return e.value;
+      case "Hex":
+        return this.guard(e.span, () => hexColour(e.raw));
+      case "Name": {
+        const b = env.lookup(e.name);
+        if (b) return b.value;
+        const c = BUILTIN_CONSTANTS.get(e.name);
+        if (c !== undefined) return c;
+        throw new RuntimeError(e.span, this.unsetMessage(e.name));
+      }
+      case "Turtle":
+        return this.turtleField(e.field, e.span);
+      case "Time":
+        return this.inputs.time;
+      case "Beat":
+        return this.inputs.beat;
+      case "Music":
+        return this.inputs.music[e.field as keyof MusicInputs];
+      case "Vector":
+        return vec(
+          this.num(e.x, env, "A vector"),
+          this.num(e.y, env, "A vector"),
+          this.num(e.z, env, "A vector"),
+        );
+      case "Unary": {
+        const v = this.eval(e.operand, env);
+        return this.guard(e.span, () => (e.op === "-" ? negate(v) : not(v)));
+      }
+      case "Binary": {
+        if (e.op === "and" || e.op === "or") {
+          const left = this.bool(e.left, env, `The left side of \`${e.op}\``);
+          if (e.op === "and" ? !left : left) return left;
+          return this.bool(e.right, env, `The right side of \`${e.op}\``);
+        }
+        const a = this.eval(e.left, env);
+        const b = this.eval(e.right, env);
+        return this.guard(e.opSpan, () => binaryOp(e.op, a, b));
+      }
+      case "Member": {
+        const v = this.eval(e.object, env);
+        return this.guard(e.nameSpan, () => member(v, e.name));
+      }
+      case "Call":
+        return this.call(e, env);
+      case "Gradient": {
+        const stops = e.stops.map((s) => {
+          const colour = this.eval(s.colour, env);
+          if (!isColour(colour))
+            throw new RuntimeError(
+              s.colour.span,
+              `A gradient is made of colours, not ${typeLabel(typeOf(colour))}.`,
+            );
+          return { colour, at: s.at ? this.num(s.at, env, "A gradient position") : undefined };
+        });
+        return this.guard(e.span, () => makeGradient(stops));
+      }
+      case "ErrorExpr":
+        throw new RuntimeError(e.span, "This expression couldn't be read.");
+    }
+  }
+
+  private call(e: Extract<Expr, { kind: "Call" }>, env: Env): Value {
+    const callee = e.callee;
+    if (callee.kind === "Name" && env.lookup(callee.name) === undefined) {
+      const fn = this.program.functions.get(callee.name);
+      if (fn)
+        return this.callFunction(
+          fn,
+          e.args.map((a) => this.eval(a, env)),
+          callee.span,
+        );
+      const builtin = BUILTIN_FUNCTIONS.get(callee.name);
+      if (builtin) {
+        const args = e.args.map((a) => this.eval(a, env));
+        return this.guard(e.span, () => builtin.call(args, { random: this.random }));
+      }
+    }
+    const target = this.eval(callee, env);
+    if (typeof target !== "object" || target.type !== "gradient") {
+      throw new RuntimeError(
+        callee.span,
+        `${typeLabel(typeOf(target))} can't be called or sampled.`,
+      );
+    }
+    const t = this.num(e.args[0]!, env, "A gradient position");
+    return sampleGradient(target, t);
+  }
+
+  private turtleField(field: string, span: Span): Value {
+    const t = this.state.turtle;
+    const v3 = (a: V3): Value => vec(a[0], a[1], a[2]);
+    switch (field) {
+      case "position":
+        return v3(t.pos);
+      case "side":
+        return v3(t.ax[0]);
+      case "up":
+        return v3(t.ax[1]);
+      case "heading":
+        return v3(t.ax[2]);
+      case "size":
+        return v3(t.size);
+      case "mirrored":
+        return t.mirrored;
+      case "shape":
+        return { type: "shape", name: this.state.shape };
+      case "colour":
+      case "color":
+        return this.state.colour;
+      case "shine":
+        return this.state.shine;
+      case "sharpness":
+        return this.state.sharpness;
+      case "texture":
+        return this.state.texture ?? { type: "pattern", kind: null, hue: 0, seed: 0 };
+    }
+    throw new RuntimeError(span, `The turtle has no \`${field}\`.`);
+  }
+}

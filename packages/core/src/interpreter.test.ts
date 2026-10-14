@@ -1,0 +1,294 @@
+import { describe, expect, it } from "vitest";
+import { check } from "./checker.js";
+import { build, buildBackground } from "./interpreter.js";
+import { mulberry32 } from "./noise.js";
+import { centre, checked, near, run } from "./test-helpers.js";
+import { formatValue } from "./values.js";
+
+const positions = (body: string) => run(body).shapes.map((s) => near(centre(s)));
+
+/** What `print` writes for an expression. */
+const value = (expr: string) => run(`print(${expr})`).printed[0];
+
+describe("turtle", () => {
+  it("starts at the origin facing +z, and moves along its heading", () => {
+    expect(positions("lay\nforward 2\nlay\nback 3\nlay")).toEqual([
+      [0, 0, 0],
+      [0, 0, 2],
+      [0, 0, -1],
+    ]);
+    expect(positions("move (1, 2, 3)\nlay")).toEqual([[1, 2, 3]]);
+  });
+
+  it("turns by the right-hand rule", () => {
+    expect(positions("pitch 90\nforward 1\nlay")).toEqual([[0, -1, 0]]); // nose down
+    expect(positions("yaw 90\nforward 1\nlay")).toEqual([[1, 0, 0]]); // towards the side axis
+    expect(positions("roll 90\nmove (1, 0, 0)\nlay")).toEqual([[0, 1, 0]]); // side turns up
+    expect(positions("rotate 90 around (1, 0, 0)\nforward 1\nlay")).toEqual([[0, -1, 0]]);
+  });
+
+  it("keeps each size with its axis and scales moves", () => {
+    expect(positions("grow 2\nforward 1\nlay")).toEqual([[0, 0, 2]]);
+    expect(positions("grow (1, 1, 3)\nyaw 90\nforward 1\nlay")).toEqual([[3, 0, 0]]);
+  });
+
+  it("draws mirror images when mirrored", () => {
+    const body = "symmetric x {\n  yaw 30\n  pitch 20\n  forward 1\n  lay\n}";
+    const [a, b] = positions(body);
+    expect(b).toEqual(near([-a![0]!, a![1]!, a![2]!]));
+    const [p, q] = positions("symmetric x {\n  rotate 40 around (1, 1, 0)\n  forward 1\n  lay\n}");
+    expect(q).toEqual(near([-p![0]!, p![1]!, p![2]!]));
+    const shapes = run(body).shapes;
+    expect(shapes.map((s) => s.mirrored)).toEqual([false, true]);
+  });
+
+  it("puts everything back after a branch", () => {
+    const r = run("branch {\n  forward 5\n  colour red\n  grow 3\n}\nforward 1\nlay");
+    expect(near(centre(r.shapes[0]!))).toEqual([0, 0, 1]);
+    expect(formatValue(r.shapes[0]!.colour)).toBe("hsv(0, 0, 1, 1)");
+    expect(r.shapes[0]!.matrix[0]).toBe(1);
+  });
+
+  it("shapes one shape with lay { } and later shapes with reshape", () => {
+    const r = run(
+      "lay { grow 2 }\nlay\nbranch {\n  reshape { move (1, 0, 0) }\n  lay\n  lay\n}\nlay",
+    );
+    expect(r.shapes.map((s) => s.matrix[0])).toEqual([2, 1, 1, 1, 1]);
+    expect(r.shapes.map((s) => near(centre(s)))).toEqual([
+      [0, 0, 0],
+      [0, 0, 0],
+      [1, 0, 0],
+      [1, 0, 0],
+      [0, 0, 0],
+    ]);
+  });
+
+  it("chooses shapes by name or number", () => {
+    const r = run("shape cone\nlay\nshape 9\nlay\nshape -1\nlay\nshape 2.5\nlay");
+    expect(r.shapes.map((s) => s.shape)).toEqual(["cone", "ball", "cube", "ball"]);
+  });
+
+  it("clamps material settings and records them per shape", () => {
+    const r = run(
+      "shine 3\nsharpness -1\ntexture pattern(marble, 200, 7.4)\nlay\ntexture none\nlay",
+    );
+    expect(r.shapes[0]).toMatchObject({
+      shine: 1,
+      sharpness: 0,
+      texture: { kind: "marble", hue: 200, seed: 7 },
+    });
+    expect(r.shapes[1]!.texture).toBeNull();
+  });
+
+  it("reads the turtle back", () => {
+    expect(value("turtle.heading")).toBe("(0, 0, 1)");
+    expect(run("yaw 90\nforward 2\nprint(turtle.position)").printed[0]).toBe("(2, 0, 1.22465e-16)");
+    expect(run("mirror y\nprint(turtle.mirrored, turtle.up)").printed[0]).toBe("true (0, -1, 0)");
+  });
+});
+
+describe("control flow, parts and functions", () => {
+  it("repeats and loops", () => {
+    expect(run("repeat 2.5 as i {\n  print(i)\n}").printed).toEqual(["0", "1", "2"]);
+    expect(run("repeat -1 {\n  print(1)\n}").printed).toEqual([]);
+    expect(run("for i from 0 to 1 by 0.25 {\n  print(i)\n}").printed).toEqual([
+      "0",
+      "0.25",
+      "0.5",
+      "0.75",
+      "1",
+    ]);
+    expect(run("for i from 3 to 1 by -1 {\n  print(i)\n}").printed).toEqual(["3", "2", "1"]);
+    expect(run("let n = 0\nwhile n < 3 {\n  n += 1\n}\nprint(n)").printed).toEqual(["3"]);
+  });
+
+  it("chooses with if", () => {
+    expect(
+      run(
+        "let a = 5\nif a > 10 {\n  print(1)\n} else if a > 3 {\n  print(2)\n} else {\n  print(3)\n}",
+      ).printed,
+    ).toEqual(["2"]);
+  });
+
+  it("calls parts and functions, with recursion", () => {
+    const r = run(
+      "function fact(n) {\n  if n <= 1 {\n    return 1\n  }\n  return n * fact(n - 1)\n}\nprint(fact(5))",
+    );
+    expect(r.printed).toEqual(["120"]);
+    expect(
+      run(
+        "tree(3)\npart tree(n) {\n  if n == 0 {\n    return\n  }\n  lay\n  tree(n - 1)\n  tree(n - 1)\n}",
+      ).shapes,
+    ).toHaveLength(7);
+  });
+
+  it("gives each part call its genes and copies of its arguments", () => {
+    const r = run(
+      "let a = 1\nleg(a)\nprint(a)\npart leg(x) {\n  gene g = 2 in 0..3\n  x = 5\n  print(g)\n}",
+    );
+    expect(r.printed).toEqual(["2", "1"]);
+  });
+
+  it("calls the part a part gene names", () => {
+    const body =
+      "gene limb = leg from [leg, fin]\nlimb\npart leg {\n  shape cube\n  lay\n}\npart fin {\n  shape cone\n  lay\n}";
+    expect(run(body).shapes[0]!.shape).toBe("cube");
+    const genes = new Map([["limb", { type: "part" as const, name: "fin" }]]);
+    expect(run(body, { genes }).shapes[0]!.shape).toBe("cone");
+  });
+
+  it("reports a global used before its let has run", () => {
+    const r = run("leg\nlet reach = 1\npart leg {\n  forward reach\n}");
+    expect(r.ok).toBe(false);
+    expect(r.diagnostics[0]!.message).toContain("its `let` hasn't run");
+  });
+
+  it("reports runtime type errors with their place", () => {
+    const r = run("let a = 1\nlet b = (1, 2, 3)\nif a > 0 {\n  b = red\n}\nforward b");
+    expect(r.ok).toBe(false);
+    expect(r.diagnostics[0]!.message).toContain("needs a number, not a colour");
+  });
+});
+
+describe("values and library", () => {
+  it("does arithmetic on numbers and vectors", () => {
+    expect(value("7 / 2")).toBe("3.5");
+    expect(value("-7 % 3")).toBe("-1");
+    expect(value("-2 ^ 2")).toBe("-4");
+    expect(value("(1, 2, 3) * 2 + (1, 1, 1)")).toBe("(3, 5, 7)");
+    expect(value("(2, 4, 6) / (2, 2, 2)")).toBe("(1, 2, 3)");
+    expect(value("(1, 2, 3).y")).toBe("2");
+  });
+
+  it("rounds halves up, and keeps frac's sign", () => {
+    expect(value("round(2.5), round(-2.5), frac(-1.25)")).toBe("3 -2 -0.25");
+  });
+
+  it("wraps and bounces", () => {
+    expect(value("wrap(370, 0, 360), wrap(-10, 0, 360), wrap(360, 0, 360)")).toBe("10 350 0");
+    expect(value("bounce(1.5, 0, 1), bounce(2.5, 0, 1), bounce(-0.25, 0, 1)")).toBe("0.5 0.5 0.25");
+  });
+
+  it("uses degrees", () => {
+    expect(value("sin(90), cos(180), atan2(1, 1), degrees(pi)")).toBe("1 -1 45 180");
+    expect(value("wave(0.25), bump(0.5)")).toBe("1 1");
+  });
+
+  it("mixes numbers, vectors and colours", () => {
+    expect(value("mix(0, 10, 0.25), mix(0, 10, 1.5)")).toBe("2.5 15");
+    expect(value("smoothmix(0, 10, 0.5)")).toBe("5");
+    expect(value("mix(hsv(350, 1, 1), hsv(10, 1, 1), 0.5).hue")).toBe("0");
+    expect(value("mix(hsv(0, 1, 1), hsv(180, 1, 1), 0.5).hue")).toBe("90");
+  });
+
+  it("builds and samples gradients", () => {
+    expect(value("gradient(black, white)(0.5).val")).toBe("0.5");
+    expect(value("gradient(red, green, blue at 1)(0.5).hue")).toBe("120");
+    expect(value("gradient(red, blue at 0.5, green at 0.5, white)(0.5).hue")).toBe("120");
+    expect(value("gradient(red, blue)(2).hue")).toBe("240");
+    const r = run("let g = gradient(red at 0.5, blue at 0.2)\nprint(g(0))");
+    expect(r.diagnostics[0]!.message).toContain("must not go down");
+  });
+
+  it("knows its colours", () => {
+    expect(value("#ff0000.hue, rgb(0, 0, 1).hue, hsv(400, 2, 1).hue, hsv(400, 2, 1).sat")).toBe(
+      "0 240 40 1",
+    );
+    expect(value("purple")).toBe("hsv(270, 1, 0.8, 1)");
+  });
+
+  it("computes mandel", () => {
+    expect(value("mandel(0, 0), mandel(2, 2)")).toBe("1 0");
+  });
+
+  it("gives noise in range, the same every time", () => {
+    const r = run("print(noise(0.5), noise((1.3, 2.7, 0.1)), fbm(3.2))");
+    expect(r.printed[0]).toBe(
+      run("print(noise(0.5), noise((1.3, 2.7, 0.1)), fbm(3.2))").printed[0],
+    );
+    for (const n of r.printed[0]!.split(" ").map(Number))
+      expect(Math.abs(n)).toBeLessThanOrEqual(1);
+    expect(value("noise(0), noise(5)")).toBe("0 0");
+  });
+});
+
+describe("genes, randomness and inputs", () => {
+  it("uses gene values given to the build", () => {
+    const program = checked("creature T\ngene n = 2 in 1..5 step 1\nrepeat n {\n  lay\n}\n");
+    expect(build(program).shapes).toHaveLength(2);
+    expect(build(program, { genes: new Map([["n", 4]]) }).shapes).toHaveLength(4);
+    expect(build(program, { genes: new Map([["n", true]]) }).diagnostics[0]!.message).toContain(
+      "given a bool",
+    );
+  });
+
+  it("draws random numbers from the seed gene with mulberry32", () => {
+    const program = checked("creature T\nprint(random(0, 1), random(10, 20))\n");
+    const next = mulberry32(42);
+    const expected = `${formatValue(next())} ${formatValue(10 + 10 * next())}`;
+    expect(build(program, { genes: new Map([["seed", 42]]) }).printed[0]).toBe(expected);
+    expect(build(program).printed[0]).toBe(build(program).printed[0]);
+  });
+
+  it("reads time and music, which are 0 by default", () => {
+    const program = checked("creature T\nprint(time, beat, music.bass, music.hit)\n");
+    expect(build(program).printed[0]).toBe("0 0 0 0");
+    expect(build(program, { inputs: { time: 2, music: { bass: 0.5 } } }).printed[0]).toBe(
+      "2 0 0.5 0",
+    );
+  });
+
+  it("works out backgrounds", () => {
+    const program = checked(
+      "creature T\nlay\nbackground {\n  gene hue = 200 in 0..360\n  fill hsv(hue + 100 * music.bass, 1, 1)\n}\n",
+    );
+    expect(formatValue(buildBackground(program).fill!)).toBe("hsv(200, 1, 1, 1)");
+    expect(formatValue(buildBackground(program, { inputs: { music: { bass: 0.5 } } }).fill!)).toBe(
+      "hsv(250, 1, 1, 1)",
+    );
+    const file = checked("background Sky\nfill gradient(blue, white)\n");
+    expect(formatValue(buildBackground(file).fill!)).toBe(
+      "gradient(hsv(240, 1, 1, 1) at 0, hsv(0, 0, 1, 1) at 1)",
+    );
+  });
+});
+
+describe("limits and bad numbers", () => {
+  it("stops runaway loops and keeps what was built", () => {
+    const r = run("lay\nwhile true {\n  yaw 1\n}", { limits: { steps: 1000 } });
+    expect(r.shapes).toHaveLength(1);
+    expect(r.ok).toBe(true);
+    expect(r.diagnostics[0]!.message).toContain("stopped after 1,000 steps");
+  });
+
+  it("stops at the shape limit", () => {
+    const r = run("repeat 10 {\n  lay\n}", { limits: { shapes: 4 } });
+    expect(r.shapes).toHaveLength(4);
+    expect(r.diagnostics[0]!.message).toContain("4 shapes");
+  });
+
+  it("stops deep recursion", () => {
+    const r = run("down\npart down {\n  down\n}");
+    expect(r.diagnostics[0]!.message).toContain("more than 200 deep");
+  });
+
+  it("leaves out shapes whose placement isn't finite", () => {
+    const r = run("lay\nbranch {\n  forward sqrt(-1)\n  lay\n  grow 1 / 0\n  lay\n}\nlay");
+    expect(r.shapes).toHaveLength(2);
+    expect(r.diagnostics[0]!.message).toContain("2 shapes were left out");
+  });
+
+  it("refuses to build a file with errors", () => {
+    const r = build(check("creature T\nforward red\n"));
+    expect(r.ok).toBe(false);
+    expect(r.shapes).toEqual([]);
+  });
+});
+
+describe("constants", () => {
+  it("has the documented values", () => {
+    expect(value("tau / pi, golden, x_axis")).toBe(
+      `2 ${formatValue((1 + Math.sqrt(5)) / 2)} (1, 0, 0)`,
+    );
+  });
+});
