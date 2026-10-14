@@ -1,0 +1,41 @@
+creature Flower
+// Petals laid round the centre, each a squashed cone, in rings that shrink and turn.
+
+gene rings  = 3   in 1..6 step 1  // how many rings of petals
+gene shrink = 0.7 in 0.4..0.95    // each ring's size compared with the ring outside it
+gene twist  = 29  in 0..180       // how far each ring turns from the last
+gene heart  = hsv(47, 0.9, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
+
+branch {
+  shape ball
+  colour heart
+  grow 1.6
+  lay
+}
+
+let size = 1
+repeat rings {
+  roll twist
+  whorl(size)
+  size *= shrink
+}
+
+part whorl(scale) {
+  gene petals = 7   in 3..16 step 1
+  gene reach  = 4   in 1.5..7   // how long each petal is
+  gene width  = 1.4 in 0.3..3
+  gene cup    = 23  in -57..69  // how far the petals curl
+  gene petal  = hsv(324, 0.7, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
+
+  colour petal
+  shape cone
+  repeat petals as i {
+    branch {
+      roll 360 * i / petals
+      pitch 90 - cup
+      grow scale
+      forward reach / 2
+      lay { grow (width, width * 0.3, reach) }
+    }
+  }
+}

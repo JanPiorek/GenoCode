@@ -1,17 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
-    "lib": ["ES2022", "DOM"]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"],
-  "references": [
-    { "path": "../core" },
-    { "path": "../render" },
-    { "path": "../music" },
-    { "path": "../dance" },
-    { "path": "../blocks" }
-  ]
+  "include": ["src", "vite.config.ts"]
 }

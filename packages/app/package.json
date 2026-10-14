@@ -5,22 +5,16 @@
   "description": "The GenoCode web app.",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist"
-  ],
   "dependencies": {
     "@genocode/core": "0.0.0",
-    "@genocode/render": "0.0.0",
-    "@genocode/music": "0.0.0",
-    "@genocode/dance": "0.0.0",
-    "@genocode/blocks": "0.0.0"
+    "@genocode/render": "0.0.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.4"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   }
 }

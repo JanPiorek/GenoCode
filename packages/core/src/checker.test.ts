@@ -180,6 +180,8 @@ describe("checker: statements and types", () => {
   it("marks creatures that read time or music as live", () => {
     expect(check("creature T\nlay\n").live).toBe(false);
     expect(check("creature T\nyaw time\n").live).toBe(true);
-    expect(check("creature T\nbackground {\n  fill hsv(music.bass, 1, 1)\n}\n").live).toBe(false);
+    const withBackground = check("creature T\nbackground {\n  fill hsv(music.bass, 1, 1)\n}\n");
+    expect(withBackground.live).toBe(false);
+    expect(withBackground.backgroundLive).toBe(true);
   });
 });

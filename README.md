@@ -45,7 +45,22 @@ You need Node.js 22 or later (see `.nvmrc`).
 npm install
 npm run build     # compile all packages
 npm test          # run the tests
-npm run check     # build, test and check formatting, as CI does
+npm run check     # build, type-check, test and check formatting, as CI does
+```
+
+**See creatures in the browser:** `npm run dev`, then open the address it prints. Pick one of the
+starter creatures in `creatures/`, or open or drop any `.genie` file. Starter creatures update as
+soon as you save them. In Chromium-based browsers, a file opened from disk is watched too, so you
+can edit it in any editor and see the changes.
+
+**The command line:** after `npm run build`, run `node packages/cli/dist/main.js <command>`, or
+`npm link -w @genocode/cli` once to get a `genie` command:
+
+```
+genie check creatures/Flower.genie          # report errors and warnings
+genie format --write creatures/*.genie      # put files in the standard layout
+genie genes creatures/Flower.genie          # list a creature's genes
+genie render creatures/Flower.genie out.png # draw it (--size=N, default 512)
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more.

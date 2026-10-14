@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GenoCode</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <span class="brand">GenoCode</span>
+      <label class="field">
+        <span>Example</span>
+        <select id="examples"></select>
+      </label>
+      <button id="open" type="button">Open file…</button>
+      <input id="file-input" type="file" accept=".genie" hidden />
+      <button id="reset" type="button">Reset view</button>
+      <span id="watching" class="hint" hidden></span>
+    </header>
+
+    <main class="layout">
+      <canvas id="view" aria-label="The creature"></canvas>
+      <aside class="panel">
+        <h1 id="name"></h1>
+        <p id="description"></p>
+        <section id="problems-section" hidden>
+          <h2>Problems</h2>
+          <ul id="problems"></ul>
+        </section>
+        <section>
+          <h2>Genes</h2>
+          <table id="genes"></table>
+          <p id="no-genes" class="hint" hidden>This creature has no genes.</p>
+        </section>
+        <p id="status" class="hint"></p>
+      </aside>
+    </main>
+
+    <div id="drop" class="drop" hidden>Drop a .genie file to open it</div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

@@ -1,3 +1,14 @@
-// Draws creatures, textures and backgrounds with three.js. Built in roadmap phases 2 and 7.
+// Draws GenoCode creatures: in the browser with three.js (CreatureView), or into an image without
+// a browser (rasterize), with the same shapes, camera and lights.
 
-export {};
+export { creatureBounds, shapeGeometry, type Bounds, type Detail } from "./geometry.js";
+export {
+  backgroundRamp,
+  DEFAULT_BACKGROUND,
+  FIELD_OF_VIEW,
+  frameCamera,
+  LIGHTS,
+  type CameraPlacement,
+} from "./look.js";
+export { rasterize, type Image, type RasterOptions } from "./software.js";
+export { CreatureView } from "./webgl.js";

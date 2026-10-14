@@ -28,7 +28,7 @@ export {
   isBuiltinName,
   type BuiltinFunction,
 } from "./builtins.js";
-export { hsv, rgb, hexColour, toRgb, mixColour, NAMED_COLOURS } from "./colour.js";
+export { hsv, rgb, hexColour, toRgb, mixColour, sampleGradient, NAMED_COLOURS } from "./colour.js";
 export { formatValue, typeOf, SHAPES, PATTERN_KINDS } from "./values.js";
 export type {
   Colour,

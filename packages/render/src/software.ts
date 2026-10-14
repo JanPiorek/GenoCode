@@ -1,0 +1,202 @@
+// A small software renderer: draws a creature into an RGBA image without a browser, for
+// `genie render`, thumbnails and tests. It uses the same shapes, camera and lights as the WebGL view.
+
+import { toRgb, type LaidShape, type Value } from "@genocode/core";
+import { creatureBounds, shapeGeometry } from "./geometry.js";
+import { backgroundRamp, FIELD_OF_VIEW, frameCamera, LIGHTS, shininess, type Rgb } from "./look.js";
+
+export interface RasterOptions {
+  width: number;
+  height: number;
+  /** The background's fill (a colour, gradient or pattern); the default background if left out. */
+  background?: Value | undefined;
+  /** Samples per pixel along each side, for smoother edges. Default 2. */
+  supersample?: number;
+}
+
+export interface Image {
+  width: number;
+  height: number;
+  /** RGBA, 8 bits per channel, rows from the top. */
+  data: Uint8ClampedArray;
+}
+
+type V3 = [number, number, number];
+
+function sub(a: V3, b: V3): V3 {
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+}
+function dot(a: V3, b: V3): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+function cross(a: V3, b: V3): V3 {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+}
+function normalise(a: V3): V3 {
+  const l = Math.hypot(a[0], a[1], a[2]) || 1;
+  return [a[0] / l, a[1] / l, a[2] / l];
+}
+
+/** The inverse transpose of a placement's 3×3 part, which carries normals. Row-major result. */
+function normalMatrix(m: readonly number[]): number[] | undefined {
+  // Columns of the 3×3 part.
+  const a = [m[0]!, m[1]!, m[2]!];
+  const b = [m[4]!, m[5]!, m[6]!];
+  const c = [m[8]!, m[9]!, m[10]!];
+  const bc = cross(b as V3, c as V3);
+  const ca = cross(c as V3, a as V3);
+  const ab = cross(a as V3, b as V3);
+  const det = dot(a as V3, bc);
+  if (det === 0 || !Number.isFinite(det)) return undefined;
+  // The inverse's rows are bc, ca, ab over det; its transpose's columns are those, i.e. rows of N.
+  return [
+    bc[0] / det,
+    ca[0] / det,
+    ab[0] / det,
+    bc[1] / det,
+    ca[1] / det,
+    ab[1] / det,
+    bc[2] / det,
+    ca[2] / det,
+    ab[2] / det,
+  ];
+}
+
+export function rasterize(shapes: readonly LaidShape[], options: RasterOptions): Image {
+  const ss = Math.max(1, Math.round(options.supersample ?? 2));
+  const W = options.width * ss;
+  const H = options.height * ss;
+  const colour = new Float32Array(W * H * 3);
+  const depth = new Float32Array(W * H); // 1 / distance; bigger is nearer, 0 is empty
+
+  const ramp = backgroundRamp(options.background, H);
+  for (let y = 0; y < H; y++) {
+    const c = ramp[H - 1 - y]!;
+    for (let x = 0; x < W; x++) colour.set(c, (y * W + x) * 3);
+  }
+
+  const cam = frameCamera(creatureBounds(shapes), options.width / options.height);
+  const eye = cam.position;
+  const forward = normalise(sub(cam.target, eye));
+  const right = normalise(cross(forward, [0, 1, 0]));
+  const up = cross(right, forward);
+  const focal = H / 2 / Math.tan((FIELD_OF_VIEW * Math.PI) / 360);
+  const lights = [LIGHTS.key, LIGHTS.fill];
+
+  const opaque = shapes.filter((s) => s.colour.a >= 0.999);
+  const seeThrough = shapes
+    .filter((s) => s.colour.a < 0.999 && s.colour.a > 0)
+    .map((s) => ({ s, d: dot(sub([s.matrix[12]!, s.matrix[13]!, s.matrix[14]!], eye), forward) }))
+    .sort((p, q) => q.d - p.d)
+    .map((p) => p.s);
+
+  for (const shape of [...opaque, ...seeThrough]) {
+    const m = shape.matrix;
+    const nm = normalMatrix(m);
+    if (!nm) continue;
+    const geometry = shapeGeometry(shape.shape, false, "low");
+    const pos = geometry.getAttribute("position").array;
+    const nor = geometry.getAttribute("normal").array;
+    const index = geometry.getIndex()?.array;
+    const count = pos.length / 3;
+    const base: Rgb = toRgb(shape.colour);
+    const alpha = shape.colour.a;
+    const exponent = shininess(shape.sharpness);
+
+    // Per corner: screen x, screen y, 1/distance, and lit colour.
+    const sx = new Float32Array(count);
+    const sy = new Float32Array(count);
+    const iz = new Float32Array(count);
+    const lit = new Float32Array(count * 3);
+    for (let v = 0; v < count; v++) {
+      const px = pos[v * 3]!;
+      const py = pos[v * 3 + 1]!;
+      const pz = pos[v * 3 + 2]!;
+      const world: V3 = [
+        m[0]! * px + m[4]! * py + m[8]! * pz + m[12]!,
+        m[1]! * px + m[5]! * py + m[9]! * pz + m[13]!,
+        m[2]! * px + m[6]! * py + m[10]! * pz + m[14]!,
+      ];
+      const nx = nor[v * 3]!;
+      const ny = nor[v * 3 + 1]!;
+      const nz = nor[v * 3 + 2]!;
+      const n = normalise([
+        nm[0]! * nx + nm[1]! * ny + nm[2]! * nz,
+        nm[3]! * nx + nm[4]! * ny + nm[5]! * nz,
+        nm[6]! * nx + nm[7]! * ny + nm[8]! * nz,
+      ]);
+      const rel = sub(world, eye);
+      const dist = dot(rel, forward);
+      iz[v] = dist > cam.near * 0.5 ? 1 / dist : 0;
+      sx[v] = W / 2 + (dot(rel, right) / dist) * focal;
+      sy[v] = H / 2 - (dot(rel, up) / dist) * focal;
+      const toEye = normalise(sub(eye, world));
+      let diffuse = LIGHTS.ambient;
+      let specular = 0;
+      for (const l of lights) {
+        diffuse += l.strength * Math.max(0, dot(n, l.direction));
+        if (shape.shine > 0) {
+          const half = normalise([
+            l.direction[0] + toEye[0],
+            l.direction[1] + toEye[1],
+            l.direction[2] + toEye[2],
+          ]);
+          specular += l.strength * shape.shine * Math.pow(Math.max(0, dot(n, half)), exponent);
+        }
+      }
+      for (let k = 0; k < 3; k++) lit[v * 3 + k] = base[k]! * diffuse + specular;
+    }
+
+    const triangles = index ? index.length / 3 : count / 3;
+    for (let t = 0; t < triangles; t++) {
+      const a = index ? index[t * 3]! : t * 3;
+      const b = index ? index[t * 3 + 1]! : t * 3 + 1;
+      const c = index ? index[t * 3 + 2]! : t * 3 + 2;
+      if (iz[a] === 0 || iz[b] === 0 || iz[c] === 0) continue; // behind the camera
+      const area = (sx[b]! - sx[a]!) * (sy[c]! - sy[a]!) - (sy[b]! - sy[a]!) * (sx[c]! - sx[a]!);
+      if (area === 0 || !Number.isFinite(area)) continue;
+      const x0 = Math.max(0, Math.floor(Math.min(sx[a]!, sx[b]!, sx[c]!)));
+      const x1 = Math.min(W - 1, Math.ceil(Math.max(sx[a]!, sx[b]!, sx[c]!)));
+      const y0 = Math.max(0, Math.floor(Math.min(sy[a]!, sy[b]!, sy[c]!)));
+      const y1 = Math.min(H - 1, Math.ceil(Math.max(sy[a]!, sy[b]!, sy[c]!)));
+      for (let y = y0; y <= y1; y++) {
+        const py = y + 0.5;
+        for (let x = x0; x <= x1; x++) {
+          const px = x + 0.5;
+          const wa = ((sx[b]! - px) * (sy[c]! - py) - (sy[b]! - py) * (sx[c]! - px)) / area;
+          const wb = ((sx[c]! - px) * (sy[a]! - py) - (sy[c]! - py) * (sx[a]! - px)) / area;
+          const wc = 1 - wa - wb;
+          if (wa < 0 || wb < 0 || wc < 0) continue;
+          const z = wa * iz[a]! + wb * iz[b]! + wc * iz[c]!;
+          const at = y * W + x;
+          if (z <= depth[at]!) continue;
+          const ka = (wa * iz[a]!) / z;
+          const kb = (wb * iz[b]!) / z;
+          const kc = (wc * iz[c]!) / z;
+          for (let k = 0; k < 3; k++) {
+            const value = ka * lit[a * 3 + k]! + kb * lit[b * 3 + k]! + kc * lit[c * 3 + k]!;
+            colour[at * 3 + k] =
+              alpha >= 0.999 ? value : colour[at * 3 + k]! * (1 - alpha) + value * alpha;
+          }
+          if (alpha >= 0.999) depth[at] = z;
+        }
+      }
+    }
+  }
+
+  const data = new Uint8ClampedArray(options.width * options.height * 4);
+  for (let y = 0; y < options.height; y++) {
+    for (let x = 0; x < options.width; x++) {
+      const out = (y * options.width + x) * 4;
+      for (let k = 0; k < 3; k++) {
+        let sum = 0;
+        for (let dy = 0; dy < ss; dy++) {
+          for (let dx = 0; dx < ss; dx++) sum += colour[((y * ss + dy) * W + x * ss + dx) * 3 + k]!;
+        }
+        data[out + k] = Math.round(Math.min(1, Math.max(0, sum / (ss * ss))) * 255);
+      }
+      data[out + 3] = 255;
+    }
+  }
+  return { width: options.width, height: options.height, data };
+}

@@ -49,6 +49,8 @@ export interface CheckResult {
   dance: Stmt[] | undefined;
   /** The creature reads `time`, `beat` or `music` outside its background and dance (section 16). */
   live: boolean;
+  /** The background reads `time`, `beat` or `music`, so it changes while it's shown. */
+  backgroundLive: boolean;
   usesRandom: boolean;
 }
 
@@ -70,6 +72,7 @@ export function check(text: string): CheckResult {
     background: checker.background,
     dance: checker.dance,
     live: checker.live,
+    backgroundLive: checker.backgroundLive,
     usesRandom: checker.usesRandom,
   };
 }
@@ -188,6 +191,7 @@ class Checker {
   background: Stmt[] | undefined;
   dance: Stmt[] | undefined;
   live = false;
+  backgroundLive = false;
   usesRandom = false;
   private randomSpan: Span | undefined;
   private readonly fullNames = new Set<string>();
@@ -1086,7 +1090,7 @@ class Checker {
       }
       case "Time":
       case "Beat":
-        if (ctx.section === "creature") this.live = true;
+        this.markLive(ctx);
         return "number";
       case "Music":
         if (!MUSIC_FIELDS.has(expr.field)) {
@@ -1095,7 +1099,7 @@ class Checker {
             `\`music\` has no \`${expr.field}\`. It has \`bass\`, \`mid\`, \`high\`, \`level\` and \`hit\`.`,
           );
         }
-        if (ctx.section === "creature") this.live = true;
+        this.markLive(ctx);
         return "number";
       case "Vector":
         for (const e of [expr.x, expr.y, expr.z]) {
@@ -1152,6 +1156,11 @@ class Checker {
       case "ErrorExpr":
         return "unknown";
     }
+  }
+
+  private markLive(ctx: Ctx): void {
+    if (ctx.section === "creature") this.live = true;
+    else if (ctx.section === "background") this.backgroundLive = true;
   }
 
   private checkName(name: string, span: Span, ctx: Ctx): StaticType {

@@ -1,13 +1,26 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/core" },
-    { "path": "packages/render" },
-    { "path": "packages/music" },
-    { "path": "packages/dance" },
-    { "path": "packages/blocks" },
-    { "path": "packages/app" },
-    { "path": "packages/cli" },
-    { "path": "packages/vscode" }
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/render"
+    },
+    {
+      "path": "packages/music"
+    },
+    {
+      "path": "packages/dance"
+    },
+    {
+      "path": "packages/blocks"
+    },
+    {
+      "path": "packages/cli"
+    },
+    {
+      "path": "packages/vscode"
+    }
   ]
 }
