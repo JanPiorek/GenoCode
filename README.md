@@ -20,6 +20,8 @@ gene twist  = 29  in 0..180         // how far each ring turns from the last
 
 **Status:** early development. Nothing is usable yet.
 
+The language is defined in [docs/LANGUAGE.md](docs/LANGUAGE.md).
+
 ## Repository layout
 
 | Folder            | Contents                                                           |

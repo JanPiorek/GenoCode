@@ -1,3 +1,3 @@
 # Documentation
 
-The GenoCode language reference and guides will go here.
+- [The GenoCode language](LANGUAGE.md): the definition of the language.
