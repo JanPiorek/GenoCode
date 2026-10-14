@@ -1,0 +1,22 @@
+{
+  "name": "@genocode/blocks",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The GenoCode block editor: Blockly blocks to and from the syntax tree.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@genocode/core": "0.0.0"
+  }
+}
