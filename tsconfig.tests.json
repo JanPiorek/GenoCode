@@ -8,5 +8,5 @@
     "types": ["node"],
     "paths": { "@genocode/core": ["./packages/core/src/index.ts"] }
   },
-  "include": ["packages/core/src", "packages/cli/src"]
+  "include": ["packages/core/src", "packages/cli/src", "packages/agent/src"]
 }

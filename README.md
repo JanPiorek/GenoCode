@@ -32,6 +32,7 @@ The language is defined in [docs/LANGUAGE.md](docs/LANGUAGE.md).
 | `packages/dance`  | the dance effects: morph, zoom, spin, turn, reverse and flat       |
 | `packages/blocks` | the block editor                                                   |
 | `packages/app`    | the web app                                                        |
+| `packages/agent`  | an agent that designs creatures from a description, with Claude    |
 | `packages/cli`    | the `genie` command line                                           |
 | `packages/vscode` | VS Code extension and language server                              |
 | `creatures`       | the starter library of `.genie` creatures                          |
@@ -60,8 +61,17 @@ can edit it in any editor and see the changes.
 genie check creatures/Flower.genie          # report errors and warnings
 genie format --write creatures/*.genie      # put files in the standard layout
 genie genes creatures/Flower.genie          # list a creature's genes
-genie render creatures/Flower.genie out.png # draw it (--size=N, default 512)
+genie render creatures/Flower.genie out.png # draw it (--size=N, default 512; --time=T seconds)
+genie create "a torus with four ribbons"   # design a creature with Claude
 ```
+
+**Designing creatures with Claude:** `genie create <description>` hands the description to an agent
+(`packages/agent`) that writes the creature, checks it, draws it at a few moments to see how it
+looks and moves, fixes what's wrong and saves it as `<Name>.genie` (or `--out=FILE`; it never
+replaces a file unless you add `--force`). Progress goes to stderr, and Claude's summary of the
+creature to stdout. It uses Claude Opus 5.5 by default (`--model=…` to change it) and needs
+Claude API credentials: set `ANTHROPIC_API_KEY`, or run `ant auth login` once. A creature can
+take a few minutes, and each run is billed as API usage.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 
