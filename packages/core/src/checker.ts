@@ -173,6 +173,46 @@ function describeSym(kind: SymbolKind): string {
   }
 }
 
+/** The blocks inside a statement, each with whether the turtle is put back at its end. */
+function nestedBlocks(s: Stmt): [Block, boolean][] {
+  switch (s.kind) {
+    case "Branch":
+    case "Symmetric":
+      return [[s.block, true]];
+    case "Repeat":
+    case "For":
+    case "While":
+      return [[s.block, false]];
+    case "If":
+      return [
+        ...s.branches.map((b): [Block, boolean] => [b.block, false]),
+        ...(s.elseBlock ? [[s.elseBlock, false] as [Block, boolean]] : []),
+      ];
+    default:
+      return [];
+  }
+}
+
+/** The statement might lay a shape (or leave the block, for `return`). */
+function mayLay(s: Stmt): boolean {
+  if (s.kind === "Lay" || s.kind === "PartCall" || s.kind === "Return") return true;
+  return nestedBlocks(s).some(([block]) => block.items.some(mayLay));
+}
+
+/**
+ * The statements move, turn, grow or mirror the turtle where it isn't put back: outside any
+ * `branch` or `symmetric`, directly or through a part call.
+ */
+function movesTurtle(items: Stmt[], partMoves: (name: string) => boolean): boolean {
+  return items.some((s) => {
+    if (s.kind === "Command" || s.kind === "Rotate" || s.kind === "Mirror") return true;
+    if (s.kind === "PartCall") return partMoves(s.name);
+    return nestedBlocks(s).some(
+      ([block, putBack]) => !putBack && movesTurtle(block.items, partMoves),
+    );
+  });
+}
+
 function capitalise(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -310,6 +350,66 @@ class Checker {
         }
       }
     }
+
+    this.warnUnusedShapes(items, true);
+    for (const part of this.parts.values()) this.warnUnusedShapes(part.body.items, false);
+    this.warnUnbranchedCalls(items);
+  }
+
+  // ---------- warnings: code that builds, but rarely does what it says ----------
+
+  /**
+   * A `shape` with nothing laid before the shape is set again, or before the end of a block that
+   * puts the turtle back (a branch, a symmetric body or the creature itself), is never used: usually
+   * it was meant to come before a `lay`. `atEnd` is whether that holds for the end of `items`. Loop
+   * bodies, `if` blocks and parts pass the shape on, so their ends don't count.
+   */
+  private warnUnusedShapes(items: Stmt[], atEnd: boolean): void {
+    let pending: Stmt | undefined;
+    const unused = (s: Stmt) =>
+      this.warn(
+        s.span,
+        "This `shape` is never used: nothing is laid before the shape changes or the turtle is " +
+          "put back. Set the shape before the `lay` it's for.",
+      );
+    for (const item of items) {
+      if (item.kind === "Material" && item.property === "shape") {
+        if (pending) unused(pending);
+        pending = item;
+        continue;
+      }
+      for (const [block, ends] of nestedBlocks(item)) this.warnUnusedShapes(block.items, ends);
+      if (mayLay(item)) pending = undefined;
+    }
+    if (pending && atEnd) unused(pending);
+  }
+
+  /**
+   * A part call doesn't put the turtle back (section 10), so a part that moves or turns it, called
+   * among the creature's top-level statements, moves everything after it too. It's legal, but in a
+   * creature built from separate pieces it's usually a missing `branch`.
+   */
+  private warnUnbranchedCalls(items: Stmt[]): void {
+    const moves = new Map<string, boolean>();
+    const partMoves = (name: string): boolean => {
+      const known = moves.get(name);
+      if (known !== undefined) return known;
+      const part = this.parts.get(name);
+      moves.set(name, false); // a part that calls itself doesn't move because of that call
+      const result = part !== undefined && movesTurtle(part.body.items, partMoves);
+      moves.set(name, result);
+      return result;
+    };
+    items.forEach((item, i) => {
+      if (item.kind !== "PartCall" || !partMoves(item.name)) return;
+      if (!items.slice(i + 1).some(mayLay)) return;
+      this.warn(
+        item.span,
+        `\`${item.name}\` moves or turns the turtle and a part call doesn't put it back, so ` +
+          `everything after this starts where \`${item.name}\` ends. If it should start from ` +
+          `here, put the call in a \`branch { … }\`.`,
+      );
+    });
   }
 
   private checkDefinition(def: PartDecl | FunctionDecl, all: Scope): void {

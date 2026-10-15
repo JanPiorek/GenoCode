@@ -916,7 +916,13 @@ changes shape at the halfway point.
 
 1. **Checking.** The file is read and checked: syntax, names, gene rules, function rules, and types
    wherever they can be known without running the program. Problems are reported with a line and
-   column. Errors stop the build; warnings don't.
+   column. Errors stop the build; warnings don't. Besides the warnings given elsewhere, the checker
+   warns about two things that build but rarely mean what they say:
+   - a `shape` with nothing laid before the shape is set again, or before the end of the creature,
+     a `branch` or a `symmetric` body. It usually belongs before the `lay` it was meant for.
+   - a part call among the creature's top-level statements, followed by more of them that may lay
+     shapes, when the part moves, turns, grows or mirrors the turtle outside a `branch`. Everything
+     after the call starts where the part ended; a `branch` around the call stops that.
 2. **Building.** The top-level statements run once, from the top, with the creature's gene values
    and the current time and music inputs. Every `lay` adds one shape. The result is a list of
    shapes, each with its placement, shape, colour, shine, sharpness and texture.

@@ -185,3 +185,54 @@ describe("checker: statements and types", () => {
     expect(withBackground.backgroundLive).toBe(true);
   });
 });
+
+/** Warning messages from checking a creature body. */
+function warnings(body: string): string[] {
+  return check(`creature Test\n${body}\n`)
+    .diagnostics.filter((d) => d.severity === "warning")
+    .map((d) => d.message);
+}
+
+describe("checker: warnings", () => {
+  it("warns about a shape that nothing is laid with", () => {
+    expect(warnings("branch {\n  lay\n  shape cone\n}")).toEqual([
+      expect.stringContaining("`shape` is never used"),
+    ]);
+    expect(warnings("shape cone\nshape cube\nlay")).toHaveLength(1);
+    expect(warnings("lay\nshape cone")).toHaveLength(1);
+  });
+
+  it("lets a shape carry on into a loop, an if, a part call or the caller", () => {
+    expect(warnings("shape cone\nlay")).toEqual([]);
+    expect(warnings("repeat 3 {\n  lay\n  shape cone\n}")).toEqual([]);
+    expect(warnings("shape cone\nif true {\n  lay\n}")).toEqual([]);
+    expect(warnings("shape cone\nleg\npart leg {\n  lay\n}")).toEqual([]);
+    expect(warnings("leg\nlay\npart leg {\n  shape cone\n}")).toEqual([]);
+  });
+
+  it("warns about a top-level part call that moves everything after it", () => {
+    const tail = "part tail {\n  yaw 180\n  forward 1\n  lay\n}";
+    expect(warnings(`tail\nlay\n${tail}`)).toEqual([
+      expect.stringContaining("put the call in a `branch"),
+    ]);
+    // Through another part, and inside a loop or an if in the part.
+    expect(
+      warnings(`tail2\nlay\npart tail2 {\n  if true {\n    tail\n  }\n}\n${tail}`),
+    ).toHaveLength(1);
+  });
+
+  it("doesn't warn about part calls that are branched, last, or put the turtle back", () => {
+    const tail = "part tail {\n  yaw 180\n  forward 1\n  lay\n}";
+    expect(warnings(`branch {\n  tail\n}\nlay\n${tail}`)).toEqual([]);
+    expect(warnings(`lay\ntail\n${tail}`)).toEqual([]);
+    expect(warnings(`tail\nlet a = 1\n${tail}`)).toEqual([]);
+    expect(warnings("leg\nlay\npart leg {\n  branch {\n    forward 1\n    lay\n  }\n}")).toEqual(
+      [],
+    );
+    expect(warnings("leg\nlay\npart leg {\n  colour red\n  lay\n}")).toEqual([]);
+    expect(
+      warnings("repeat 3 {\n  segment\n}\nlay\npart segment {\n  forward 1\n  lay\n}"),
+    ).toEqual([]);
+    expect(warnings("loop\nlay\npart loop {\n  loop\n}")).toEqual([]);
+  });
+});
