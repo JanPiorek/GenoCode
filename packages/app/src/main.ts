@@ -1,18 +1,14 @@
-// The GenoCode viewer: open a .genie file and see the creature. Files opened from disk are watched
-// where the browser allows it (Chromium-based browsers), so saving in another editor updates the view.
+// The GenoCode app. View: open a .genie file and see the creature; files opened from disk are
+// watched where the browser allows it (Chromium-based browsers), so saving in another editor
+// updates the view. Breed: a grid of variations to mutate and breed. Morph: a loop blending
+// creatures into one another. Save writes the creature with its gene values filled in.
 
-import {
-  build,
-  buildBackground,
-  check,
-  formatValue,
-  toRgb,
-  type CheckResult,
-  type Diagnostic,
-  type GeneInfo,
-  type Value,
-} from "@genocode/core";
+import { check, writeGenes, type CheckResult, type Diagnostic } from "@genocode/core";
 import { CreatureView } from "@genocode/render";
+import { Breeder } from "./breed.js";
+import { breedable, buildCreature, fromProgram, type Creature } from "./creature.js";
+import { Morpher } from "./morph.js";
+import { showGenes, showInfo, showProblems, showStatus } from "./panel.js";
 
 // The starter creatures in the repository's creatures/ folder.
 const examples = import.meta.glob("../../../creatures/*.genie", {
@@ -23,126 +19,212 @@ const examples = import.meta.glob("../../../creatures/*.genie", {
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
-const view = new CreatureView($<HTMLCanvasElement>("view"));
+const canvas = $<HTMLCanvasElement>("view");
+const grid = $("grid");
+const view = new CreatureView(canvas);
 const exampleSelect = $<HTMLSelectElement>("examples");
 const fileInput = $<HTMLInputElement>("file-input");
 const watching = $("watching");
 
+type Mode = "view" | "breed" | "morph";
+let mode: Mode = "view";
+
+/** The latest text, as checked, whether or not it has errors. */
 let program: CheckResult | undefined;
-let lastGood: CheckResult | undefined;
+/** The creature in the full view: the last version without errors, with its gene values. */
+let current: Creature | undefined;
 let started = performance.now();
 let liveFrame = 0;
 let watchTimer = 0;
 
-// ---------- showing a creature ----------
+// ---------- view ----------
 
+/** Shows new text. Keeps showing the last good version while the text has errors. */
 function show(text: string, keepView: boolean): void {
   program = check(text);
-  if (program.ok && program.file.kind === "creature") lastGood = program;
+  // While a watched file is being edited, keep showing its last version without errors.
+  if (breedable(program)) current = fromProgram(program);
+  else if (!keepView) current = undefined;
   showInfo(program);
+  started = performance.now();
+  enableTools();
+  if (mode === "breed" && current) breeder.start(current, strength());
+  if (mode === "morph" && current) startMorph();
+  if (mode === "view") showCurrent(keepView);
+}
+
+/** Shows the current creature in the full view. Creatures that read time are rebuilt every frame. */
+function showCurrent(keepView: boolean): void {
   cancelAnimationFrame(liveFrame);
-  if (lastGood === undefined) {
+  if (!current) {
     view.setCreature([]);
     view.setBackground(undefined);
-    showProblems([], 0, false);
+    showProblems(program!, program!.diagnostics);
+    showGenes(program?.genes ?? [], new Map());
+    showStatus("");
     return;
   }
-  started = performance.now();
-  draw(lastGood, keepView);
+  showGenes(current.program.genes, current.values);
+  const c = current;
+  const frame = (keep: boolean) => {
+    const live = c.program.live || c.program.backgroundLive;
+    const { built, background } = buildCreature(c, (performance.now() - started) / 1000);
+    view.setCreature(built.shapes, keep);
+    view.setBackground(background);
+    report(built.diagnostics, built.shapes.length, live);
+    if (live) liveFrame = requestAnimationFrame(() => frame(true));
+  };
+  frame(keepView);
 }
 
-/** Builds and shows a creature. Creatures that read time are rebuilt every frame (music stays 0 for now). */
-function draw(p: CheckResult, keepView: boolean): void {
-  const live = p.live || p.backgroundLive;
-  const inputs = live ? { time: (performance.now() - started) / 1000 } : {};
-  const built = build(p, { inputs });
-  view.setCreature(built.shapes, keepView);
-  view.setBackground(buildBackground(p, { inputs }).fill);
-  showProblems(built.diagnostics, built.shapes.length, live);
-  if (live) liveFrame = requestAnimationFrame(() => draw(p, true));
-}
-
-// ---------- the side panel ----------
-
-function lineCol(p: CheckResult, d: Diagnostic): string {
-  const at = p.lines.position(d.span.start);
-  return `${at.line}:${at.column}`;
-}
-
-function problemItem(p: CheckResult, d: Diagnostic): HTMLLIElement {
-  const li = document.createElement("li");
-  li.className = d.severity;
-  const where = document.createElement("span");
-  where.className = "where";
-  where.textContent = lineCol(p, d);
-  li.append(where, d.message);
-  return li;
-}
-
-function showInfo(p: CheckResult): void {
-  const file = p.file;
-  $("name").textContent = file.name || "Untitled";
-  $("description").textContent = file.description
-    .map((c) => c.text.replace(/^\/\/\s?/, ""))
-    .join(" ");
-  showGenes(p.genes);
-}
-
-/** Lists the problems in the latest text, and in building what's on show. */
-function showProblems(buildProblems: Diagnostic[], shapeCount: number, live: boolean): void {
+/** Lists problems and says what's on show. */
+function report(buildProblems: Diagnostic[], shapeCount: number, live: boolean): void {
   const latest = program!;
-  const current = latest === lastGood;
-  const all = [...latest.diagnostics, ...(current ? buildProblems : [])];
-  $("problems").replaceChildren(...all.map((d) => problemItem(latest, d)));
-  $("problems-section").hidden = all.length === 0;
-  const stale =
-    lastGood !== undefined && !current ? " · showing the last version without errors" : "";
+  const fresh = current?.program === latest;
+  showProblems(latest, [...latest.diagnostics, ...(fresh ? buildProblems : [])]);
+  const stale = current && !fresh ? " · showing the last version without errors" : "";
   const shapes = `${shapeCount} shape${shapeCount === 1 ? "" : "s"}`;
-  $("status").textContent = `${shapes} · ${live ? "moves with time" : "still"}${stale}`;
+  showStatus(`${shapes} · ${live ? "moves with time" : "still"}${stale}`);
 }
 
-function swatch(v: Value): HTMLElement | string {
-  if (typeof v !== "object" || v.type !== "colour") return "";
-  const [r, g, b] = toRgb(v);
-  const s = document.createElement("span");
-  s.className = "swatch";
-  s.style.background = `rgb(${r * 255} ${g * 255} ${b * 255})`;
-  return s;
+// ---------- modes ----------
+
+const breeder = new Breeder(grid, {
+  inspect(c) {
+    showGenes(c.program.genes, c.values);
+    enableTools();
+  },
+  open(c) {
+    current = c;
+    setMode("view");
+  },
+});
+
+let lastPanel = 0;
+const morpher = new Morpher(view, (f) => {
+  if (performance.now() - lastPanel < 200) return;
+  lastPanel = performance.now();
+  showGenes(f.creature.program.genes, f.creature.values);
+  $("morph-hint").textContent =
+    `Creature ${f.index + 1} → ${((f.index + 1) % morpher.count) + 1} of ${morpher.count}`;
+  showProblems(f.creature.program, f.problems);
+});
+
+function setMode(next: Mode): void {
+  mode = next;
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
+    b.setAttribute("aria-pressed", String(b.dataset["mode"] === mode));
+  }
+  $("view-tools").hidden = mode !== "view";
+  $("breed-tools").hidden = mode !== "breed";
+  $("morph-tools").hidden = mode !== "morph";
+  canvas.hidden = mode === "breed";
+  grid.hidden = mode !== "breed";
+  cancelAnimationFrame(liveFrame);
+  morpher.stop();
+  if (mode === "view") showCurrent(false);
+  if (mode === "breed" && current) {
+    if (!breeder.holds(current)) breeder.start(current, strength());
+    else breeder.render();
+    showGenes(current.program.genes, current.values);
+  }
+  if (mode === "morph") startMorph();
+  enableTools();
 }
 
-function rangeText(g: GeneInfo): string {
-  if (g.options) return `one of ${g.options.map(formatValue).join(", ")}`;
-  if (g.kind === "bool") return "true or false";
-  if (g.kind === "colour")
-    return g.hue?.whole ? "any hue" : `hues ${g.hue!.start}° + ${g.hue!.length}°`;
-  if (g.min === undefined || g.max === undefined) return "";
-  let text = `${formatValue(g.min)} to ${formatValue(g.max)}`;
-  if (g.step !== undefined) text += `, steps of ${g.step}`;
-  if (g.log) text += ", by ratios";
-  return text;
+/** Morphs through the creatures chosen in the grid, or the whole grid, or variations of the current one. */
+function startMorph(): void {
+  if (!current) return;
+  let members = breeder.selection;
+  if (members.length < 2 && breeder.holds(current)) members = [...breeder.creatures];
+  if (members.length < 2) {
+    breeder.start(current, 0.5);
+    members = breeder.creatures.slice(0, 6);
+  }
+  morpher.start(members);
 }
 
-function showGenes(genes: GeneInfo[]): void {
-  const table = $("genes");
-  table.replaceChildren(
-    ...genes.map((g) => {
-      const row = document.createElement("tr");
-      const name = document.createElement("td");
-      name.className = "gene-name";
-      name.textContent = g.fullName;
-      const about = document.createElement("div");
-      about.className = "gene-about";
-      about.textContent = [g.description, rangeText(g)].filter(Boolean).join(" · ");
-      name.append(about);
-      const value = document.createElement("td");
-      value.className = "gene-value";
-      value.append(swatch(g.value), g.kind === "colour" ? "" : formatValue(g.value));
-      row.append(name, value);
-      return row;
-    }),
-  );
-  $("no-genes").hidden = genes.length > 0;
+function strength(): number {
+  return Number($<HTMLInputElement>("strength").value);
 }
+
+function enableTools(): void {
+  const ok = current !== undefined;
+  for (const b of document.querySelectorAll<HTMLButtonElement>(
+    "[data-mode=breed], [data-mode=morph]",
+  )) {
+    b.disabled = !ok;
+  }
+  $<HTMLButtonElement>("save").disabled = !ok;
+  const chosen = breeder.selection.length;
+  $<HTMLButtonElement>("mutate").disabled = chosen < 1;
+  $<HTMLButtonElement>("breed").disabled = chosen < 2;
+  $<HTMLButtonElement>("back").disabled = !breeder.canGoBack;
+  $("breed-hint").textContent =
+    chosen === 0
+      ? "Click creatures to choose parents · double-click to open one"
+      : `${chosen} parent${chosen === 1 ? "" : "s"} chosen`;
+}
+
+for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
+  b.addEventListener("click", () => setMode(b.dataset["mode"] as Mode));
+}
+
+$("mutate").addEventListener("click", () => {
+  breeder.mutateSelection(strength(), keepParents());
+  enableTools();
+});
+$("breed").addEventListener("click", () => {
+  breeder.breedSelection(keepParents());
+  enableTools();
+});
+$("back").addEventListener("click", () => {
+  breeder.back();
+  enableTools();
+});
+const keepParents = () => $<HTMLInputElement>("keep").checked;
+
+$("play").addEventListener("click", () => {
+  morpher.playing = !morpher.playing;
+  $("play").textContent = morpher.playing ? "Pause" : "Play";
+});
+$<HTMLInputElement>("speed").addEventListener("input", (e) => {
+  morpher.secondsEach = Number((e.target as HTMLInputElement).value);
+});
+
+// ---------- saving ----------
+
+type SaveWindow = Window & {
+  showSaveFilePicker?: (options: object) => Promise<{
+    createWritable(): Promise<{ write(data: string): Promise<void>; close(): Promise<void> }>;
+  }>;
+};
+
+$("save").addEventListener("click", async () => {
+  if (!current) return;
+  const text = writeGenes(current.program, current.values);
+  const name = `${current.program.file.name || "Creature"}.genie`;
+  const picker = (window as SaveWindow).showSaveFilePicker;
+  if (picker) {
+    try {
+      const handle = await picker({
+        suggestedName: name,
+        types: [{ description: "GenoCode creatures", accept: { "text/plain": [".genie"] } }],
+      });
+      const out = await handle.createWritable();
+      await out.write(text);
+      await out.close();
+    } catch {
+      // The picker was closed.
+    }
+    return;
+  }
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+  link.download = name;
+  link.click();
+  URL.revokeObjectURL(link.href);
+});
 
 // ---------- opening files ----------
 

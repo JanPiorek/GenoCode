@@ -11,4 +11,4 @@ export {
   type CameraPlacement,
 } from "./look.js";
 export { rasterize, type Image, type RasterOptions } from "./software.js";
-export { CreatureView } from "./webgl.js";
+export { CreatureView, Thumbnails } from "./webgl.js";

@@ -1,5 +1,5 @@
 // The GenoCode language: lexer, parser, checker, formatter and interpreter
-// (docs/LANGUAGE.md). Genetics is added in roadmap phase 3.
+// (docs/LANGUAGE.md), and genetics: mutating, breeding and morphing genes.
 
 /** The file extension for GenoCode files. */
 export const FILE_EXTENSION = ".genie";
@@ -22,6 +22,19 @@ export {
   type MusicInputs,
 } from "./interpreter.js";
 export type { GeneInfo, GeneKind, GeneSection, HueArc } from "./genes.js";
+export {
+  breed,
+  geneLiteral,
+  morph,
+  mutate,
+  valuesOf,
+  writeGenes,
+  type GeneSet,
+  type GeneticsOptions,
+  type GeneValues,
+  type MutateOptions,
+} from "./genetics.js";
+export { mulberry32 } from "./noise.js";
 export {
   BUILTIN_CONSTANTS,
   BUILTIN_FUNCTIONS,

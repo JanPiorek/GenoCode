@@ -53,6 +53,15 @@ starter creatures in `creatures/`, or open or drop any `.genie` file. Starter cr
 soon as you save them. In Chromium-based browsers, a file opened from disk is watched too, so you
 can edit it in any editor and see the changes.
 
+The app has three modes:
+
+- **View** shows one creature, with its genes. Lock a gene (🔓) to keep it fixed while breeding,
+  and **Save…** writes the creature, with its gene values filled in, as a `.genie` file.
+- **Breed** shows a grid of variations. Click creatures to choose them as parents, then **Mutate**
+  (the strength sets how far genes move) or **Breed** (children of random pairs of parents).
+  **Back** returns to the previous generation, and double-clicking a creature opens it in View.
+- **Morph** blends through the chosen creatures (or the whole grid) in a loop.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 
 ## Related repositories

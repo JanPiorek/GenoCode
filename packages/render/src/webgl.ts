@@ -1,5 +1,6 @@
-// Shows a creature in the browser with three.js: one instanced mesh per kind of shape, with each
-// shape's colour, alpha, shine and sharpness carried per instance.
+// Shows creatures in the browser with three.js: one instanced mesh per kind of shape, with each
+// shape's colour, alpha, shine and sharpness carried per instance. `CreatureView` is the full,
+// interactive view; `Thumbnails` draws many small pictures with one renderer.
 
 import { toRgb, type LaidShape, type ShapeName, type Value } from "@genocode/core";
 import {
@@ -20,8 +21,14 @@ import {
   type WebGLProgramParametersWithUniforms,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { creatureBounds, shapeGeometry } from "./geometry.js";
-import { backgroundRamp, FIELD_OF_VIEW, frameCamera, LIGHTS } from "./look.js";
+import { creatureBounds, shapeGeometry, type Detail } from "./geometry.js";
+import {
+  backgroundRamp,
+  FIELD_OF_VIEW,
+  frameCamera,
+  LIGHTS,
+  type CameraPlacement,
+} from "./look.js";
 
 /** Adds per-instance shine (x), sharpness (y) and alpha (z) to the Phong material. */
 function addInstanceLook(shader: WebGLProgramParametersWithUniforms): void {
@@ -61,21 +68,15 @@ function makeMaterial(transparent: boolean): MeshPhongMaterial {
 /** Light strengths in three are scaled by π compared with the software renderer's. */
 const LIGHT_SCALE = Math.PI;
 
-export class CreatureView {
-  readonly renderer: WebGLRenderer;
-  readonly camera = new PerspectiveCamera(FIELD_OF_VIEW, 1, 0.1, 1000);
-  private readonly scene = new Scene();
+/** The scene both views draw: lights, the creature's shapes and the background. */
+class CreatureScene {
+  readonly scene = new Scene();
   private readonly creature = new Group();
-  private readonly controls: OrbitControls;
   private readonly opaque = makeMaterial(false);
   private readonly seeThrough = makeMaterial(true);
-  private readonly resizeObserver: ResizeObserver;
-  private shapes: readonly LaidShape[] = [];
-  private frameRequested = false;
+  shapes: readonly LaidShape[] = [];
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
-    this.renderer = new WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+  constructor() {
     this.scene.add(this.creature);
     this.scene.add(new AmbientLight(0xffffff, LIGHTS.ambient * LIGHT_SCALE));
     for (const l of [LIGHTS.key, LIGHTS.fill]) {
@@ -83,17 +84,10 @@ export class CreatureView {
       light.position.set(...l.direction);
       this.scene.add(light);
     }
-    this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.enableDamping = true;
-    this.controls.addEventListener("change", () => this.requestFrame());
-    this.resizeObserver = new ResizeObserver(() => this.resize());
-    this.resizeObserver.observe(canvas);
     this.setBackground(undefined);
-    this.resize();
   }
 
-  /** Replaces the creature on show. With `keepView`, the camera stays where the viewer left it. */
-  setCreature(shapes: readonly LaidShape[], keepView = false): void {
+  setCreature(shapes: readonly LaidShape[], detail: Detail): void {
     for (const child of [...this.creature.children]) {
       this.creature.remove(child);
       const mesh = child as InstancedMesh;
@@ -113,7 +107,7 @@ export class CreatureView {
     for (const [key, members] of groups) {
       const [shape, mirrored, transparent] = key.split("/");
       const mesh = new InstancedMesh(
-        shapeGeometry(shape as ShapeName, mirrored === "true"),
+        shapeGeometry(shape as ShapeName, mirrored === "true", detail),
         transparent === "true" ? this.seeThrough : this.opaque,
         members.length,
       );
@@ -132,11 +126,9 @@ export class CreatureView {
       mesh.computeBoundingSphere();
       this.creature.add(mesh);
     }
-    if (!keepView) this.resetView();
-    this.requestFrame();
   }
 
-  /** Shows a background's fill: a colour, a gradient, or (until patterns exist) a tinted default. */
+  /** A background's fill: a colour, a gradient, or (until patterns exist) a tinted default. */
   setBackground(fill: Value | undefined): void {
     const rows = 256;
     const ramp = backgroundRamp(fill, rows);
@@ -155,17 +147,63 @@ export class CreatureView {
     const old = this.scene.background;
     this.scene.background = texture;
     if (old && "dispose" in old) old.dispose();
+  }
+
+  /** Points the camera at the whole creature, from the front and a little above. */
+  frame(camera: PerspectiveCamera, aspect: number): CameraPlacement {
+    const placement = frameCamera(creatureBounds(this.shapes), aspect);
+    camera.position.set(...placement.position);
+    camera.near = placement.near / 4;
+    camera.far = placement.far * 4;
+    camera.aspect = aspect;
+    camera.lookAt(...placement.target);
+    camera.updateProjectionMatrix();
+    return placement;
+  }
+
+  dispose(): void {
+    this.setCreature([], "low");
+    this.opaque.dispose();
+    this.seeThrough.dispose();
+  }
+}
+
+export class CreatureView {
+  readonly renderer: WebGLRenderer;
+  readonly camera = new PerspectiveCamera(FIELD_OF_VIEW, 1, 0.1, 1000);
+  private readonly look = new CreatureScene();
+  private readonly controls: OrbitControls;
+  private readonly resizeObserver: ResizeObserver;
+  private frameRequested = false;
+
+  constructor(private readonly canvas: HTMLCanvasElement) {
+    this.renderer = new WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.controls = new OrbitControls(this.camera, canvas);
+    this.controls.enableDamping = true;
+    this.controls.addEventListener("change", () => this.requestFrame());
+    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.resizeObserver.observe(canvas);
+    this.resize();
+  }
+
+  /** Replaces the creature on show. With `keepView`, the camera stays where the viewer left it. */
+  setCreature(shapes: readonly LaidShape[], keepView = false): void {
+    this.look.setCreature(shapes, "high");
+    if (!keepView) this.resetView();
+    this.requestFrame();
+  }
+
+  /** Shows a background's fill: a colour, a gradient, or (until patterns exist) a tinted default. */
+  setBackground(fill: Value | undefined): void {
+    this.look.setBackground(fill);
     this.requestFrame();
   }
 
   /** Frames the whole creature, seen from the front and a little above. */
   resetView(): void {
     const aspect = this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight);
-    const placement = frameCamera(creatureBounds(this.shapes), aspect);
-    this.camera.position.set(...placement.position);
-    this.camera.near = placement.near / 4;
-    this.camera.far = placement.far * 4;
-    this.camera.updateProjectionMatrix();
+    const placement = this.look.frame(this.camera, aspect);
     this.controls.target.set(...placement.target);
     this.controls.minDistance = 0;
     this.controls.maxDistance =
@@ -191,16 +229,53 @@ export class CreatureView {
       this.frameRequested = false;
       // Damping keeps the view moving for a moment after the mouse lets go.
       if (this.controls.update()) this.requestFrame();
-      this.renderer.render(this.scene, this.camera);
+      this.renderer.render(this.look.scene, this.camera);
     });
   }
 
   dispose(): void {
     this.resizeObserver.disconnect();
     this.controls.dispose();
-    for (const child of this.creature.children) (child as InstancedMesh).dispose();
-    this.opaque.dispose();
-    this.seeThrough.dispose();
+    this.look.dispose();
+    this.renderer.dispose();
+  }
+}
+
+/**
+ * Draws creatures into small 2D canvases, such as the tiles of a breeding grid, with one shared
+ * WebGL renderer: browsers only allow a few WebGL canvases at once. Shapes are drawn with less
+ * detail than in `CreatureView`, which is plenty at tile size and much quicker.
+ */
+export class Thumbnails {
+  private readonly renderer: WebGLRenderer;
+  private readonly camera = new PerspectiveCamera(FIELD_OF_VIEW, 1, 0.1, 1000);
+  private readonly look = new CreatureScene();
+
+  constructor() {
+    this.renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  }
+
+  /** Draws a creature and its background to fill `target`, at the target's own pixel size. */
+  draw(
+    target: HTMLCanvasElement,
+    shapes: readonly LaidShape[],
+    background: Value | undefined,
+  ): void {
+    const w = target.width;
+    const h = target.height;
+    if (w === 0 || h === 0) return;
+    this.renderer.setSize(w, h, false);
+    this.look.setCreature(shapes, "low");
+    this.look.setBackground(background);
+    this.look.frame(this.camera, w / h);
+    this.renderer.render(this.look.scene, this.camera);
+    const ctx = target.getContext("2d")!;
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(this.renderer.domElement, 0, 0, w, h);
+  }
+
+  dispose(): void {
+    this.look.dispose();
     this.renderer.dispose();
   }
 }

@@ -912,6 +912,16 @@ A morph through several creatures (a loop) is a chain of these morphs between ne
 and B share a program, a morph is smooth all the way; when their programs differ, the creature
 changes shape at the halfway point.
 
+### 19.4 Saving
+
+A creature that has been mutated, bred or morphed is saved as an ordinary creature file: its
+program, with each gene's new value written into the gene's line. Nothing else in the program
+changes, except that the file is laid out by the formatter, and a gene whose value hasn't changed
+keeps the text it was written with. The new values are written readably: stepped numbers exactly,
+other numbers to four significant figures, colours as `hsv(…)`, and choices by name, always within
+the gene's range. The automatic `seed` gene has no line of its own, so it isn't saved yet: a saved
+creature that uses `random` starts again from seed 0.
+
 ## 20. Building a creature
 
 1. **Checking.** The file is read and checked: syntax, names, gene rules, function rules, and types

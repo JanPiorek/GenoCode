@@ -20,12 +20,42 @@
       </label>
       <button id="open" type="button">Open file…</button>
       <input id="file-input" type="file" accept=".genie" hidden />
-      <button id="reset" type="button">Reset view</button>
+      <button id="save" type="button">Save…</button>
+      <nav class="modes" aria-label="Mode">
+        <button type="button" data-mode="view" aria-pressed="true">View</button>
+        <button type="button" data-mode="breed" aria-pressed="false">Breed</button>
+        <button type="button" data-mode="morph" aria-pressed="false">Morph</button>
+      </nav>
       <span id="watching" class="hint" hidden></span>
     </header>
 
     <main class="layout">
-      <canvas id="view" aria-label="The creature"></canvas>
+      <section class="stage">
+        <div class="tools" id="view-tools">
+          <button id="reset" type="button">Reset view</button>
+        </div>
+        <div class="tools" id="breed-tools" hidden>
+          <button id="mutate" type="button">Mutate</button>
+          <label class="field" title="How far genes move when they mutate">
+            <span>Strength</span>
+            <input id="strength" type="range" min="0.05" max="1" step="0.05" value="0.25" />
+          </label>
+          <button id="breed" type="button">Breed</button>
+          <label class="field"><input id="keep" type="checkbox" checked /> Keep parents</label>
+          <button id="back" type="button">Back</button>
+          <span id="breed-hint" class="hint"></span>
+        </div>
+        <div class="tools" id="morph-tools" hidden>
+          <button id="play" type="button">Pause</button>
+          <label class="field" title="Seconds from one creature to the next">
+            <span>Speed</span>
+            <input id="speed" type="range" min="0.5" max="10" step="0.5" value="3" />
+          </label>
+          <span id="morph-hint" class="hint"></span>
+        </div>
+        <canvas id="view" aria-label="The creature"></canvas>
+        <div id="grid" class="grid" hidden></div>
+      </section>
       <aside class="panel">
         <h1 id="name"></h1>
         <p id="description"></p>
