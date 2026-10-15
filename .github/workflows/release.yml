@@ -1,0 +1,27 @@
+name: Release
+
+# Publishes @genocode/core and @genocode/render to npm when a version tag (such as v0.2.0) is
+# pushed. Uses npm trusted publishing, so no npm token is stored in the repository: each package
+# lists this workflow as a trusted publisher in its settings on npmjs.com.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm publish -w @genocode/core -w @genocode/render

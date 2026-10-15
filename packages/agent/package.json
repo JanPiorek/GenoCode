@@ -18,8 +18,8 @@
   ],
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",
-    "@genocode/core": "0.0.0",
-    "@genocode/render": "0.0.0",
+    "@genocode/core": "0.1.0",
+    "@genocode/render": "0.1.0",
     "zod": "^4.6.7"
   }
 }

@@ -3,9 +3,11 @@
 // so it can be cached.
 
 import { readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 
-/** The repository root, found from this file (in `src` or `dist`, both two levels down). */
-const ROOT = new URL("../../../", import.meta.url);
+/** Finds files that ship with @genocode/core, so the agent teaches the language its core checks. */
+const resolve = createRequire(import.meta.url).resolve;
 
 const INSTRUCTIONS = `You design creatures in GenoCode, a small language for creatures built by a 3D turtle that lays \
 simple shapes. The user describes a creature; you write it as a .genie file, check it, look at it, \
@@ -39,12 +41,13 @@ fast things move. Each gene gets a sensible range and a short comment saying wha
 
 /** The language definition and every starter creature, in a stable order. */
 function reference(): string {
-  const spec = readFileSync(new URL("docs/LANGUAGE.md", ROOT), "utf8");
-  const dir = new URL("creatures/", ROOT);
+  const specFile = resolve("@genocode/core/LANGUAGE.md");
+  const spec = readFileSync(specFile, "utf8");
+  const dir = join(dirname(specFile), "creatures");
   const examples = readdirSync(dir)
     .filter((f) => f.endsWith(".genie"))
     .sort()
-    .map((f) => `<example file="${f}">\n${readFileSync(new URL(f, dir), "utf8")}</example>`);
+    .map((f) => `<example file="${f}">\n${readFileSync(join(dir, f), "utf8")}</example>`);
   return `<language>\n${spec}\n</language>\n\n<examples>\n${examples.join("\n\n")}\n</examples>`;
 }
 

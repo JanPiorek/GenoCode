@@ -13,3 +13,6 @@ coverage/
 
 # Local secrets
 ANTHROPIC_API_KEY.txt
+
+# Copied into @genocode/core from docs/ and creatures/ (packages/core/scripts/reference.mjs)
+packages/core/reference/

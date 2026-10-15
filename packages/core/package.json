@@ -1,9 +1,15 @@
 {
   "name": "@genocode/core",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "The GenoCode language: parser, checker, formatter, interpreter and genetics.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/genocode-org/GenoCode.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/genocode-org/GenoCode#readme",
+  "bugs": "https://github.com/genocode-org/GenoCode/issues",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,9 +17,21 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./LANGUAGE.md": "./reference/LANGUAGE.md",
+    "./creatures/*": "./reference/creatures/*"
   },
   "files": [
-    "dist"
-  ]
+    "dist",
+    "reference",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "prepare": "node scripts/reference.mjs",
+    "prepack": "node scripts/reference.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

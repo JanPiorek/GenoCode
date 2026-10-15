@@ -1,9 +1,15 @@
 {
   "name": "@genocode/render",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "Draws GenoCode creatures, textures and backgrounds with three.js.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/genocode-org/GenoCode.git",
+    "directory": "packages/render"
+  },
+  "homepage": "https://github.com/genocode-org/GenoCode#readme",
+  "bugs": "https://github.com/genocode-org/GenoCode/issues",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,13 +20,18 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "dependencies": {
-    "@genocode/core": "0.0.0",
+    "@genocode/core": "0.1.0",
     "three": "0.160.0"
   },
   "devDependencies": {
     "@types/three": "0.160.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
