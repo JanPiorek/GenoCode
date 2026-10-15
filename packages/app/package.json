@@ -6,8 +6,8 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@genocode/core": "^0.1.0",
-    "@genocode/render": "^0.1.0"
+    "@genocode/core": "^0.2.0",
+    "@genocode/render": "^0.2.0"
   },
   "devDependencies": {
     "vite": "8.3.4"
