@@ -10,3 +10,6 @@ coverage/
 *.pop
 *.stl
 *.dna
+
+# Local secrets
+ANTHROPIC_API_KEY.txt
