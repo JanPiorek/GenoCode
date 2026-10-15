@@ -1,5 +1,5 @@
 // Copies the language definition and the starter creatures into this package, so that they ship
-// with it: tools in other repositories (such as the agent) read them through @genocode/core.
+// with it: tools in other repositories read them through @genocode/core.
 
 import { cpSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 

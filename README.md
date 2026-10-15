@@ -62,11 +62,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 [`@genocode/render`](https://www.npmjs.com/package/@genocode/render), so tools can live in
 repositories of their own:
 
-| Repository                                                         | Contents                                                                  |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| [GenoCode-cli](https://github.com/genocode-org/GenoCode-cli)       | `genie`, the command line: check, format and render creatures             |
-| [GenoCode-vscode](https://github.com/genocode-org/GenoCode-vscode) | the VS Code extension and language server                                 |
-| [GenoCode-agent](https://github.com/genocode-org/GenoCode-agent)   | an agent that designs creatures from a description, with Claude (on hold) |
+| Repository                                                         | Contents                                                      |
+| ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| [GenoCode-cli](https://github.com/genocode-org/GenoCode-cli)       | `genie`, the command line: check, format and render creatures |
+| [GenoCode-vscode](https://github.com/genocode-org/GenoCode-vscode) | the VS Code extension and language server                     |
 
 A version tag (such as `v0.2.0`) publishes `core` and `render` to npm.
 
