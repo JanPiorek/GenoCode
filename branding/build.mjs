@@ -8,7 +8,7 @@
 // draw the same path as one thick stroke.
 
 import { mkdirSync, writeFileSync } from "node:fs";
-import { encodePng } from "../packages/agent/dist/png.js";
+import { encodePng } from "./png.mjs";
 
 const here = new URL("./", import.meta.url);
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];

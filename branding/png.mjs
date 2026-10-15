@@ -1,4 +1,4 @@
-// Encodes RGBA pixels as a PNG file.
+// Encodes RGBA pixels as a PNG file, for build.mjs.
 
 import { deflateSync } from "node:zlib";
 
@@ -12,13 +12,13 @@ const CRC_TABLE = (() => {
   return table;
 })();
 
-function crc32(bytes: Uint8Array): number {
+function crc32(bytes) {
   let c = 0xffffffff;
-  for (const b of bytes) c = CRC_TABLE[(c ^ b) & 0xff]! ^ (c >>> 8);
+  for (const b of bytes) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
   return (c ^ 0xffffffff) >>> 0;
 }
 
-function chunk(type: string, data: Uint8Array): Uint8Array {
+function chunk(type, data) {
   const out = new Uint8Array(12 + data.length);
   const view = new DataView(out.buffer);
   view.setUint32(0, data.length);
@@ -28,7 +28,7 @@ function chunk(type: string, data: Uint8Array): Uint8Array {
   return out;
 }
 
-export function encodePng(width: number, height: number, rgba: Uint8ClampedArray): Uint8Array {
+export function encodePng(width, height, rgba) {
   const header = new Uint8Array(13);
   const view = new DataView(header.buffer);
   view.setUint32(0, width);

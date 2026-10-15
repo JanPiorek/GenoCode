@@ -34,9 +34,6 @@ The language is defined in [docs/LANGUAGE.md](docs/LANGUAGE.md).
 | `packages/dance`  | the dance effects: morph, zoom, spin, turn, reverse and flat       |
 | `packages/blocks` | the block editor                                                   |
 | `packages/app`    | the web app                                                        |
-| `packages/agent`  | an agent that designs creatures from a description, with Claude    |
-| `packages/cli`    | the `genie` command line                                           |
-| `packages/vscode` | VS Code extension and language server                              |
 | `creatures`       | the starter library of `.genie` creatures                          |
 | `docs`            | documentation                                                      |
 
@@ -56,26 +53,22 @@ starter creatures in `creatures/`, or open or drop any `.genie` file. Starter cr
 soon as you save them. In Chromium-based browsers, a file opened from disk is watched too, so you
 can edit it in any editor and see the changes.
 
-**The command line:** after `npm run build`, run `node packages/cli/dist/main.js <command>`, or
-`npm link -w @genocode/cli` once to get a `genie` command:
-
-```
-genie check creatures/Flower.genie          # report errors and warnings
-genie format --write creatures/*.genie      # put files in the standard layout
-genie genes creatures/Flower.genie          # list a creature's genes
-genie render creatures/Flower.genie out.png # draw it (--size=N, default 512; --time=T seconds)
-genie create "a torus with four ribbons"   # design a creature with Claude
-```
-
-**Designing creatures with Claude:** `genie create <description>` hands the description to an agent
-(`packages/agent`) that writes the creature, checks it, draws it at a few moments to see how it
-looks and moves, fixes what's wrong and saves it as `<Name>.genie` (or `--out=FILE`; it never
-replaces a file unless you add `--force`). Progress goes to stderr, and Claude's summary of the
-creature to stdout. It uses Claude Opus 5.5 by default (`--model=…` to change it) and needs
-Claude API credentials: set `ANTHROPIC_API_KEY`, or run `ant auth login` once. A creature can
-take a few minutes, and each run is billed as API usage.
-
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
+
+## Related repositories
+
+`core` and `render` are published to npm as
+[`@genocode/core`](https://www.npmjs.com/package/@genocode/core) and
+[`@genocode/render`](https://www.npmjs.com/package/@genocode/render), so tools can live in
+repositories of their own:
+
+| Repository                                                         | Contents                                                                  |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| [GenoCode-cli](https://github.com/genocode-org/GenoCode-cli)       | `genie`, the command line: check, format and render creatures             |
+| [GenoCode-vscode](https://github.com/genocode-org/GenoCode-vscode) | the VS Code extension and language server                                 |
+| [GenoCode-agent](https://github.com/genocode-org/GenoCode-agent)   | an agent that designs creatures from a description, with Claude (on hold) |
+
+A version tag (such as `v0.2.0`) publishes `core` and `render` to npm.
 
 ## Credits and license
 

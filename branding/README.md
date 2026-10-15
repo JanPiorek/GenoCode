@@ -3,7 +3,7 @@
 The mark is a G laid down the way a GenoCode turtle builds a creature: a chain of balls, each a
 little smaller and a little further round the colour wheel, from blue to pink. Everything here is
 built by `node branding/build.mjs` from one description of the mark, so change the script, not the
-files. (It uses the PNG encoder in `packages/agent`, so build the packages first.)
+files.
 
 | File              | Use                                                                    |
 | ----------------- | ---------------------------------------------------------------------- |
@@ -15,7 +15,9 @@ files. (It uses the PNG encoder in `packages/agent`, so build the packages first
 | `png/`            | the mark at 16 to 512 pixels                                           |
 
 The build also writes the web app's favicon, `packages/app/public/favicon.svg`. The command line's
-version is the banner in `packages/cli/src/banner.ts`, shown by `genie help`.
+version is the banner in
+[GenoCode-cli](https://github.com/genocode-org/GenoCode-cli)'s `packages/cli/src/banner.ts`, shown
+by `genie help`.
 
 ## Showing the icon for .genie files on Windows
 

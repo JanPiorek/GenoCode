@@ -15,15 +15,6 @@
     },
     {
       "path": "packages/blocks"
-    },
-    {
-      "path": "packages/agent"
-    },
-    {
-      "path": "packages/cli"
-    },
-    {
-      "path": "packages/vscode"
     }
   ]
 }
