@@ -25,7 +25,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@genocode/core": "0.1.0",
+    "@genocode/core": "^0.1.0",
     "three": "0.160.0"
   },
   "devDependencies": {
