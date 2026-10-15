@@ -9,7 +9,7 @@ files or code are included in this project. The starter creatures and dance styl
 inspired by DancerDNA's are rewritten from scratch in GenoCode, and each one names the original it
 was inspired by.
 
-GenoCode also grows out of **Fantastic Avian Creatures**, an earlier project by the same author.
+GenoCode also grows out of **Fantastic Avian Creatures**, an earlier project by GenoCode's author.
 
 ## Other influences
 
