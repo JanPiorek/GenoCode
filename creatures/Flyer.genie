@@ -1,0 +1,142 @@
+creature Flyer
+// A little bird that beats its wings and bobs as time goes by.
+
+gene body       = hsv(200, 0.7, 0.9) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
+gene tips       = hsv(320, 0.7, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
+gene flap       = 35  in 0..70         // how far the wings beat
+gene speed      = 1.5 in 0.2..4 log    // wing beats per second
+gene span       = 6   in 3..12 step 1  // feathers in each wing
+gene tailWag    = 25  in 0..50         // How wide the tail swings
+gene beakLength = 0.6 in 0.2..1.2      // Length of the beak
+gene crestSize  = 0.8 in 0.3..1.5      // Scale of the feather crest
+
+let skin = gradient(body, tips)
+
+move (0, 0.3 * wave(time * speed), 0)
+pitch 35  // lean towards the viewer, so the wings show
+
+branch {
+  colour body
+  lay { grow (1.6, 1.4, 2.2) }
+  forward 1.2
+  move (0, 0.5, 0)
+  lay { grow 1.1 }
+
+  // ATTACH HEAD FEATURES HERE:
+  headFeatures
+
+  colour tips
+  shape cone
+  forward 0.7
+  lay { grow (0.3, 0.3, 0.6) }
+}
+
+// A part call doesn't put the turtle back, so branch: otherwise the wings
+// would grow from the tip of the tail, turned and drawn as cones
+branch {
+  // Shift slightly backward to attach to the rear of the body
+  move (0, 0, -1.0)
+  tail
+}
+
+symmetric x {
+  wing
+}
+
+part wing {
+  yaw 90
+  forward 0.6
+  pitch -flap * wave(time * speed)
+  repeat span as i {
+    colour skin(i / (span - 1))
+    forward 0.45
+    lay { grow (0.7, 0.15, 0.9 - 0.05 * i) }
+  }
+}
+
+background {
+  fill gradient(hsv(220, 0.6, 0.15), hsv(200, 0.5, 0.45))
+}
+
+part tail {
+  // Face backward (away from the head/body direction)
+  yaw 180
+
+  // Create a chain of 4 tail segments
+  repeat 4 as i {
+    // Side-to-side wagging
+    yaw tailWag * wave(time * speed)
+
+    // Up-and-down vertical motion (offset by 0.25 time cycles for a fluid, organic wave)
+    pitch tailWag * wave((time + 0.25) * speed)
+
+    // Move to the next joint position
+    forward 0.4
+
+    // Assign color blending from body to tips based on segment index
+    colour skin(i / 3)
+
+    // Render a basic 3D shape
+    shape cone
+
+    // Shrink the thickness (X and Y) as it gets closer to the tip
+    lay { grow (0.6 - 0.1 * i, 0.6 - 0.1 * i, 0.5) }
+  }
+
+  // --- FIN / FEATHER TIP ---
+  // Move slightly forward past the last segment to place the fin
+  forward 0.3
+
+  // Switch completely to the accent tip color
+  colour tips
+
+  // Orient the fin flat/horizontal (pitch) or vertical (yaw) depending on style
+  pitch 90
+
+  // Create a wide, flat decorative fin shape
+  shape cone
+  lay { grow (1.2, 0.1, 0.8) }
+}
+
+part headFeatures {
+  // 1. THE BEAK
+  branch {
+    // Move to the very front tip of the head
+    forward 0.6
+
+    // Give the beak a sharp accent color
+    colour tips
+
+    // Face forward and point outward
+    pitch -90
+
+    // Scale it to be long, narrow, and sharp
+    shape cone
+    lay { grow (0.25, 0.25, beakLength) }
+  }
+
+  // 2. THE HEAD CREST (FEATHERS)
+  branch {
+    // Move to the top-back area of the head
+    move (0, 0.5, -0.2)
+
+    // Rotate backward slightly for a swept-back look
+    pitch -35
+
+    // Create a layered crest of 3 feathers
+    repeat 3 as i {
+      // Fan the feathers out sequentially backwards
+      pitch -15
+
+      // Alternating colors for a layered look
+      colour skin(i / 2)
+
+      // Move up for each feather layer
+      move (0, 0.2, 0)
+
+      // Render a flat, elongated feather shape
+      shape cone
+      lay { grow (0.15, crestSize - 0.2 * i, 0.6) }
+    }
+  }
+}
