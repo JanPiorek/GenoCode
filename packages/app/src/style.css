@@ -47,10 +47,28 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--accent);
   margin-right: 8px;
+}
+
+/* The name as in the logo (branding/logo-lockup.svg): blue to pink, a bold "Geno" and a lighter
+   "Code". It's larger than the rest of the bar and glows a little, so it holds its own on the dark
+   background. */
+.wordmark {
+  font-size: 1.35em;
+  background: linear-gradient(90deg, #40cfff, #ff408f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 6px rgb(64 207 255 / 0.35)) drop-shadow(0 0 10px rgb(255 64 143 / 0.25));
+}
+
+.wordmark b {
+  font-weight: 700;
+}
+
+.wordmark span {
+  font-weight: 400;
 }
 
 .field {
