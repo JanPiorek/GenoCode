@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="GenoCode">
+  <title>GenoCode</title>
+  <defs>
+    <linearGradient id="p0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#19152e"/><stop offset="1" stop-color="#55325c"/></linearGradient>
+    <linearGradient id="p1" gradientUnits="userSpaceOnUse" x1="183.15" y1="72.85" x2="177.18" y2="67.46"><stop offset="0" stop-color="#40cfff"/><stop offset="1" stop-color="#40c8ff"/></linearGradient>
+    <linearGradient id="p2" gradientUnits="userSpaceOnUse" x1="177.18" y1="67.46" x2="170.68" y2="62.72"><stop offset="0" stop-color="#40c8ff"/><stop offset="1" stop-color="#40c0ff"/></linearGradient>
+    <linearGradient id="p3" gradientUnits="userSpaceOnUse" x1="170.68" y1="62.72" x2="163.73" y2="58.67"><stop offset="0" stop-color="#40c0ff"/><stop offset="1" stop-color="#40b9ff"/></linearGradient>
+    <linearGradient id="p4" gradientUnits="userSpaceOnUse" x1="163.73" y1="58.67" x2="156.4" y2="55.36"><stop offset="0" stop-color="#40b9ff"/><stop offset="1" stop-color="#40b1ff"/></linearGradient>
+    <linearGradient id="p5" gradientUnits="userSpaceOnUse" x1="156.4" y1="55.36" x2="148.77" y2="52.82"><stop offset="0" stop-color="#40b1ff"/><stop offset="1" stop-color="#40aaff"/></linearGradient>
+    <linearGradient id="p6" gradientUnits="userSpaceOnUse" x1="148.77" y1="52.82" x2="140.92" y2="51.08"><stop offset="0" stop-color="#40aaff"/><stop offset="1" stop-color="#40a3ff"/></linearGradient>
+    <linearGradient id="p7" gradientUnits="userSpaceOnUse" x1="140.92" y1="51.08" x2="132.93" y2="50.16"><stop offset="0" stop-color="#40a3ff"/><stop offset="1" stop-color="#409bff"/></linearGradient>
+    <linearGradient id="p8" gradientUnits="userSpaceOnUse" x1="132.93" y1="50.16" x2="124.88" y2="50.06"><stop offset="0" stop-color="#409bff"/><stop offset="1" stop-color="#4094ff"/></linearGradient>
+    <linearGradient id="p9" gradientUnits="userSpaceOnUse" x1="124.88" y1="50.06" x2="116.88" y2="50.8"><stop offset="0" stop-color="#4094ff"/><stop offset="1" stop-color="#408cff"/></linearGradient>
+    <linearGradient id="p10" gradientUnits="userSpaceOnUse" x1="116.88" y1="50.8" x2="108.98" y2="52.35"><stop offset="0" stop-color="#408cff"/><stop offset="1" stop-color="#4085ff"/></linearGradient>
+    <linearGradient id="p11" gradientUnits="userSpaceOnUse" x1="108.98" y1="52.35" x2="101.29" y2="54.71"><stop offset="0" stop-color="#4085ff"/><stop offset="1" stop-color="#407dff"/></linearGradient>
+    <linearGradient id="p12" gradientUnits="userSpaceOnUse" x1="101.29" y1="54.71" x2="93.89" y2="57.85"><stop offset="0" stop-color="#407dff"/><stop offset="1" stop-color="#4076ff"/></linearGradient>
+    <linearGradient id="p13" gradientUnits="userSpaceOnUse" x1="93.89" y1="57.85" x2="86.85" y2="61.74"><stop offset="0" stop-color="#4076ff"/><stop offset="1" stop-color="#406eff"/></linearGradient>
+    <linearGradient id="p14" gradientUnits="userSpaceOnUse" x1="86.85" y1="61.74" x2="80.24" y2="66.33"><stop offset="0" stop-color="#406eff"/><stop offset="1" stop-color="#4067ff"/></linearGradient>
+    <linearGradient id="p15" gradientUnits="userSpaceOnUse" x1="80.24" y1="66.33" x2="74.14" y2="71.58"><stop offset="0" stop-color="#4067ff"/><stop offset="1" stop-color="#4060ff"/></linearGradient>
+    <linearGradient id="p16" gradientUnits="userSpaceOnUse" x1="74.14" y1="71.58" x2="68.62" y2="77.42"><stop offset="0" stop-color="#4060ff"/><stop offset="1" stop-color="#4058ff"/></linearGradient>
+    <linearGradient id="p17" gradientUnits="userSpaceOnUse" x1="68.62" y1="77.42" x2="63.73" y2="83.81"><stop offset="0" stop-color="#4058ff"/><stop offset="1" stop-color="#4051ff"/></linearGradient>
+    <linearGradient id="p18" gradientUnits="userSpaceOnUse" x1="63.73" y1="83.81" x2="59.52" y2="90.66"><stop offset="0" stop-color="#4051ff"/><stop offset="1" stop-color="#4049ff"/></linearGradient>
+    <linearGradient id="p19" gradientUnits="userSpaceOnUse" x1="59.52" y1="90.66" x2="56.04" y2="97.91"><stop offset="0" stop-color="#4049ff"/><stop offset="1" stop-color="#4042ff"/></linearGradient>
+    <linearGradient id="p20" gradientUnits="userSpaceOnUse" x1="56.04" y1="97.91" x2="53.32" y2="105.48"><stop offset="0" stop-color="#4042ff"/><stop offset="1" stop-color="#4540ff"/></linearGradient>
+    <linearGradient id="p21" gradientUnits="userSpaceOnUse" x1="53.32" y1="105.48" x2="51.4" y2="113.29"><stop offset="0" stop-color="#4540ff"/><stop offset="1" stop-color="#4c40ff"/></linearGradient>
+    <linearGradient id="p22" gradientUnits="userSpaceOnUse" x1="51.4" y1="113.29" x2="50.29" y2="121.26"><stop offset="0" stop-color="#4c40ff"/><stop offset="1" stop-color="#5440ff"/></linearGradient>
+    <linearGradient id="p23" gradientUnits="userSpaceOnUse" x1="50.29" y1="121.26" x2="50.01" y2="129.3"><stop offset="0" stop-color="#5440ff"/><stop offset="1" stop-color="#5b40ff"/></linearGradient>
+    <linearGradient id="p24" gradientUnits="userSpaceOnUse" x1="50.01" y1="129.3" x2="50.56" y2="137.33"><stop offset="0" stop-color="#5b40ff"/><stop offset="1" stop-color="#6340ff"/></linearGradient>
+    <linearGradient id="p25" gradientUnits="userSpaceOnUse" x1="50.56" y1="137.33" x2="51.93" y2="145.25"><stop offset="0" stop-color="#6340ff"/><stop offset="1" stop-color="#6a40ff"/></linearGradient>
+    <linearGradient id="p26" gradientUnits="userSpaceOnUse" x1="51.93" y1="145.25" x2="54.11" y2="152.99"><stop offset="0" stop-color="#6a40ff"/><stop offset="1" stop-color="#7240ff"/></linearGradient>
+    <linearGradient id="p27" gradientUnits="userSpaceOnUse" x1="54.11" y1="152.99" x2="57.08" y2="160.47"><stop offset="0" stop-color="#7240ff"/><stop offset="1" stop-color="#7940ff"/></linearGradient>
+    <linearGradient id="p28" gradientUnits="userSpaceOnUse" x1="57.08" y1="160.47" x2="60.8" y2="167.6"><stop offset="0" stop-color="#7940ff"/><stop offset="1" stop-color="#8140ff"/></linearGradient>
+    <linearGradient id="p29" gradientUnits="userSpaceOnUse" x1="60.8" y1="167.6" x2="65.24" y2="174.31"><stop offset="0" stop-color="#8140ff"/><stop offset="1" stop-color="#8840ff"/></linearGradient>
+    <linearGradient id="p30" gradientUnits="userSpaceOnUse" x1="65.24" y1="174.31" x2="70.34" y2="180.53"><stop offset="0" stop-color="#8840ff"/><stop offset="1" stop-color="#8f40ff"/></linearGradient>
+    <linearGradient id="p31" gradientUnits="userSpaceOnUse" x1="70.34" y1="180.53" x2="76.06" y2="186.19"><stop offset="0" stop-color="#8f40ff"/><stop offset="1" stop-color="#9740ff"/></linearGradient>
+    <linearGradient id="p32" gradientUnits="userSpaceOnUse" x1="76.06" y1="186.19" x2="82.32" y2="191.23"><stop offset="0" stop-color="#9740ff"/><stop offset="1" stop-color="#9e40ff"/></linearGradient>
+    <linearGradient id="p33" gradientUnits="userSpaceOnUse" x1="82.32" y1="191.23" x2="89.08" y2="195.6"><stop offset="0" stop-color="#9e40ff"/><stop offset="1" stop-color="#a640ff"/></linearGradient>
+    <linearGradient id="p34" gradientUnits="userSpaceOnUse" x1="89.08" y1="195.6" x2="96.25" y2="199.24"><stop offset="0" stop-color="#a640ff"/><stop offset="1" stop-color="#ad40ff"/></linearGradient>
+    <linearGradient id="p35" gradientUnits="userSpaceOnUse" x1="96.25" y1="199.24" x2="103.75" y2="202.14"><stop offset="0" stop-color="#ad40ff"/><stop offset="1" stop-color="#b540ff"/></linearGradient>
+    <linearGradient id="p36" gradientUnits="userSpaceOnUse" x1="103.75" y1="202.14" x2="111.52" y2="204.24"><stop offset="0" stop-color="#b540ff"/><stop offset="1" stop-color="#bc40ff"/></linearGradient>
+    <linearGradient id="p37" gradientUnits="userSpaceOnUse" x1="111.52" y1="204.24" x2="119.46" y2="205.53"><stop offset="0" stop-color="#bc40ff"/><stop offset="1" stop-color="#c440ff"/></linearGradient>
+    <linearGradient id="p38" gradientUnits="userSpaceOnUse" x1="119.46" y1="205.53" x2="127.49" y2="206"><stop offset="0" stop-color="#c440ff"/><stop offset="1" stop-color="#cb40ff"/></linearGradient>
+    <linearGradient id="p39" gradientUnits="userSpaceOnUse" x1="127.49" y1="206" x2="135.52" y2="205.64"><stop offset="0" stop-color="#cb40ff"/><stop offset="1" stop-color="#d240ff"/></linearGradient>
+    <linearGradient id="p40" gradientUnits="userSpaceOnUse" x1="135.52" y1="205.64" x2="143.48" y2="204.45"><stop offset="0" stop-color="#d240ff"/><stop offset="1" stop-color="#da40ff"/></linearGradient>
+    <linearGradient id="p41" gradientUnits="userSpaceOnUse" x1="143.48" y1="204.45" x2="151.27" y2="202.45"><stop offset="0" stop-color="#da40ff"/><stop offset="1" stop-color="#e140ff"/></linearGradient>
+    <linearGradient id="p42" gradientUnits="userSpaceOnUse" x1="151.27" y1="202.45" x2="158.81" y2="199.66"><stop offset="0" stop-color="#e140ff"/><stop offset="1" stop-color="#e940ff"/></linearGradient>
+    <linearGradient id="p43" gradientUnits="userSpaceOnUse" x1="158.81" y1="199.66" x2="166.03" y2="196.1"><stop offset="0" stop-color="#e940ff"/><stop offset="1" stop-color="#f040ff"/></linearGradient>
+    <linearGradient id="p44" gradientUnits="userSpaceOnUse" x1="166.03" y1="196.1" x2="172.84" y2="191.82"><stop offset="0" stop-color="#f040ff"/><stop offset="1" stop-color="#f840ff"/></linearGradient>
+    <linearGradient id="p45" gradientUnits="userSpaceOnUse" x1="172.84" y1="191.82" x2="179.17" y2="186.87"><stop offset="0" stop-color="#f840ff"/><stop offset="1" stop-color="#ff40ff"/></linearGradient>
+    <linearGradient id="p46" gradientUnits="userSpaceOnUse" x1="179.17" y1="186.87" x2="184.96" y2="181.28"><stop offset="0" stop-color="#ff40ff"/><stop offset="1" stop-color="#ff40f8"/></linearGradient>
+    <linearGradient id="p47" gradientUnits="userSpaceOnUse" x1="184.96" y1="181.28" x2="190.15" y2="175.13"><stop offset="0" stop-color="#ff40f8"/><stop offset="1" stop-color="#ff40f0"/></linearGradient>
+    <linearGradient id="p48" gradientUnits="userSpaceOnUse" x1="190.15" y1="175.13" x2="194.67" y2="168.48"><stop offset="0" stop-color="#ff40f0"/><stop offset="1" stop-color="#ff40e9"/></linearGradient>
+    <linearGradient id="p49" gradientUnits="userSpaceOnUse" x1="194.67" y1="168.48" x2="198.49" y2="161.4"><stop offset="0" stop-color="#ff40e9"/><stop offset="1" stop-color="#ff40e1"/></linearGradient>
+    <linearGradient id="p50" gradientUnits="userSpaceOnUse" x1="198.49" y1="161.4" x2="201.55" y2="153.97"><stop offset="0" stop-color="#ff40e1"/><stop offset="1" stop-color="#ff40da"/></linearGradient>
+    <linearGradient id="p51" gradientUnits="userSpaceOnUse" x1="201.55" y1="153.97" x2="203.83" y2="146.25"><stop offset="0" stop-color="#ff40da"/><stop offset="1" stop-color="#ff40d2"/></linearGradient>
+    <linearGradient id="p52" gradientUnits="userSpaceOnUse" x1="203.83" y1="146.25" x2="205.31" y2="138.35"><stop offset="0" stop-color="#ff40d2"/><stop offset="1" stop-color="#ff40cb"/></linearGradient>
+    <linearGradient id="p53" gradientUnits="userSpaceOnUse" x1="205.31" y1="138.35" x2="205.97" y2="130.33"><stop offset="0" stop-color="#ff40cb"/><stop offset="1" stop-color="#ff40c4"/></linearGradient>
+    <linearGradient id="p54" gradientUnits="userSpaceOnUse" x1="205.97" y1="130.33" x2="200.28" y2="128"><stop offset="0" stop-color="#ff40c4"/><stop offset="1" stop-color="#ff40bc"/></linearGradient>
+    <linearGradient id="p55" gradientUnits="userSpaceOnUse" x1="200.28" y1="128" x2="192.24" y2="128"><stop offset="0" stop-color="#ff40bc"/><stop offset="1" stop-color="#ff40b5"/></linearGradient>
+    <linearGradient id="p56" gradientUnits="userSpaceOnUse" x1="192.24" y1="128" x2="184.19" y2="128"><stop offset="0" stop-color="#ff40b5"/><stop offset="1" stop-color="#ff40ad"/></linearGradient>
+    <linearGradient id="p57" gradientUnits="userSpaceOnUse" x1="184.19" y1="128" x2="176.14" y2="128"><stop offset="0" stop-color="#ff40ad"/><stop offset="1" stop-color="#ff40a6"/></linearGradient>
+    <linearGradient id="p58" gradientUnits="userSpaceOnUse" x1="176.14" y1="128" x2="168.09" y2="128"><stop offset="0" stop-color="#ff40a6"/><stop offset="1" stop-color="#ff409e"/></linearGradient>
+    <linearGradient id="p59" gradientUnits="userSpaceOnUse" x1="168.09" y1="128" x2="160.05" y2="128"><stop offset="0" stop-color="#ff409e"/><stop offset="1" stop-color="#ff4097"/></linearGradient>
+    <linearGradient id="p60" gradientUnits="userSpaceOnUse" x1="160.05" y1="128" x2="152" y2="128"><stop offset="0" stop-color="#ff4097"/><stop offset="1" stop-color="#ff408f"/></linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#p0)"/>
+  <line x1="183.15" y1="72.85" x2="177.18" y2="67.46" stroke="url(#p1)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="177.18" y1="67.46" x2="170.68" y2="62.72" stroke="url(#p2)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="170.68" y1="62.72" x2="163.73" y2="58.67" stroke="url(#p3)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="163.73" y1="58.67" x2="156.4" y2="55.36" stroke="url(#p4)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="156.4" y1="55.36" x2="148.77" y2="52.82" stroke="url(#p5)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="148.77" y1="52.82" x2="140.92" y2="51.08" stroke="url(#p6)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="140.92" y1="51.08" x2="132.93" y2="50.16" stroke="url(#p7)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="132.93" y1="50.16" x2="124.88" y2="50.06" stroke="url(#p8)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="124.88" y1="50.06" x2="116.88" y2="50.8" stroke="url(#p9)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="116.88" y1="50.8" x2="108.98" y2="52.35" stroke="url(#p10)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="108.98" y1="52.35" x2="101.29" y2="54.71" stroke="url(#p11)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="101.29" y1="54.71" x2="93.89" y2="57.85" stroke="url(#p12)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="93.89" y1="57.85" x2="86.85" y2="61.74" stroke="url(#p13)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="86.85" y1="61.74" x2="80.24" y2="66.33" stroke="url(#p14)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="80.24" y1="66.33" x2="74.14" y2="71.58" stroke="url(#p15)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="74.14" y1="71.58" x2="68.62" y2="77.42" stroke="url(#p16)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="68.62" y1="77.42" x2="63.73" y2="83.81" stroke="url(#p17)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="63.73" y1="83.81" x2="59.52" y2="90.66" stroke="url(#p18)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="59.52" y1="90.66" x2="56.04" y2="97.91" stroke="url(#p19)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="56.04" y1="97.91" x2="53.32" y2="105.48" stroke="url(#p20)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="53.32" y1="105.48" x2="51.4" y2="113.29" stroke="url(#p21)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="51.4" y1="113.29" x2="50.29" y2="121.26" stroke="url(#p22)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="50.29" y1="121.26" x2="50.01" y2="129.3" stroke="url(#p23)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="50.01" y1="129.3" x2="50.56" y2="137.33" stroke="url(#p24)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="50.56" y1="137.33" x2="51.93" y2="145.25" stroke="url(#p25)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="51.93" y1="145.25" x2="54.11" y2="152.99" stroke="url(#p26)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="54.11" y1="152.99" x2="57.08" y2="160.47" stroke="url(#p27)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="57.08" y1="160.47" x2="60.8" y2="167.6" stroke="url(#p28)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="60.8" y1="167.6" x2="65.24" y2="174.31" stroke="url(#p29)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="65.24" y1="174.31" x2="70.34" y2="180.53" stroke="url(#p30)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="70.34" y1="180.53" x2="76.06" y2="186.19" stroke="url(#p31)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="76.06" y1="186.19" x2="82.32" y2="191.23" stroke="url(#p32)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="82.32" y1="191.23" x2="89.08" y2="195.6" stroke="url(#p33)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="89.08" y1="195.6" x2="96.25" y2="199.24" stroke="url(#p34)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="96.25" y1="199.24" x2="103.75" y2="202.14" stroke="url(#p35)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="103.75" y1="202.14" x2="111.52" y2="204.24" stroke="url(#p36)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="111.52" y1="204.24" x2="119.46" y2="205.53" stroke="url(#p37)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="119.46" y1="205.53" x2="127.49" y2="206" stroke="url(#p38)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="127.49" y1="206" x2="135.52" y2="205.64" stroke="url(#p39)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="135.52" y1="205.64" x2="143.48" y2="204.45" stroke="url(#p40)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="143.48" y1="204.45" x2="151.27" y2="202.45" stroke="url(#p41)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="151.27" y1="202.45" x2="158.81" y2="199.66" stroke="url(#p42)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="158.81" y1="199.66" x2="166.03" y2="196.1" stroke="url(#p43)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="166.03" y1="196.1" x2="172.84" y2="191.82" stroke="url(#p44)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="172.84" y1="191.82" x2="179.17" y2="186.87" stroke="url(#p45)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="179.17" y1="186.87" x2="184.96" y2="181.28" stroke="url(#p46)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="184.96" y1="181.28" x2="190.15" y2="175.13" stroke="url(#p47)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="190.15" y1="175.13" x2="194.67" y2="168.48" stroke="url(#p48)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="194.67" y1="168.48" x2="198.49" y2="161.4" stroke="url(#p49)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="198.49" y1="161.4" x2="201.55" y2="153.97" stroke="url(#p50)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="201.55" y1="153.97" x2="203.83" y2="146.25" stroke="url(#p51)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="203.83" y1="146.25" x2="205.31" y2="138.35" stroke="url(#p52)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="205.31" y1="138.35" x2="205.97" y2="130.33" stroke="url(#p53)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="205.97" y1="130.33" x2="200.28" y2="128" stroke="url(#p54)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="200.28" y1="128" x2="192.24" y2="128" stroke="url(#p55)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="192.24" y1="128" x2="184.19" y2="128" stroke="url(#p56)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="184.19" y1="128" x2="176.14" y2="128" stroke="url(#p57)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="176.14" y1="128" x2="168.09" y2="128" stroke="url(#p58)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="168.09" y1="128" x2="160.05" y2="128" stroke="url(#p59)" stroke-width="42" stroke-linecap="round"/>
+  <line x1="160.05" y1="128" x2="152" y2="128" stroke="url(#p60)" stroke-width="42" stroke-linecap="round"/>
+</svg>

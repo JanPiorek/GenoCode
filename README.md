@@ -1,3 +1,5 @@
+<p align="center"><img src="branding/logo-lockup.svg" alt="GenoCode" width="480"></p>
+
 # GenoCode
 
 Code, breed and share creatures that dance to music.
