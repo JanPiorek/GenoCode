@@ -1,0 +1,79 @@
+creature Flowerball
+// A ball of beads in rings, which opens out into a flat disc, crowned by five curling petals.
+// Inspired by Flowerball, a DancerDNA creature.
+
+gene open  = 0.63 in 0..1     // 0 lays the beads flat in a disc; 1 rounds them into a ball and fills out the petals
+gene gloss = 0.64 in 0..1     // how strong the highlights are
+gene focus = 0.21 in 0..1     // how tight the highlights are
+gene lift  = 14.5 in -20..20  // how far from the beads the petals grow, as the creature opens
+
+shine gloss
+sharpness focus
+beads
+forward lift * open
+pitch 90
+repeat 5 {
+  petal
+  yaw 72
+}
+
+// Eight rings of beads around the heading. Ring 0 is the middle and has no beads.
+part beads {
+  gene radius = 1    in 1..15   // the ball's radius, when it's fully open
+  gene bead   = 0.92 in 0.1..1  // the size of each bead
+  gene inner  = hsv(127, 0.45, 0.3) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+  gene second = hsv(41, 0.95, 0.73) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+  gene third  = hsv(333, 0.96, 0.21) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+  gene outer  = hsv(59, 0.8, 0.95) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+
+  let skin = gradient(inner, second, third, outer)
+  shape ball
+  repeat 8 as r {
+    let a = 180 * r / 8
+    colour skin(r / 8)
+    // Flat, ring r is r from the middle. As a ball, it's a circle of latitude.
+    let spread = mix(r, sin(a) * radius, open)
+    let height = open * cos(a) * radius
+    let circle = tau * r
+    repeat floor(circle) as s {
+      let t = 360 * s / circle
+      branch {
+        move (spread * cos(t), spread * sin(t), height)
+        lay { grow bead }
+      }
+    }
+  }
+}
+
+// A curling chain of stretched beads, fattest in the middle.
+part petal {
+  gene curl  = -0.86 in -2.5..2.5  // how far the petal curls, and which way
+  gene tip   = hsv(285, 0.66, 0.3) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+  gene edge  = hsv(2, 0.43, 0.96) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+  gene flank = hsv(90, 0.93, 0.61) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+  gene heart = hsv(131, 0.56, 0.49) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+
+  let skin = gradient(tip, edge, flank, heart)
+  branch {
+    forward 2.5
+    pitch -36
+    yaw -45
+    roll -30
+    shape ball
+    for i from 1 to 29 {
+      let swell = bump(i / 30)
+      colour skin(swell)
+      yaw 6
+      branch {
+        forward 0.1
+        pitch 90 * swell * curl
+        lay { grow (open, open, open * 6 * (swell + 1)) }
+      }
+      move (0.4 * open, 0, 0)
+    }
+  }
+}
+
+background {
+  fill gradient(hsv(250, 0.5, 0.12), hsv(200, 0.45, 0.4))
+}
