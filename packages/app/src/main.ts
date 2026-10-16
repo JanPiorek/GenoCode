@@ -541,16 +541,39 @@ for (const b of document.querySelectorAll<HTMLButtonElement>("[data-side]")) {
   b.addEventListener("click", () => view.viewFrom(b.dataset["side"] as Side));
 }
 
-/** The view and its tools fill the screen, as a video does; Esc or F brings them back. */
+/** The view fills the screen, as a video does; Esc or F brings the page back. */
 function toggleFullscreen(): void {
   if (document.fullscreenElement) void document.exitFullscreen();
   else void stage.requestFullscreen?.();
 }
 
 const stage = canvas.parentElement!;
+
+// In full screen the tools only show while the mouse moves (not while it drags the creature
+// round), and fade a moment after it stops, unless it's resting on them.
+const TOOLS_SHOW_MS = 2000;
+let toolsTimer = 0;
+function showTools(): void {
+  stage.classList.add("awake");
+  clearTimeout(toolsTimer);
+  toolsTimer = window.setTimeout(() => {
+    if (stage.querySelector(".tools:hover, .views:hover")) showTools();
+    else stage.classList.remove("awake");
+  }, TOOLS_SHOW_MS);
+}
+stage.addEventListener("pointermove", (e) => {
+  if (document.fullscreenElement === stage && e.buttons === 0) showTools();
+});
+
 $("fullscreen").addEventListener("click", toggleFullscreen);
 document.addEventListener("fullscreenchange", () => {
-  $("fullscreen").setAttribute("aria-pressed", String(document.fullscreenElement === stage));
+  const full = document.fullscreenElement === stage;
+  $("fullscreen").setAttribute("aria-pressed", String(full));
+  if (full) showTools();
+  else {
+    clearTimeout(toolsTimer);
+    stage.classList.remove("awake");
+  }
 });
 window.addEventListener("keydown", (e) => {
   const typing =

@@ -215,6 +215,28 @@ body.with-code .layout {
   background: #1b2133cc;
 }
 
+/* Full screen shows only the creature: the tools float over it, and fade while the mouse is still. */
+.stage:fullscreen .tools {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  border-bottom: none;
+  background: #10131dcc;
+  transition: opacity 0.3s;
+}
+
+.stage:fullscreen:not(.awake) .tools,
+.stage:fullscreen:not(.awake) .views {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stage:fullscreen:not(.awake) #view {
+  cursor: none;
+}
+
 .tools {
   display: flex;
   flex-wrap: wrap;
