@@ -1,0 +1,602 @@
+creature Psybat
+// A bat with striped wings, each wing a fan of 27 ribs, each rib a long vane ending in a bead,
+// with a bone of beads beside it.
+// Inspired by Psybat, a DancerDNA creature.
+
+gene shoulder  = 7.692   in -40..60        // how far from the middle each wing starts
+gene spread    = 23.93   in -171.9..171.9  // how far the wings turn out to the sides
+gene vane_tilt = 43.04   in -45..45        // how far each rib tips up from the wing
+gene vane_dip  = -13.09  in -45..45        // how far its vane tips back down
+gene vane_long = 7.706   in 1..11          // how long the vanes are
+gene vane_out  = -0.9186 in -14..14        // how far out along the vane its bead is
+gene bone_grow = 1.038   in 1.01..1.1      // how much bigger the bone's bead is than the vane
+gene bone_roll = 5.653   in -25..25        // how far the bone turns round from the vane
+gene bone_out  = -5.682  in -14..14        // how far out the bone's bead is
+gene rib_gap   = 0.1545  in -0.5..0.5      // how far apart the ribs are
+gene rib_grow  = 1.035   in 1.01..1.1      // how much bigger each rib is than the last
+gene rib_roll  = -17.97  in -25..25        // how far each rib turns round from the last
+
+// Each part's two colours, which alternate in stripes across the wing, and how wide the
+// stripes are.
+gene vane_1       = hsv(35.2, 0.69, 0.82) in hsv(0, 0.4, 0.76)..hsv(237.6, 1, 1)
+gene vane_2       = hsv(127.9, 0.6, 0.8) in hsv(0, 0.4, 0.44)..hsv(237.6, 1, 1)
+gene vane_width_1 = 0.2256  in 0.05..0.3
+gene vane_width_2 = 0.1792  in 0.05..0.3
+gene tip_1        = hsv(266.1, 1, 1) in hsv(0, 0.77, 0.47)..hsv(360, 1, 1)
+gene tip_2        = hsv(36.7, 1, 1) in hsv(0, 0.48, 0.87)..hsv(360, 1, 1)
+gene tip_width_1  = 0.2484  in 0.05..0.3
+gene tip_width_2  = 0.2001  in 0.05..0.3
+gene bone_1       = hsv(42.2, 1, 1) in hsv(0, 1, 1)..hsv(176.4, 1, 1)
+gene bone_2       = hsv(2.9, 1, 1) in hsv(0, 1, 1)..hsv(176.4, 1, 1)
+gene bone_width_1 = 0.1182  in 0.05..0.3
+gene bone_width_2 = 0.07559 in 0.05..0.3
+
+shine 1
+sharpness 1
+shape ball
+symmetric x {
+  wing
+}
+
+part wing {
+  branch {
+    move (shoulder, 0, 0)
+    yaw spread
+    repeat 27 as k {
+      let across = k / 27
+      branch {
+        pitch vane_tilt
+        branch {
+          pitch vane_dip
+          colour stripes(across, vane_1, vane_2, vane_width_1, vane_width_2)
+          lay { grow (1, 1, vane_long) }
+          forward vane_out
+          pitch -90
+          colour stripes(across, tip_1, tip_2, tip_width_1, tip_width_2)
+          lay
+        }
+        grow bone_grow
+        roll bone_roll
+        forward bone_out
+        pitch -90
+        colour stripes(across, bone_1, bone_2, bone_width_1, bone_width_2)
+        lay
+      }
+      forward -rib_gap
+      grow rib_grow
+      roll rib_roll
+    }
+  }
+}
+
+// Two colours in stripes at `t`: blending from `a` to `b` over `a_width`, back to `a` over
+// `b_width`, and so on, for up to 16 blends, until the stripes reach 1. Hue blends in a straight
+// line, as in a spectrum.
+function stripes(t, a, b, a_width, b_width) {
+  let edge = 0
+  repeat 8 {
+    if t <= edge + a_width {
+      return spectrum(a, b)((t - edge) / a_width)
+    }
+    edge += a_width
+    if edge >= 1 {
+      return b
+    }
+    if t <= edge + b_width {
+      return spectrum(b, a)((t - edge) / b_width)
+    }
+    edge += b_width
+    if edge >= 1 {
+      return a
+    }
+  }
+  return a
+}
+
+variant member_2 {
+  shoulder     = 5.438
+  spread       = -58.96
+  vane_tilt    = 27.63
+  vane_dip     = 23.89
+  vane_long    = 9.329
+  vane_out     = 13.24
+  bone_grow    = 1.042
+  bone_roll    = -11.25
+  bone_out     = -5.18
+  rib_gap      = 0.01912
+  rib_grow     = 1.017
+  rib_roll     = -14.7
+  vane_1       = hsv(10, 0.77, 0.9)
+  vane_2       = hsv(227.5, 0.44, 0.44)
+  vane_width_1 = 0.2379
+  vane_width_2 = 0.2902
+  tip_1        = hsv(260.8, 0.88, 0.47)
+  tip_2        = hsv(69.7, 0.54, 0.87)
+  tip_width_1  = 0.2798
+  bone_1       = hsv(29.4, 1, 1)
+  bone_2       = hsv(58.6, 1, 1)
+  bone_width_1 = 0.1998
+  bone_width_2 = 0.1322
+}
+
+variant member_3 {
+  shoulder     = 27.95
+  spread       = 34.41
+  vane_tilt    = 16.2
+  vane_dip     = 39.03
+  vane_long    = 9.1
+  vane_out     = -13.56
+  bone_grow    = 1.041
+  bone_roll    = -18.88
+  bone_out     = -7.175
+  rib_gap      = -0.2084
+  rib_grow     = 1.077
+  rib_roll     = -12.06
+  vane_1       = hsv(68.6, 0.98, 0.89)
+  vane_2       = hsv(14.9, 0.87, 0.88)
+  vane_width_1 = 0.1128
+  vane_width_2 = 0.08712
+  tip_1        = hsv(46.8, 1, 1)
+  tip_2        = hsv(213.4, 1, 1)
+  tip_width_1  = 0.2116
+  tip_width_2  = 0.1981
+  bone_1       = hsv(20.5, 1, 1)
+  bone_2       = hsv(31.4, 1, 1)
+  bone_width_1 = 0.1683
+  bone_width_2 = 0.1016
+}
+
+variant member_4 {
+  shoulder     = 10.44
+  spread       = -4.346
+  vane_tilt    = 33.6
+  vane_dip     = 14.72
+  vane_long    = 1.463
+  vane_out     = 5.99
+  bone_grow    = 1.05
+  bone_roll    = 9.791
+  bone_out     = -4.014
+  rib_gap      = 0.104
+  rib_grow     = 1.058
+  rib_roll     = -14.87
+  vane_1       = hsv(131.5, 0.89, 0.88)
+  vane_2       = hsv(151.3, 0.94, 0.87)
+  vane_width_1 = 0.2127
+  vane_width_2 = 0.1509
+  tip_1        = hsv(310.1, 1, 1)
+  tip_2        = hsv(50.3, 1, 1)
+  tip_width_1  = 0.1881
+  tip_width_2  = 0.2339
+  bone_1       = hsv(67.7, 1, 1)
+  bone_2       = hsv(51.6, 1, 1)
+  bone_width_1 = 0.2023
+  bone_width_2 = 0.07759
+}
+
+variant member_5 {
+  shoulder     = -0.9856
+  spread       = -30.37
+  vane_tilt    = 39.19
+  vane_dip     = 8.473
+  vane_long    = 9.962
+  vane_out     = 7.175
+  bone_grow    = 1.035
+  bone_roll    = -6.537
+  bone_out     = -2.442
+  rib_gap      = 0
+  rib_grow     = 1.017
+  rib_roll     = -14.7
+  vane_1       = hsv(66.9, 0.85, 0.91)
+  vane_2       = hsv(202.7, 0.5, 0.5)
+  vane_width_1 = 0.2379
+  vane_width_2 = 0.2752
+  tip_1        = hsv(237.6, 0.77, 0.57)
+  tip_2        = hsv(36.7, 0.53, 0.9)
+  tip_width_1  = 0.2434
+  bone_1       = hsv(9, 1, 1)
+  bone_2       = hsv(16.2, 1, 1)
+  bone_width_1 = 0.1707
+  bone_width_2 = 0.1656
+}
+
+variant member_6 {
+  shoulder     = 7.829
+  spread       = -106
+  vane_tilt    = -33.76
+  vane_dip     = -25.54
+  vane_long    = 10.19
+  vane_out     = 7.639
+  bone_grow    = 1.082
+  bone_roll    = -21.25
+  bone_out     = -5.408
+  rib_gap      = -0.09699
+  rib_grow     = 1.077
+  rib_roll     = -12.06
+  vane_1       = hsv(41.8, 0.52, 0.91)
+  vane_2       = hsv(6.9, 0.87, 0.91)
+  vane_width_1 = 0.1128
+  vane_width_2 = 0.0656
+  tip_1        = hsv(222.5, 1, 1)
+  tip_2        = hsv(257.4, 1, 1)
+  tip_width_1  = 0.07219
+  tip_width_2  = 0.242
+  bone_1       = hsv(26.8, 1, 1)
+  bone_2       = hsv(147.7, 1, 1)
+  bone_width_1 = 0.05724
+  bone_width_2 = 0.05775
+}
+
+variant member_7 {
+  shoulder     = -7.333
+  spread       = -108.3
+  vane_tilt    = 36.65
+  vane_dip     = 18.01
+  vane_long    = 5.141
+  vane_out     = 12.04
+  bone_grow    = 1.028
+  bone_roll    = 6.923
+  bone_out     = 8.366
+  rib_gap      = 0.2219
+  rib_grow     = 1.011
+  rib_roll     = 18.23
+  vane_1       = hsv(182.6, 0.79, 0.96)
+  vane_2       = hsv(85.7, 0.81, 0.98)
+  vane_width_1 = 0.2354
+  vane_width_2 = 0.08049
+  tip_1        = hsv(193.2, 1, 1)
+  tip_2        = hsv(239.9, 1, 1)
+  tip_width_1  = 0.07623
+  tip_width_2  = 0.06358
+  bone_1       = hsv(8.8, 1, 1)
+  bone_2       = hsv(41.3, 1, 1)
+  bone_width_1 = 0.2097
+  bone_width_2 = 0.1
+}
+
+variant member_8 {
+  shoulder     = 16.3
+  spread       = 38.16
+  vane_tilt    = 26.8
+  vane_dip     = 33.96
+  vane_long    = 6.837
+  vane_out     = 7.871
+  bone_grow    = 1.09
+  bone_roll    = 21.49
+  bone_out     = -6.003
+  rib_gap      = 0.3033
+  rib_grow     = 1.033
+  rib_roll     = 13.24
+  vane_1       = hsv(209.6, 0.62, 0.86)
+  vane_2       = hsv(13.2, 0.8, 0.92)
+  vane_width_1 = 0.1907
+  vane_width_2 = 0.2833
+  tip_1        = hsv(190.7, 1, 1)
+  tip_2        = hsv(205.2, 1, 1)
+  tip_width_1  = 0.2014
+  tip_width_2  = 0.2555
+  bone_1       = hsv(41.5, 1, 1)
+  bone_2       = hsv(55.5, 1, 1)
+  bone_width_1 = 0.1
+  bone_width_2 = 0.1024
+}
+
+variant member_9 {
+  shoulder     = 24.02
+  spread       = -85
+  vane_tilt    = 30.54
+  vane_dip     = 33.96
+  vane_long    = 10.51
+  vane_out     = 9.462
+  bone_grow    = 1.019
+  bone_roll    = 21.58
+  bone_out     = 8.44
+  rib_gap      = 0.2219
+  rib_grow     = 1.038
+  rib_roll     = 19.25
+  vane_1       = hsv(236.4, 0.61, 0.84)
+  vane_2       = hsv(13.2, 0.8, 0.92)
+  vane_width_1 = 0.1907
+  vane_width_2 = 0.2833
+  tip_1        = hsv(190.7, 1, 1)
+  tip_2        = hsv(204.4, 1, 1)
+  tip_width_1  = 0.1002
+  tip_width_2  = 0.1588
+  bone_1       = hsv(41.9, 1, 1)
+  bone_2       = hsv(165.9, 1, 1)
+  bone_width_1 = 0.2097
+  bone_width_2 = 0.1293
+}
+
+variant member_10 {
+  shoulder     = -30
+  spread       = -82.99
+  vane_tilt    = 36.65
+  vane_dip     = 29.6
+  vane_long    = 5.141
+  vane_out     = 12.04
+  bone_grow    = 1.028
+  bone_roll    = -1.755
+  bone_out     = 7.23
+  rib_gap      = 0.2219
+  rib_grow     = 1.01
+  rib_roll     = 18.23
+  vane_1       = hsv(182.6, 0.79, 0.96)
+  vane_2       = hsv(85.7, 0.81, 0.98)
+  vane_width_1 = 0.1926
+  vane_width_2 = 0.07204
+  tip_1        = hsv(193.2, 1, 1)
+  tip_2        = hsv(183.4, 1, 1)
+  tip_width_1  = 0.09568
+  tip_width_2  = 0.06162
+  bone_2       = hsv(49.8, 1, 1)
+  bone_width_1 = 0.2097
+  bone_width_2 = 0.1
+}
+
+variant member_11 {
+  shoulder     = 30.12
+  spread       = -117.6
+  vane_tilt    = 40.51
+  vane_dip     = 39.03
+  vane_long    = 3.944
+  vane_out     = 13.08
+  bone_grow    = 1.04
+  bone_roll    = 14.84
+  bone_out     = 6.604
+  rib_gap      = 0.1032
+  rib_grow     = 1.082
+  rib_roll     = 20.64
+  vane_1       = hsv(40.2, 0.68, 0.99)
+  vane_2       = hsv(4.3, 0.97, 0.97)
+  vane_width_1 = 0.1721
+  vane_width_2 = 0.1968
+  tip_1        = hsv(193.2, 1, 1)
+  tip_2        = hsv(183.4, 1, 1)
+  tip_width_1  = 0.1071
+  tip_width_2  = 0.1673
+  bone_1       = hsv(174.3, 1, 1)
+  bone_2       = hsv(49.7, 1, 1)
+  bone_width_1 = 0.1735
+  bone_width_2 = 0.1266
+}
+
+variant member_12 {
+  shoulder     = 28.47
+  spread       = 16.84
+  vane_tilt    = 16.2
+  vane_dip     = 39.03
+  vane_long    = 10.19
+  vane_out     = -13.56
+  bone_grow    = 1.082
+  bone_roll    = -10.88
+  bone_out     = -10.55
+  rib_gap      = -0.09699
+  rib_grow     = 1.077
+  rib_roll     = -12.06
+  vane_1       = hsv(211.8, 0.53, 0.95)
+  vane_2       = hsv(6.9, 0.87, 0.91)
+  vane_width_1 = 0.1128
+  vane_width_2 = 0.2196
+  tip_1        = hsv(222.5, 1, 1)
+  tip_2        = hsv(1.3, 1, 1)
+  tip_width_1  = 0.07219
+  tip_width_2  = 0.1981
+  bone_1       = hsv(20.5, 1, 1)
+  bone_2       = hsv(101.9, 1, 1)
+  bone_width_1 = 0.05724
+  bone_width_2 = 0.05775
+}
+
+variant member_13 {
+  shoulder     = 1.27
+  spread       = -15.52
+  vane_tilt    = 39.19
+  vane_dip     = 8.473
+  vane_long    = 9.962
+  vane_out     = 7.175
+  bone_grow    = 1.042
+  bone_roll    = -7.311
+  bone_out     = -2.442
+  rib_gap      = 0
+  rib_grow     = 1.038
+  rib_roll     = -18.15
+  vane_1       = hsv(6.8, 0.82, 0.77)
+  vane_2       = hsv(219.1, 0.57, 0.52)
+  vane_width_1 = 0.2379
+  vane_width_2 = 0.242
+  tip_1        = hsv(260.8, 0.88, 0.47)
+  tip_2        = hsv(36.7, 0.53, 0.9)
+  tip_width_1  = 0.2798
+  tip_width_2  = 0.1667
+  bone_1       = hsv(29.4, 1, 1)
+  bone_2       = hsv(58.6, 1, 1)
+  bone_width_1 = 0.1755
+  bone_width_2 = 0.1322
+}
+
+variant member_14 {
+  shoulder     = 0.5832
+  spread       = -15.99
+  vane_tilt    = 39.19
+  vane_dip     = 6.612
+  vane_long    = 9.362
+  vane_out     = 7.695
+  bone_grow    = 1.041
+  bone_roll    = -4.502
+  bone_out     = -8.896
+  rib_gap      = 0
+  rib_grow     = 1.048
+  rib_roll     = -4.589
+  vane_1       = hsv(110.7, 0.74, 0.85)
+  vane_2       = hsv(218.5, 0.51, 0.44)
+  vane_width_1 = 0.2872
+  vane_width_2 = 0.2752
+  tip_1        = hsv(237.6, 0.77, 0.57)
+  tip_2        = hsv(121.4, 0.49, 0.97)
+  tip_width_1  = 0.2417
+  tip_width_2  = 0.2458
+  bone_1       = hsv(32.7, 1, 1)
+  bone_2       = hsv(25.1, 1, 1)
+  bone_width_1 = 0.2509
+  bone_width_2 = 0.1868
+}
+
+variant member_15 {
+  shoulder     = -0.9856
+  spread       = 70.76
+  vane_tilt    = -39.49
+  vane_dip     = 8.128
+  vane_long    = 3.438
+  vane_out     = -13.06
+  bone_grow    = 1.035
+  bone_roll    = -13.23
+  bone_out     = 3.705
+  rib_gap      = -0.09087
+  rib_grow     = 1.028
+  rib_roll     = -14.7
+  vane_1       = hsv(63, 0.85, 0.89)
+  vane_2       = hsv(103.3, 0.68, 0.61)
+  vane_width_1 = 0.2247
+  vane_width_2 = 0.2752
+  tip_1        = hsv(134.4, 0.88, 0.77)
+  tip_2        = hsv(36.7, 0.53, 0.9)
+  tip_width_1  = 0.1977
+  tip_width_2  = 0.1884
+  bone_1       = hsv(35.6, 1, 1)
+  bone_2       = hsv(16.2, 1, 1)
+  bone_width_1 = 0.2024
+  bone_width_2 = 0.1656
+}
+
+variant member_16 {
+  shoulder     = 4.185
+  spread       = -49.6
+  vane_tilt    = 32.74
+  vane_dip     = 33.9
+  vane_long    = 5.141
+  vane_out     = 9.462
+  bone_grow    = 1.024
+  bone_roll    = 13.16
+  bone_out     = 6.765
+  rib_gap      = 0.1888
+  rib_grow     = 1.025
+  rib_roll     = 19.25
+  vane_1       = hsv(231.4, 0.62, 0.85)
+  vane_2       = hsv(13.2, 0.8, 0.92)
+  vane_width_1 = 0.2197
+  vane_width_2 = 0.161
+  tip_1        = hsv(247.2, 1, 1)
+  tip_2        = hsv(204.4, 1, 1)
+  tip_width_1  = 0.1002
+  tip_width_2  = 0.1588
+  bone_1       = hsv(42, 1, 1)
+  bone_2       = hsv(53.7, 1, 1)
+  bone_width_1 = 0.2097
+  bone_width_2 = 0.08966
+}
+
+variant member_17 {
+  shoulder     = 20.65
+  spread       = -45.85
+  vane_tilt    = 31.17
+  vane_dip     = 9.516
+  vane_long    = 9.571
+  vane_out     = 7.931
+  bone_grow    = 1.019
+  bone_roll    = 2.856
+  bone_out     = 6.558
+  rib_gap      = 0.129
+  rib_grow     = 1.038
+  rib_roll     = -13.13
+  vane_1       = hsv(215.4, 0.66, 0.88)
+  vane_2       = hsv(68.1, 0.84, 0.98)
+  vane_width_1 = 0.2197
+  vane_width_2 = 0.265
+  tip_1        = hsv(190.7, 1, 1)
+  tip_2        = hsv(194.1, 1, 1)
+  tip_width_1  = 0.1415
+  tip_width_2  = 0.09897
+  bone_1       = hsv(42, 1, 1)
+  bone_2       = hsv(49.8, 1, 1)
+  bone_width_2 = 0.1197
+}
+
+variant member_18 {
+  shoulder     = 4.185
+  spread       = -85
+  vane_tilt    = 32.2
+  vane_dip     = 33.96
+  vane_long    = 8.263
+  vane_out     = 9.462
+  bone_grow    = 1.019
+  bone_roll    = 2.856
+  bone_out     = 8.192
+  rib_gap      = 0.05779
+  rib_grow     = 1.032
+  rib_roll     = -13.13
+  vane_1       = hsv(236.4, 0.61, 0.84)
+  vane_2       = hsv(13.2, 0.8, 0.92)
+  vane_width_1 = 0.2151
+  vane_width_2 = 0.1729
+  tip_1        = hsv(262, 1, 1)
+  tip_2        = hsv(190.4, 1, 1)
+  tip_width_2  = 0.1056
+  bone_1       = hsv(42.1, 1, 1)
+  bone_2       = hsv(77.2, 1, 1)
+  bone_width_1 = 0.1348
+  bone_width_2 = 0.07843
+}
+
+variant member_19 {
+  shoulder     = 24.02
+  spread       = -91.99
+  vane_tilt    = 11.73
+  vane_dip     = 33.96
+  vane_long    = 9.374
+  vane_out     = 12.51
+  bone_grow    = 1.026
+  bone_roll    = 21.58
+  bone_out     = 8.44
+  rib_gap      = 0.2219
+  rib_grow     = 1.067
+  rib_roll     = 19.25
+  vane_1       = hsv(209.7, 0.51, 0.81)
+  vane_2       = hsv(25.7, 0.81, 0.96)
+  vane_width_1 = 0.1907
+  vane_width_2 = 0.2614
+  tip_1        = hsv(240.4, 1, 1)
+  tip_2        = hsv(155, 1, 1)
+  tip_width_1  = 0.0933
+  tip_width_2  = 0.1588
+  bone_1       = hsv(99.6, 1, 1)
+  bone_2       = hsv(156.3, 1, 1)
+  bone_width_1 = 0.2097
+  bone_width_2 = 0.1293
+}
+
+variant member_20 {
+  shoulder     = 60
+  spread       = -97.69
+  vane_tilt    = 11.73
+  vane_dip     = 28.85
+  vane_long    = 8.644
+  vane_out     = 9.495
+  bone_grow    = 1.026
+  bone_roll    = 21.58
+  bone_out     = 9.839
+  rib_gap      = 0.0901
+  rib_grow     = 1.067
+  rib_roll     = 19.25
+  vane_1       = hsv(202.7, 0.47, 0.83)
+  vane_2       = hsv(25.7, 0.81, 0.96)
+  vane_width_1 = 0.1907
+  vane_width_2 = 0.2574
+  tip_1        = hsv(197.4, 1, 1)
+  tip_2        = hsv(122.3, 1, 1)
+  tip_width_1  = 0.08253
+  tip_width_2  = 0.1283
+  bone_1       = hsv(75, 1, 1)
+  bone_2       = hsv(156.6, 1, 1)
+  bone_width_1 = 0.2097
+  bone_width_2 = 0.1293
+}
