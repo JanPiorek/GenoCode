@@ -2,17 +2,17 @@ creature StarBurstShell
 // A spiraling geometric shell composed of bead spikes that unfurls into a sprawling celestial star.
 // Fixed color gene ranges and reserved keyword variables.
 
-gene unfurl = 0.45 in 0..1    // 0 packs the spikes into a tight spiral shell; 1 explodes them into a star
-gene gloss = 0.75 in 0..1     // intensity of the metallic shell sheen
-gene focus = 0.40 in 0..1     // sharpness of the light reflections
-gene heightOffset = 8.0 in -15..15 // vertical expansion amplitude as it opens
+gene unfurl       = 0.45 in 0..1     // 0 packs the spikes into a tight spiral shell; 1 explodes them into a star
+gene gloss        = 0.75 in 0..1     // intensity of the metallic shell sheen
+gene focus        = 0.40 in 0..1     // sharpness of the light reflections
+gene heightOffset = 8.0  in -15..15  // vertical expansion amplitude as it opens
 
 shine gloss
 sharpness focus
 
 // Wrap the top-level part call in a branch to protect downstream rendering
 branch {
-    shellSpikes
+  shellSpikes
 }
 
 forward heightOffset * unfurl
@@ -20,83 +20,83 @@ pitch 90
 
 // Generate 6 primary crown spikes circling the top axis
 repeat 6 {
-    branch {
-        crownSpike
-    }
-    yaw 60
+  branch {
+    crownSpike
+  }
+  yaw 60
 }
 
 // The core body structure: 10 concentric, winding layers of beads
 part shellSpikes {
-    gene maxRadius = 12 in 5..20
-    gene baseBeadSize = 0.75 in 0.2..1.5
-    
-    // Galactic neon palette gradient with mandatory range specifications
-    gene coreColor = hsv(240, 0.85, 0.2) in hsv(0, 0, 0)..hsv(360, 1, 1)   // Deep space blue
-    gene midColor1 = hsv(300, 0.90, 0.5) in hsv(0, 0, 0)..hsv(360, 1, 1)   // Cosmic magenta
-    gene midColor2 = hsv(340, 0.95, 0.8) in hsv(0, 0, 0)..hsv(360, 1, 1)   // Electric pink
-    gene outerColor = hsv(15, 0.80, 0.95) in hsv(0, 0, 0)..hsv(360, 1, 1)  // Nebula orange
-    
-    let skin = gradient(coreColor, midColor1, midColor2, outerColor)
-    shape ball
-    
-    repeat 10 as layer {
-        let latAngle = 180 * layer / 10
-        colour skin(layer / 10)
-        
-        // As unfurl approaches 1, structural layout transitions from flat spirals to a wide-latitude sphere
-        let distance = mix(layer, sin(latAngle) * maxRadius, unfurl)
-        let verticalZ = unfurl * cos(latAngle) * maxRadius
-        let stepCount = tau * layer
-        
-        repeat floor(stepCount) as s {
-            let lonAngle = 360 * s / stepCount
-            
-            branch {
-                // Positional placement using standard trigonometric displacement
-                move (distance * cos(lonAngle), distance * sin(lonAngle), verticalZ)
-                lay { grow baseBeadSize }
-            }
-        }
+  gene maxRadius    = 12   in 5..20
+  gene baseBeadSize = 0.75 in 0.2..1.5
+
+  // Galactic neon palette gradient with mandatory range specifications
+  gene coreColor  = hsv(240, 0.85, 0.2) in hsv(0, 0, 0)..hsv(360, 1, 1)  // Deep space blue
+  gene midColor1  = hsv(300, 0.90, 0.5) in hsv(0, 0, 0)..hsv(360, 1, 1)  // Cosmic magenta
+  gene midColor2  = hsv(340, 0.95, 0.8) in hsv(0, 0, 0)..hsv(360, 1, 1)  // Electric pink
+  gene outerColor = hsv(15, 0.80, 0.95) in hsv(0, 0, 0)..hsv(360, 1, 1)  // Nebula orange
+
+  let skin = gradient(coreColor, midColor1, midColor2, outerColor)
+  shape ball
+
+  repeat 10 as layer {
+    let latAngle = 180 * layer / 10
+    colour skin(layer / 10)
+
+    // As unfurl approaches 1, structural layout transitions from flat spirals to a wide-latitude sphere
+    let distance = mix(layer, sin(latAngle) * maxRadius, unfurl)
+    let verticalZ = unfurl * cos(latAngle) * maxRadius
+    let stepCount = tau * layer
+
+    repeat floor(stepCount) as s {
+      let lonAngle = 360 * s / stepCount
+
+      branch {
+        // Positional placement using standard trigonometric displacement
+        move (distance * cos(lonAngle), distance * sin(lonAngle), verticalZ)
+        lay { grow baseBeadSize }
+      }
     }
+  }
 }
 
 // A twisting, needle-sharp spike branch that reacts heavily to the unfurl gene
 part crownSpike {
-    gene twistFactor = 1.25 in -3..3 // how sharply the crown arms curve outward
-    
-    // Crown color parameters with mandatory range specifications
-    gene rootColor = hsv(160, 0.70, 0.6) in hsv(0, 0, 0)..hsv(360, 1, 1)  // Turquoise heart
-    gene bodyColor = hsv(200, 0.80, 0.8) in hsv(0, 0, 0)..hsv(360, 1, 1)  // Cyan mid-section
-    gene flareColor = hsv(280, 0.85, 0.7) in hsv(0, 0, 0)..hsv(360, 1, 1) // Violet edge
-    gene apexColor = hsv(0, 0.0, 1.0) in hsv(0, 0, 0)..hsv(360, 1, 1)     // Pure white tips
-    
-    let skin = gradient(rootColor, bodyColor, flareColor, apexColor)
-    
-    branch {
-        forward 3.0
-        pitch -25
-        yaw 15
-        roll 45
-        shape ball
-        
-        // Iteratively chain 25 progressively scaling segments to build a fine tip
-        for segment from 1 to 25 {
-            let taper = bump(segment / 26) // custom envelope tracking
-            colour skin(taper)
-            
-            yaw 8
-            branch {
-                forward 0.15
-                pitch 45 * taper * twistFactor
-                // Drastically changes length/width profile when unrolled
-                lay { grow (unfurl, unfurl, unfurl * 4 * (taper + 0.5)) }
-            }
-            move (0.35 * unfurl, 0, 0)
-        }
+  gene twistFactor = 1.25 in -3..3  // how sharply the crown arms curve outward
+
+  // Crown color parameters with mandatory range specifications
+  gene rootColor  = hsv(160, 0.70, 0.6) in hsv(0, 0, 0)..hsv(360, 1, 1)  // Turquoise heart
+  gene bodyColor  = hsv(200, 0.80, 0.8) in hsv(0, 0, 0)..hsv(360, 1, 1)  // Cyan mid-section
+  gene flareColor = hsv(280, 0.85, 0.7) in hsv(0, 0, 0)..hsv(360, 1, 1)  // Violet edge
+  gene apexColor  = hsv(0, 0.0, 1.0) in hsv(0, 0, 0)..hsv(360, 1, 1)     // Pure white tips
+
+  let skin = gradient(rootColor, bodyColor, flareColor, apexColor)
+
+  branch {
+    forward 3.0
+    pitch -25
+    yaw 15
+    roll 45
+    shape ball
+
+    // Iteratively chain 25 progressively scaling segments to build a fine tip
+    for segment from 1 to 25 {
+      let taper = bump(segment / 26)  // custom envelope tracking
+      colour skin(taper)
+
+      yaw 8
+      branch {
+        forward 0.15
+        pitch 45 * taper * twistFactor
+        // Drastically changes length/width profile when unrolled
+        lay { grow (unfurl, unfurl, unfurl * 4 * (taper + 0.5)) }
+      }
+      move (0.35 * unfurl, 0, 0)
     }
+  }
 }
 
 background {
-    fill gradient(hsv(275, 0.6, 0.08), hsv(220, 0.5, 0.25))
+  fill gradient(hsv(275, 0.6, 0.08), hsv(220, 0.5, 0.25))
 }
