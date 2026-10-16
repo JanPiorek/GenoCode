@@ -68,6 +68,20 @@ describe("framing", () => {
     const cam = frameCamera({ centre: [0, 0, 0], radius: 2 }, 1);
     expect(cam.position[2]).toBeGreaterThan(2 / Math.sin((20 * Math.PI) / 180));
     expect(cam.target).toEqual([0, 0, 0]);
+    expect(cam.position[1]).toBeCloseTo(0.6);
+  });
+
+  it("looks straight at each side of the creature from as far away", () => {
+    const front = frameCamera({ centre: [1, 2, 3], radius: 2 }, 1, "front");
+    const d = front.position[2] - 3;
+    const at = (side: "back" | "left" | "right" | "top" | "bottom") =>
+      frameCamera({ centre: [1, 2, 3], radius: 2 }, 1, side).position.map((x) => +x.toFixed(2));
+    expect(front.position).toEqual([1, 2, 3 + d]);
+    expect(at("back")).toEqual([1, 2, +(3 - d).toFixed(2)]);
+    expect(at("left")).toEqual([+(1 - d).toFixed(2), 2, 3]);
+    expect(at("right")).toEqual([+(1 + d).toFixed(2), 2, 3]);
+    expect(at("top")).toEqual([1, +(2 + d).toFixed(2), 3]);
+    expect(at("bottom")).toEqual([1, +(2 - d).toFixed(2), 3]);
   });
 
   it("ramps backgrounds from the bottom up", () => {

@@ -13,15 +13,32 @@ export interface CameraPlacement {
   far: number;
 }
 
-/** Looks at the creature's face (the turtle starts facing +z, towards the viewer), from a little above. */
-export function frameCamera(bounds: Bounds, aspect: number): CameraPlacement {
+/** The sides a creature can be seen from, straight on. */
+export type Side = "front" | "back" | "left" | "right" | "top" | "bottom";
+
+/** Which way the camera is from the creature, for each side. Top and bottom lean a hair towards the front, so the view keeps its front at the bottom (or top) of the picture. */
+const SIDES: Record<Side, [number, number, number]> = {
+  front: [0, 0, 1],
+  back: [0, 0, -1],
+  left: [-1, 0, 0],
+  right: [1, 0, 0],
+  top: [0, 1, 1e-4],
+  bottom: [0, -1, 1e-4],
+};
+
+/**
+ * Looks at the creature's face (the turtle starts facing +z, towards the viewer), from a little
+ * above; or, given a side, straight at that side.
+ */
+export function frameCamera(bounds: Bounds, aspect: number, side?: Side): CameraPlacement {
   const half = (FIELD_OF_VIEW * Math.PI) / 360;
   // The narrower of the two directions decides how far back the camera goes.
   const fit = Math.min(Math.sin(half), Math.sin(Math.atan(Math.tan(half) * aspect)));
   const distance = (bounds.radius / fit) * 1.1;
   const [x, y, z] = bounds.centre;
+  const [dx, dy, dz] = side ? SIDES[side] : [0, 0.3 * (bounds.radius / distance), 1];
   return {
-    position: [x, y + bounds.radius * 0.3, z + distance],
+    position: [x + dx * distance, y + dy * distance, z + dz * distance],
     target: [x, y, z],
     near: Math.max(distance - bounds.radius * 2, distance / 1000),
     far: distance + bounds.radius * 4,

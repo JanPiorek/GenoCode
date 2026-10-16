@@ -9,6 +9,7 @@ export {
   frameCamera,
   LIGHTS,
   type CameraPlacement,
+  type Side,
 } from "./look.js";
 export { rasterize, type Image, type RasterOptions } from "./software.js";
 export { CreatureView, Thumbnails } from "./webgl.js";

@@ -5,7 +5,7 @@
 // this browser.
 
 import { geneEdits, type CheckResult, type Diagnostic, type Value } from "@genocode/core";
-import { CreatureView } from "@genocode/render";
+import { CreatureView, type Side } from "@genocode/render";
 import { Breeder } from "./breed.js";
 import type { GeneEditing } from "./controls.js";
 import {
@@ -296,6 +296,7 @@ function setMode(next: Mode): void {
   document.body.classList.toggle("with-code", !codeSection.hidden);
   canvas.hidden = mode === "breed";
   grid.hidden = mode !== "breed";
+  $("views").hidden = mode === "breed";
   cancelAnimationFrame(liveFrame);
   morpher.stop();
   inputs.show(false);
@@ -533,6 +534,34 @@ window.addEventListener("drop", async (e) => {
 });
 
 $("reset").addEventListener("click", () => view.resetView());
+
+// ---------- looking from each side, and full screen ----------
+
+for (const b of document.querySelectorAll<HTMLButtonElement>("[data-side]")) {
+  b.addEventListener("click", () => view.viewFrom(b.dataset["side"] as Side));
+}
+
+/** The view and its tools fill the screen, as a video does; Esc or F brings them back. */
+function toggleFullscreen(): void {
+  if (document.fullscreenElement) void document.exitFullscreen();
+  else void stage.requestFullscreen?.();
+}
+
+const stage = canvas.parentElement!;
+$("fullscreen").addEventListener("click", toggleFullscreen);
+document.addEventListener("fullscreenchange", () => {
+  $("fullscreen").setAttribute("aria-pressed", String(document.fullscreenElement === stage));
+});
+window.addEventListener("keydown", (e) => {
+  const typing =
+    e.target instanceof HTMLElement &&
+    (e.target.isContentEditable || ["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName));
+  if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+  if ((e.key === "f" || e.key === "F") && mode !== "breed") {
+    e.preventDefault();
+    toggleFullscreen();
+  }
+});
 
 // ---------- start ----------
 

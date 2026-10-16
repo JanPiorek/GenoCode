@@ -14,6 +14,7 @@ import {
   Matrix4,
   MeshPhongMaterial,
   PerspectiveCamera,
+  Quaternion,
   Scene,
   SRGBColorSpace,
   Vector3,
@@ -28,6 +29,7 @@ import {
   frameCamera,
   LIGHTS,
   type CameraPlacement,
+  type Side,
 } from "./look.js";
 
 /** Adds per-instance shine (x), sharpness (y) and alpha (z) to the Phong material. */
@@ -75,6 +77,7 @@ class CreatureScene {
   private readonly opaque = makeMaterial(false);
   private readonly seeThrough = makeMaterial(true);
   shapes: readonly LaidShape[] = [];
+  private readonly lights: { light: DirectionalLight; direction: Vector3 }[] = [];
 
   constructor() {
     this.scene.add(this.creature);
@@ -83,8 +86,16 @@ class CreatureScene {
       const light = new DirectionalLight(0xffffff, l.strength * LIGHT_SCALE);
       light.position.set(...l.direction);
       this.scene.add(light);
+      this.lights.push({ light, direction: new Vector3(...l.direction) });
     }
     this.setBackground(undefined);
+  }
+
+  /** Turns the lights with the camera, by `turn`, so every side is lit as the front is. */
+  turnLights(turn: Quaternion): void {
+    for (const { light, direction } of this.lights) {
+      light.position.copy(direction).applyQuaternion(turn);
+    }
   }
 
   setCreature(shapes: readonly LaidShape[], detail: Detail): void {
@@ -150,8 +161,8 @@ class CreatureScene {
   }
 
   /** Points the camera at the whole creature, from the front and a little above. */
-  frame(camera: PerspectiveCamera, aspect: number): CameraPlacement {
-    const placement = frameCamera(creatureBounds(this.shapes), aspect);
+  frame(camera: PerspectiveCamera, aspect: number, side?: Side): CameraPlacement {
+    const placement = frameCamera(creatureBounds(this.shapes), aspect, side);
     camera.position.set(...placement.position);
     camera.near = placement.near / 4;
     camera.far = placement.far * 4;
@@ -175,6 +186,8 @@ export class CreatureView {
   private readonly controls: OrbitControls;
   private readonly resizeObserver: ResizeObserver;
   private frameRequested = false;
+  /** The camera's turn in the front view, which the lights are set for. */
+  private readonly frontTurn = new Quaternion();
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -202,8 +215,19 @@ export class CreatureView {
 
   /** Frames the whole creature, seen from the front and a little above. */
   resetView(): void {
+    this.viewFrom(undefined);
+  }
+
+  /** Frames the whole creature, seen straight on from one side; without one, as `resetView`. */
+  viewFrom(side: Side | undefined): void {
     const aspect = this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight);
-    const placement = this.look.frame(this.camera, aspect);
+    if (side !== undefined) {
+      // The lights are set for the front view, so note where that is first.
+      this.look.frame(this.camera, aspect);
+      this.frontTurn.copy(this.camera.quaternion);
+    }
+    const placement = this.look.frame(this.camera, aspect, side);
+    if (side === undefined) this.frontTurn.copy(this.camera.quaternion);
     this.controls.target.set(...placement.target);
     this.controls.minDistance = 0;
     this.controls.maxDistance =
@@ -229,6 +253,9 @@ export class CreatureView {
       this.frameRequested = false;
       // Damping keeps the view moving for a moment after the mouse lets go.
       if (this.controls.update()) this.requestFrame();
+      this.look.turnLights(
+        this.camera.quaternion.clone().multiply(this.frontTurn.clone().invert()),
+      );
       this.renderer.render(this.look.scene, this.camera);
     });
   }

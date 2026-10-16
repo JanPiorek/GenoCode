@@ -59,6 +59,17 @@
           <span id="morph-hint" class="hint"></span>
         </div>
         <canvas id="view" aria-label="The creature"></canvas>
+        <div id="views" class="views" role="toolbar" aria-label="View">
+          <button type="button" data-side="front" title="Front">Front</button>
+          <button type="button" data-side="back" title="Back">Back</button>
+          <button type="button" data-side="left" title="Left side">Left</button>
+          <button type="button" data-side="right" title="Right side">Right</button>
+          <button type="button" data-side="top" title="Top">Top</button>
+          <button type="button" data-side="bottom" title="Bottom">Bottom</button>
+          <button type="button" id="fullscreen" title="Full screen (F)" aria-pressed="false">
+            ⛶
+          </button>
+        </div>
         <div id="grid" class="grid" hidden></div>
       </section>
       <aside class="panel">

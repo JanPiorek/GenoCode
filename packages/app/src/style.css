@@ -183,10 +183,36 @@ body.with-code .layout {
 }
 
 .stage {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  background: var(--bg);
+}
+
+/* The sides to look from, and full screen, over the bottom right of the view. */
+.views {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+  opacity: 0.55;
+  transition: opacity 0.2s;
+}
+
+.views:hover,
+.views:focus-within {
+  opacity: 1;
+}
+
+.views button {
+  padding: 3px 8px;
+  font-size: 0.85em;
+  background: #1b2133cc;
 }
 
 .tools {
