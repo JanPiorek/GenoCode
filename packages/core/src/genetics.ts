@@ -254,6 +254,23 @@ function morphGene(g: GeneInfo, x: Value, y: Value, t: number): Value {
  * line to write into, so it isn't saved.
  */
 export function writeGenes(program: CheckResult, values: GeneValues): string {
+  const edits = geneEdits(program, values);
+  if (edits.length === 0) return program.text;
+  let text = program.text;
+  for (const e of [...edits].reverse()) {
+    text = text.slice(0, e.start) + e.text + text.slice(e.end);
+  }
+  return formatText(text).text ?? text;
+}
+
+/**
+ * The edits that write each changed gene's value into the program's text, in order, without
+ * laying anything else out. Editors apply them so the rest of the text and the cursor stay put.
+ */
+export function geneEdits(
+  program: CheckResult,
+  values: GeneValues,
+): { start: number; end: number; text: string }[] {
   const edits: { start: number; end: number; text: string }[] = [];
   for (const g of program.genes) {
     const v = values.get(g.fullName);
@@ -261,12 +278,7 @@ export function writeGenes(program: CheckResult, values: GeneValues): string {
     const span = g.decl.value.span;
     edits.push({ start: span.start, end: span.end, text: geneLiteral(g, v) });
   }
-  if (edits.length === 0) return program.text;
-  let text = program.text;
-  for (const e of edits.sort((p, q) => q.start - p.start)) {
-    text = text.slice(0, e.start) + e.text + text.slice(e.end);
-  }
-  return formatText(text).text ?? text;
+  return edits.sort((p, q) => p.start - q.start);
 }
 
 /** A gene value written readably, and still within the gene's range. */

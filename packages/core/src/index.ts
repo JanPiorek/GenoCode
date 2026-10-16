@@ -24,6 +24,7 @@ export {
 export type { GeneInfo, GeneKind, GeneSection, HueArc } from "./genes.js";
 export {
   breed,
+  geneEdits,
   geneLiteral,
   morph,
   mutate,
@@ -34,6 +35,18 @@ export {
   type GeneValues,
   type MutateOptions,
 } from "./genetics.js";
+export {
+  completionsAt,
+  constantHelp,
+  FUNCTION_HELP,
+  geneRange,
+  helpAt,
+  KEYWORD_HELP,
+  MEMBER_HELP,
+  type Completion,
+  type CompletionKind,
+  type Help,
+} from "./help.js";
 export { mulberry32 } from "./noise.js";
 export {
   BUILTIN_CONSTANTS,
