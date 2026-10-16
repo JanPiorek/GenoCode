@@ -1,0 +1,786 @@
+creature Greenbay
+// A frond of leaves and buds, curling and growing segment by segment.
+// Inspired by Greenbay, a DancerDNA creature.
+
+gene tilt     = 106   in 45..135                                              // how far the frond tips up
+gene segments = 20.72 in 1..50                                                // how many segments it has; the last is cut short to fit
+gene growth   = (1.074, 1.027, 1.031) in (1.01, 1.01, 1.01)..(1.1, 1.1, 1.1)  // how much bigger each segment is than the last
+gene twist    = 22.7  in -25..25                                              // how far each segment rolls from the last
+
+gene lean        = 86.11   in -114.6..114.6                                        // how far a segment's leaves lean from it
+gene leaf_angle  = 58.42   in 45..135                                              // how far the first leaf tips out
+gene leaf_shape  = (0.3589, 1.048, 6.502) in (0.2, 0.8, -0.33)..(1.1, 1.1, 13.68)  // its width, thickness and length
+gene stalk       = 2.825   in 0.09..4.1                                            // how far out the first bud is
+gene leaf_twist  = -728.3  in -1718.9..1718.9                                      // how far the second leaf rolls from the first
+gene leaf_turn   = -15.67  in -25..25
+gene second_leaf = 0.169   in -0.33..13.68                                         // how long the second leaf is
+gene offset      = 3.702   in -0.33..13.68                                         // how far along the segment its other leaves are
+gene bud_tilt    = -95.8   in -286.5..286.5                                        // how far the middle bud tips
+gene bud_turn    = 3.461   in -4..4
+gene bud_stretch = 3.797   in -0.33..13.68                                         // how long the middle bud and the leaf beyond it are drawn out
+gene far_angle   = 113.3   in 45..135                                              // how far the far leaf tips out
+gene far_leaf    = -0.0222 in -0.33..13.68                                         // how long the far leaf is
+gene far_stalk   = 1.25    in 0.09..4.1                                            // how far out the far bud is
+gene spine       = 11.76   in -0.33..13.68                                         // how far along the segment its last leaf is
+
+// The buds' and leaves' colours, from the first segment to the last, and the gaps between them.
+gene bud_1      = hsv(99.9, 0.94, 1) in hsv(14.4, 0.5, 1)..hsv(237.6, 1, 1)
+gene bud_2      = hsv(153, 0.65, 1) in hsv(14.4, 0.5, 1)..hsv(237.6, 1, 1)
+gene bud_3      = hsv(67.2, 0.62, 1) in hsv(14.4, 0.5, 1)..hsv(237.6, 1, 1)
+gene bud_4      = hsv(221.2, 0.75, 1) in hsv(14.4, 0.5, 1)..hsv(237.6, 1, 1)
+gene bud_5      = hsv(199.1, 0.99, 1) in hsv(14.4, 0.5, 1)..hsv(237.6, 1, 1)
+gene bud_6      = hsv(152.9, 0.75, 1) in hsv(14.4, 0.5, 1)..hsv(237.6, 1, 1)
+gene bud_7      = hsv(28.5, 0.65, 1) in hsv(14.4, 0.5, 1)..hsv(237.6, 1, 1)
+gene bud_8      = hsv(68.2, 0.58, 1) in hsv(14.4, 0.5, 1)..hsv(237.6, 1, 1)
+gene bud_9      = hsv(67.2, 1, 1) in hsv(14.4, 0.5, 1)..hsv(237.6, 1, 1)
+gene bud_gap_1  = 0.2924  in 0.01..0.5
+gene bud_gap_2  = 0.1628  in 0.01..0.5
+gene bud_gap_3  = 0.4259  in 0.01..0.5
+gene bud_gap_4  = 0.3102  in 0.01..0.5
+gene bud_gap_5  = 0.06613 in 0.01..0.5
+gene bud_gap_6  = 0.04631 in 0.01..0.5
+gene bud_gap_7  = 0.3345  in 0.01..0.5
+gene bud_gap_8  = 0.2428  in 0.01..0.5
+gene leaf_1     = hsv(58.1, 0.67, 1) in hsv(14.4, 0.5, 1)..hsv(144, 1, 1)
+gene leaf_2     = hsv(48.2, 0.55, 1) in hsv(14.4, 0.5, 1)..hsv(144, 1, 1)
+gene leaf_3     = hsv(135.5, 0.69, 1) in hsv(14.4, 0.5, 1)..hsv(144, 1, 1)
+gene leaf_4     = hsv(81.9, 0.69, 1) in hsv(14.4, 0.5, 1)..hsv(144, 1, 1)
+gene leaf_5     = hsv(108.5, 0.98, 1) in hsv(14.4, 0.5, 1)..hsv(144, 1, 1)
+gene leaf_6     = hsv(68, 0.64, 1) in hsv(14.4, 0.5, 1)..hsv(144, 1, 1)
+gene leaf_7     = hsv(66.9, 0.66, 1) in hsv(14.4, 0.5, 1)..hsv(144, 1, 1)
+gene leaf_8     = hsv(59.6, 0.96, 1) in hsv(14.4, 0.5, 1)..hsv(144, 1, 1)
+gene leaf_9     = hsv(74.2, 0.77, 1) in hsv(14.4, 0.5, 1)..hsv(144, 1, 1)
+gene leaf_gap_1 = 0.2274  in 0.01..0.5
+gene leaf_gap_2 = 0.02196 in 0.01..0.5
+gene leaf_gap_3 = 0.08198 in 0.01..0.5
+gene leaf_gap_4 = 0.3679  in 0.01..0.5
+gene leaf_gap_5 = 0.4242  in 0.01..0.5
+gene leaf_gap_6 = 0.1336  in 0.01..0.5
+gene leaf_gap_7 = 0.3049  in 0.01..0.5
+gene leaf_gap_8 = 0.3177  in 0.01..0.5
+
+let buds = spectrum(bud_1, bud_2 at bud_gap_1, bud_3 at bud_gap_1 + bud_gap_2, bud_4 at bud_gap_1 + bud_gap_2 + bud_gap_3, bud_5 at bud_gap_1 + bud_gap_2 + bud_gap_3 + bud_gap_4, bud_6 at bud_gap_1 + bud_gap_2 + bud_gap_3 + bud_gap_4 + bud_gap_5, bud_7 at bud_gap_1 + bud_gap_2 + bud_gap_3 + bud_gap_4 + bud_gap_5 + bud_gap_6, bud_8 at bud_gap_1 + bud_gap_2 + bud_gap_3 + bud_gap_4 + bud_gap_5 + bud_gap_6 + bud_gap_7, bud_9 at bud_gap_1 + bud_gap_2 + bud_gap_3 + bud_gap_4 + bud_gap_5 + bud_gap_6 + bud_gap_7 + bud_gap_8)
+let leaves = spectrum(leaf_1, leaf_2 at leaf_gap_1, leaf_3 at leaf_gap_1 + leaf_gap_2, leaf_4 at leaf_gap_1 + leaf_gap_2 + leaf_gap_3, leaf_5 at leaf_gap_1 + leaf_gap_2 + leaf_gap_3 + leaf_gap_4, leaf_6 at leaf_gap_1 + leaf_gap_2 + leaf_gap_3 + leaf_gap_4 + leaf_gap_5, leaf_7 at leaf_gap_1 + leaf_gap_2 + leaf_gap_3 + leaf_gap_4 + leaf_gap_5 + leaf_gap_6, leaf_8 at leaf_gap_1 + leaf_gap_2 + leaf_gap_3 + leaf_gap_4 + leaf_gap_5 + leaf_gap_6 + leaf_gap_7, leaf_9 at leaf_gap_1 + leaf_gap_2 + leaf_gap_3 + leaf_gap_4 + leaf_gap_5 + leaf_gap_6 + leaf_gap_7 + leaf_gap_8)
+
+shape ball
+shine 1
+sharpness 1
+pitch tilt
+repeat floor(segments) + 2 as k {
+  let along = k / segments
+  // The last segment is cut short by what's left of the count.
+  let size = 1
+  if k > segments {
+    size = segments % 1
+  }
+  branch {
+    pitch lean
+    branch {
+      branch {
+        pitch leaf_angle
+        colour leaves(along)
+        lay { grow leaf_shape * size }
+        forward stalk
+        colour buds(along)
+        lay { grow size }
+      }
+      roll leaf_twist
+      roll leaf_turn
+      colour leaves(along)
+      lay { grow (1, 1, second_leaf) * size }
+    }
+    move (1, 1, offset)
+    branch {
+      pitch bud_tilt
+      branch {
+        colour buds(along)
+        lay { grow size }
+        roll bud_turn
+        branch {
+          pitch far_angle
+          colour leaves(along)
+          lay { grow (1, 1, bud_stretch * far_leaf) * size }
+          forward far_stalk
+          colour buds(along)
+          lay { grow (1, 1, bud_stretch) * size }
+        }
+      }
+      move (1, 1, spine)
+      colour leaves(along)
+      lay { grow size }
+    }
+  }
+  grow growth
+  roll twist
+}
+
+variant member_2 {
+  tilt        = 128.6
+  segments    = 20.32
+  growth      = (1.086, 1.082, 1.07)
+  twist       = 11.29
+  lean        = -59.44
+  leaf_angle  = 125.2
+  leaf_shape  = (0.4449, 1.041, 7.181)
+  stalk       = 0.757
+  leaf_twist  = -918.5
+  leaf_turn   = -8.201
+  second_leaf = 4.886
+  offset      = 3.553
+  bud_tilt    = 163.6
+  bud_turn    = 2.977
+  bud_stretch = 1.644
+  far_angle   = 124
+  far_leaf    = 0.7275
+  far_stalk   = 1.425
+  spine       = 6.72
+  bud_1       = hsv(102.4, 0.88, 1)
+  bud_2       = hsv(74.2, 0.76, 1)
+  bud_3       = hsv(169.6, 0.86, 1)
+  bud_4       = hsv(156, 0.7, 1)
+  bud_5       = hsv(14.4, 0.81, 1)
+  bud_6       = hsv(57.7, 0.89, 1)
+  bud_7       = hsv(69.3, 0.98, 1)
+  bud_8       = hsv(71.2, 1, 1)
+  bud_9       = hsv(107.3, 1, 1)
+  bud_gap_1   = 0.1937
+  bud_gap_2   = 0.03721
+  bud_gap_3   = 0.2724
+  bud_gap_4   = 0.2891
+  bud_gap_5   = 0.2621
+  bud_gap_6   = 0.1095
+  bud_gap_7   = 0.2452
+  bud_gap_8   = 0.2541
+  leaf_1      = hsv(69.8, 0.86, 1)
+  leaf_2      = hsv(131.3, 0.91, 1)
+  leaf_3      = hsv(49.2, 0.93, 1)
+  leaf_4      = hsv(37.2, 0.73, 1)
+  leaf_5      = hsv(70.6, 0.94, 1)
+  leaf_6      = hsv(48.4, 0.9, 1)
+  leaf_7      = hsv(25.7, 0.96, 1)
+  leaf_8      = hsv(42.1, 0.83, 1)
+  leaf_9      = hsv(75, 0.87, 1)
+  leaf_gap_1  = 0.2762
+  leaf_gap_2  = 0.3325
+  leaf_gap_3  = 0.03337
+  leaf_gap_4  = 0.1279
+  leaf_gap_5  = 0.3478
+  leaf_gap_6  = 0.3563
+  leaf_gap_7  = 0.3695
+  leaf_gap_8  = 0.2598
+}
+
+variant member_3 {
+  tilt        = 131.8
+  segments    = 14.21
+  growth      = (1.062, 1.061, 1.075)
+  twist       = -9.086
+  lean        = 24
+  leaf_angle  = 134.5
+  leaf_shape  = (0.2347, 1.066, 5.368)
+  stalk       = 0.757
+  leaf_twist  = 126.2
+  leaf_turn   = 2.202
+  second_leaf = 2.254
+  offset      = 8.094
+  bud_tilt    = -36.06
+  bud_turn    = -0.419
+  bud_stretch = 0.3792
+  far_angle   = 105
+  far_leaf    = 6.637
+  far_stalk   = 2.462
+  spine       = 9.29
+  bud_1       = hsv(40, 0.95, 1)
+  bud_2       = hsv(110.6, 0.74, 1)
+  bud_3       = hsv(204.4, 0.8, 1)
+  bud_4       = hsv(81, 0.64, 1)
+  bud_5       = hsv(28.3, 0.84, 1)
+  bud_6       = hsv(71.2, 0.79, 1)
+  bud_7       = hsv(22.2, 0.75, 1)
+  bud_8       = hsv(17.5, 0.92, 1)
+  bud_9       = hsv(101.9, 1, 1)
+  bud_gap_1   = 0.2197
+  bud_gap_2   = 0.2498
+  bud_gap_3   = 0.1096
+  bud_gap_4   = 0.4698
+  bud_gap_5   = 0.1513
+  bud_gap_6   = 0.06164
+  bud_gap_7   = 0.3012
+  bud_gap_8   = 0.1049
+  leaf_1      = hsv(80.5, 0.76, 1)
+  leaf_2      = hsv(107.1, 0.69, 1)
+  leaf_3      = hsv(111.8, 0.63, 1)
+  leaf_4      = hsv(119.8, 0.71, 1)
+  leaf_5      = hsv(44.7, 0.94, 1)
+  leaf_6      = hsv(37.4, 0.87, 1)
+  leaf_7      = hsv(23.5, 0.93, 1)
+  leaf_8      = hsv(21.2, 0.91, 1)
+  leaf_9      = hsv(87.5, 0.66, 1)
+  leaf_gap_1  = 0.1049
+  leaf_gap_2  = 0.199
+  leaf_gap_3  = 0.1574
+  leaf_gap_4  = 0.04921
+  leaf_gap_5  = 0.1264
+  leaf_gap_6  = 0.2946
+  leaf_gap_7  = 0.4442
+  leaf_gap_8  = 0.2261
+}
+
+variant member_4 {
+  tilt        = 131.8
+  growth      = (1.076, 1.033, 1.057)
+  twist       = 15.77
+  lean        = 24
+  leaf_angle  = 107.6
+  leaf_shape  = (0.2841, 1.005, 1.579)
+  stalk       = 0.757
+  leaf_twist  = -1714
+  leaf_turn   = -18.99
+  second_leaf = 2.254
+  offset      = 4.709
+  bud_tilt    = -222.1
+  bud_turn    = -0.419
+  bud_stretch = 0.8171
+  far_angle   = 105
+  far_leaf    = 0.1103
+  far_stalk   = 3.27
+  spine       = 9.29
+  bud_1       = hsv(86.4, 0.78, 1)
+  bud_2       = hsv(110.6, 0.74, 1)
+  bud_3       = hsv(152.4, 0.86, 1)
+  bud_4       = hsv(184.3, 0.64, 1)
+  bud_5       = hsv(121, 0.89, 1)
+  bud_6       = hsv(34, 0.71, 1)
+  bud_7       = hsv(14.5, 0.78, 1)
+  bud_8       = hsv(22, 0.87, 1)
+  bud_9       = hsv(53.3, 1, 1)
+  bud_gap_1   = 0.3243
+  bud_gap_2   = 0.1193
+  bud_gap_3   = 0.2724
+  bud_gap_4   = 0.4698
+  bud_gap_5   = 0.1056
+  bud_gap_6   = 0.06164
+  bud_gap_7   = 0.4713
+  bud_gap_8   = 0.1049
+  leaf_1      = hsv(102.8, 0.89, 1)
+  leaf_2      = hsv(98.6, 0.7, 1)
+  leaf_3      = hsv(26.7, 0.82, 1)
+  leaf_4      = hsv(41.2, 0.82, 1)
+  leaf_5      = hsv(104.9, 0.79, 1)
+  leaf_6      = hsv(48.4, 0.9, 1)
+  leaf_7      = hsv(23.5, 0.93, 1)
+  leaf_8      = hsv(42.6, 0.89, 1)
+  leaf_9      = hsv(93.5, 0.75, 1)
+  leaf_gap_1  = 0.08772
+  leaf_gap_2  = 0.1154
+  leaf_gap_3  = 0.3129
+  leaf_gap_4  = 0.04921
+  leaf_gap_5  = 0.3606
+  leaf_gap_6  = 0.1269
+  leaf_gap_7  = 0.4442
+  leaf_gap_8  = 0.3408
+}
+
+variant member_5 {
+  tilt        = 131.8
+  segments    = 16.21
+  growth      = (1.077, 1.08, 1.057)
+  twist       = 15.77
+  lean        = -59.44
+  leaf_angle  = 128.9
+  leaf_shape  = (0.2347, 1.066, 5.368)
+  stalk       = 0.757
+  leaf_twist  = -383.8
+  leaf_turn   = -17.85
+  second_leaf = 8.328
+  offset      = 4.709
+  bud_tilt    = 112.7
+  bud_turn    = 1.79
+  bud_stretch = 0.8171
+  far_angle   = 124
+  far_leaf    = 0.1103
+  far_stalk   = 2.462
+  spine       = 9.29
+  bud_1       = hsv(86.4, 0.78, 1)
+  bud_2       = hsv(110.6, 0.74, 1)
+  bud_3       = hsv(176.3, 0.8, 1)
+  bud_4       = hsv(174.8, 0.82, 1)
+  bud_5       = hsv(56.8, 0.72, 1)
+  bud_6       = hsv(57.7, 0.89, 1)
+  bud_7       = hsv(49, 0.86, 1)
+  bud_8       = hsv(19.9, 1, 1)
+  bud_9       = hsv(75, 1, 1)
+  bud_gap_1   = 0.181
+  bud_gap_2   = 0.09887
+  bud_gap_3   = 0.2724
+  bud_gap_4   = 0.397
+  bud_gap_5   = 0.2605
+  bud_gap_6   = 0.06164
+  bud_gap_7   = 0.1502
+  bud_gap_8   = 0.2502
+  leaf_1      = hsv(34.3, 0.79, 1)
+  leaf_2      = hsv(130, 0.91, 1)
+  leaf_3      = hsv(34.6, 0.9, 1)
+  leaf_4      = hsv(33, 0.62, 1)
+  leaf_5      = hsv(70.6, 0.94, 1)
+  leaf_6      = hsv(48.4, 0.9, 1)
+  leaf_7      = hsv(23.5, 0.93, 1)
+  leaf_8      = hsv(21.2, 0.91, 1)
+  leaf_9      = hsv(43.4, 0.87, 1)
+  leaf_gap_1  = 0.2762
+  leaf_gap_2  = 0.199
+  leaf_gap_3  = 0.01529
+  leaf_gap_4  = 0.05052
+  leaf_gap_5  = 0.1264
+  leaf_gap_6  = 0.2543
+  leaf_gap_7  = 0.4442
+  leaf_gap_8  = 0.2869
+}
+
+variant member_6 {
+  tilt        = 130.3
+  segments    = 16.21
+  growth      = (1.077, 1.08, 1.057)
+  twist       = 15.77
+  lean        = -59.44
+  leaf_angle  = 128.9
+  leaf_shape  = (0.2347, 1.066, 5.368)
+  stalk       = 0.757
+  leaf_twist  = -345.6
+  leaf_turn   = -17.85
+  second_leaf = 8.328
+  offset      = 4.709
+  bud_tilt    = 214.7
+  bud_turn    = 0.8919
+  bud_stretch = 5.642
+  far_angle   = 124
+  far_leaf    = 0.3021
+  far_stalk   = 2.462
+  spine       = 8.6
+  bud_1       = hsv(86.4, 0.78, 1)
+  bud_2       = hsv(110.6, 0.74, 1)
+  bud_3       = hsv(176.3, 0.8, 1)
+  bud_4       = hsv(235.9, 0.98, 1)
+  bud_5       = hsv(56.8, 0.72, 1)
+  bud_6       = hsv(138.1, 0.82, 1)
+  bud_7       = hsv(49, 0.86, 1)
+  bud_8       = hsv(68.4, 0.77, 1)
+  bud_9       = hsv(75, 1, 1)
+  bud_gap_1   = 0.181
+  bud_gap_2   = 0.09887
+  bud_gap_3   = 0.2724
+  bud_gap_4   = 0.397
+  bud_gap_5   = 0.1931
+  bud_gap_6   = 0.2001
+  bud_gap_7   = 0.3187
+  bud_gap_8   = 0.2502
+  leaf_1      = hsv(34.3, 0.79, 1)
+  leaf_2      = hsv(79.5, 0.84, 1)
+  leaf_3      = hsv(52.8, 0.66, 1)
+  leaf_4      = hsv(48.8, 0.7, 1)
+  leaf_5      = hsv(70.6, 0.94, 1)
+  leaf_6      = hsv(48.4, 0.9, 1)
+  leaf_7      = hsv(23.5, 0.93, 1)
+  leaf_8      = hsv(21.2, 0.91, 1)
+  leaf_9      = hsv(32.7, 0.96, 1)
+  leaf_gap_1  = 0.3173
+  leaf_gap_2  = 0.199
+  leaf_gap_3  = 0.1776
+  leaf_gap_4  = 0.02494
+  leaf_gap_5  = 0.1264
+  leaf_gap_6  = 0.1278
+  leaf_gap_7  = 0.4442
+  leaf_gap_8  = 0.415
+}
+
+variant member_7 {
+  tilt        = 91.48
+  segments    = 12.21
+  growth      = (1.055, 1.063, 1.039)
+  twist       = 11.66
+  lean        = -59.44
+  leaf_angle  = 113.5
+  leaf_shape  = (0.2347, 1.066, 5.368)
+  stalk       = 2.238
+  leaf_twist  = -383.8
+  leaf_turn   = -17.85
+  second_leaf = 6.218
+  offset      = 8.822
+  bud_tilt    = 95.61
+  bud_turn    = 1.79
+  bud_stretch = 0.8171
+  far_angle   = 124
+  far_leaf    = 2.318
+  far_stalk   = 4.029
+  spine       = 9.29
+  bud_1       = hsv(29.3, 0.75, 1)
+  bud_2       = hsv(110.6, 0.74, 1)
+  bud_3       = hsv(236.8, 1, 1)
+  bud_4       = hsv(174.8, 0.82, 1)
+  bud_5       = hsv(56.8, 0.72, 1)
+  bud_6       = hsv(57.7, 0.89, 1)
+  bud_7       = hsv(90.7, 0.71, 1)
+  bud_8       = hsv(45.3, 0.84, 1)
+  bud_9       = hsv(35.6, 1, 1)
+  bud_gap_1   = 0.2675
+  bud_gap_2   = 0.1531
+  bud_gap_3   = 0.2724
+  bud_gap_4   = 0.397
+  bud_gap_5   = 0.0292
+  bud_gap_6   = 0.06164
+  bud_gap_7   = 0.1502
+  bud_gap_8   = 0.2502
+  leaf_1      = hsv(34.3, 0.79, 1)
+  leaf_2      = hsv(119.3, 0.74, 1)
+  leaf_3      = hsv(34.6, 0.9, 1)
+  leaf_4      = hsv(72.6, 0.75, 1)
+  leaf_5      = hsv(65.4, 0.74, 1)
+  leaf_6      = hsv(48.4, 0.9, 1)
+  leaf_7      = hsv(72.3, 0.97, 1)
+  leaf_8      = hsv(61.3, 0.71, 1)
+  leaf_9      = hsv(33.6, 0.66, 1)
+  leaf_gap_1  = 0.4289
+  leaf_gap_2  = 0.117
+  leaf_gap_3  = 0.2596
+  leaf_gap_4  = 0.04427
+  leaf_gap_5  = 0.1264
+  leaf_gap_6  = 0.03823
+  leaf_gap_7  = 0.3508
+  leaf_gap_8  = 0.2869
+}
+
+variant member_8 {
+  tilt        = 64.56
+  segments    = 23.63
+  growth      = (1.062, 1.082, 1.09)
+  twist       = -7.16
+  lean        = -112.2
+  leaf_angle  = 126.8
+  leaf_shape  = (0.4888, 0.9781, 7.009)
+  stalk       = 0.8079
+  leaf_twist  = -972.8
+  leaf_turn   = -17.14
+  second_leaf = 6.575
+  offset      = 9.829
+  bud_tilt    = 36.44
+  bud_turn    = -0.8764
+  bud_stretch = 3.256
+  far_angle   = 118.6
+  far_leaf    = 5.268
+  far_stalk   = 0.1992
+  spine       = 11.34
+  bud_1       = hsv(172.2, 0.52, 1)
+  bud_2       = hsv(109.6, 0.75, 1)
+  bud_3       = hsv(223.6, 0.57, 1)
+  bud_4       = hsv(235.9, 0.98, 1)
+  bud_5       = hsv(85.6, 0.68, 1)
+  bud_6       = hsv(135.5, 0.93, 1)
+  bud_7       = hsv(56.1, 0.52, 1)
+  bud_8       = hsv(20.8, 0.79, 1)
+  bud_9       = hsv(75, 1, 1)
+  bud_gap_1   = 0.2279
+  bud_gap_2   = 0.07257
+  bud_gap_3   = 0.2531
+  bud_gap_4   = 0.2295
+  bud_gap_5   = 0.3797
+  bud_gap_6   = 0.2491
+  bud_gap_7   = 0.4997
+  bud_gap_8   = 0.2502
+  leaf_1      = hsv(63.4, 0.9, 1)
+  leaf_2      = hsv(87.4, 0.71, 1)
+  leaf_3      = hsv(97.9, 0.7, 1)
+  leaf_4      = hsv(57.5, 0.61, 1)
+  leaf_5      = hsv(111.8, 0.95, 1)
+  leaf_6      = hsv(27.8, 0.68, 1)
+  leaf_7      = hsv(14.9, 0.79, 1)
+  leaf_8      = hsv(46.9, 0.85, 1)
+  leaf_9      = hsv(69.4, 0.82, 1)
+  leaf_gap_1  = 0.2255
+  leaf_gap_2  = 0.1976
+  leaf_gap_3  = 0.1484
+  leaf_gap_4  = 0.03537
+  leaf_gap_5  = 0.1264
+  leaf_gap_6  = 0.2424
+  leaf_gap_7  = 0.1646
+  leaf_gap_8  = 0.09659
+}
+
+variant member_9 {
+  tilt        = 130.3
+  segments    = 23.32
+  growth      = (1.038, 1.048, 1.051)
+  twist       = -9.174
+  lean        = -59.44
+  leaf_angle  = 124.3
+  leaf_shape  = (0.2432, 1.062, 5.685)
+  stalk       = 1.217
+  leaf_twist  = -635
+  leaf_turn   = -3.834
+  second_leaf = 12.5
+  offset      = 4.315
+  bud_tilt    = -136.5
+  bud_turn    = -2.388
+  bud_stretch = 1.887
+  far_angle   = 73.22
+  far_leaf    = 0.3024
+  far_stalk   = 1.369
+  spine       = 13.26
+  bud_1       = hsv(38.3, 0.88, 1)
+  bud_2       = hsv(31.9, 0.94, 1)
+  bud_3       = hsv(164.5, 0.74, 1)
+  bud_4       = hsv(235.9, 0.98, 1)
+  bud_5       = hsv(93.3, 0.8, 1)
+  bud_6       = hsv(129.9, 0.83, 1)
+  bud_7       = hsv(16.9, 0.68, 1)
+  bud_8       = hsv(91.6, 0.72, 1)
+  bud_9       = hsv(39.6, 1, 1)
+  bud_gap_1   = 0.2156
+  bud_gap_2   = 0.1602
+  bud_gap_3   = 0.2724
+  bud_gap_4   = 0.4022
+  bud_gap_5   = 0.3797
+  bud_gap_6   = 0.2677
+  bud_gap_7   = 0.1228
+  bud_gap_8   = 0.2041
+  leaf_1      = hsv(27, 0.96, 1)
+  leaf_2      = hsv(79.5, 0.84, 1)
+  leaf_3      = hsv(17.5, 0.85, 1)
+  leaf_4      = hsv(34.2, 0.73, 1)
+  leaf_5      = hsv(107.5, 0.57, 1)
+  leaf_6      = hsv(119.2, 0.99, 1)
+  leaf_7      = hsv(60.6, 0.6, 1)
+  leaf_8      = hsv(21.2, 0.91, 1)
+  leaf_9      = hsv(52.3, 0.9, 1)
+  leaf_gap_1  = 0.02121
+  leaf_gap_2  = 0.3815
+  leaf_gap_3  = 0.01729
+  leaf_gap_4  = 0.02494
+  leaf_gap_5  = 0.3375
+  leaf_gap_6  = 0.2612
+  leaf_gap_7  = 0.2111
+  leaf_gap_8  = 0.07523
+}
+
+variant member_10 {
+  tilt        = 94.67
+  segments    = 33.32
+  growth      = (1.038, 1.048, 1.051)
+  twist       = 11.84
+  lean        = -59.44
+  leaf_angle  = 102
+  leaf_shape  = (0.2432, 1.062, 5.685)
+  stalk       = 1.217
+  leaf_twist  = -932.7
+  leaf_turn   = -17.38
+  second_leaf = 10.59
+  offset      = 4.386
+  bud_tilt    = 97.01
+  bud_turn    = 3.488
+  bud_stretch = 2.03
+  far_angle   = 53.64
+  far_leaf    = 0.25
+  far_stalk   = 1.128
+  spine       = 4.128
+  bud_1       = hsv(42.8, 0.85, 1)
+  bud_2       = hsv(31.9, 0.94, 1)
+  bud_3       = hsv(155.4, 0.97, 1)
+  bud_4       = hsv(235.1, 0.74, 1)
+  bud_5       = hsv(85.6, 0.68, 1)
+  bud_6       = hsv(129.7, 0.83, 1)
+  bud_7       = hsv(59.5, 0.51, 1)
+  bud_8       = hsv(83.4, 0.66, 1)
+  bud_9       = hsv(106.9, 1, 1)
+  bud_gap_1   = 0.181
+  bud_gap_2   = 0.2049
+  bud_gap_3   = 0.2635
+  bud_gap_4   = 0.3046
+  bud_gap_5   = 0.2914
+  bud_gap_6   = 0.2198
+  bud_gap_7   = 0.3062
+  bud_gap_8   = 0.1944
+  leaf_1      = hsv(31.2, 0.94, 1)
+  leaf_2      = hsv(80, 0.83, 1)
+  leaf_3      = hsv(17.1, 0.85, 1)
+  leaf_4      = hsv(34.3, 0.73, 1)
+  leaf_5      = hsv(106.6, 0.62, 1)
+  leaf_6      = hsv(97.7, 0.89, 1)
+  leaf_7      = hsv(39.4, 0.53, 1)
+  leaf_8      = hsv(67.2, 0.66, 1)
+  leaf_9      = hsv(52.3, 0.9, 1)
+  leaf_gap_1  = 0.02121
+  leaf_gap_2  = 0.3017
+  leaf_gap_3  = 0.02544
+  leaf_gap_4  = 0.2506
+  leaf_gap_5  = 0.3375
+  leaf_gap_6  = 0.1278
+  leaf_gap_7  = 0.2111
+  leaf_gap_8  = 0.2575
+}
+
+variant member_11 {
+  tilt        = 119.7
+  segments    = 20.23
+  growth      = (1.047, 1.056, 1.013)
+  twist       = 20.2
+  lean        = -82.6
+  leaf_angle  = 79.96
+  leaf_shape  = (0.5867, 1.008, 3.378)
+  stalk       = 3.965
+  leaf_twist  = -1387
+  leaf_turn   = -3.84
+  second_leaf = 5.285
+  offset      = 4.924
+  bud_tilt    = 129.9
+  bud_turn    = 3.985
+  bud_stretch = -0.1122
+  far_angle   = 121.3
+  far_leaf    = 2.128
+  far_stalk   = 0.7123
+  spine       = 5.373
+  bud_1       = hsv(205.6, 0.82, 1)
+  bud_2       = hsv(33.5, 0.79, 1)
+  bud_3       = hsv(226, 0.83, 1)
+  bud_4       = hsv(127.9, 0.72, 1)
+  bud_5       = hsv(221.8, 0.93, 1)
+  bud_6       = hsv(121.4, 0.9, 1)
+  bud_7       = hsv(82.5, 0.82, 1)
+  bud_8       = hsv(148.1, 0.59, 1)
+  bud_9       = hsv(210.6, 1, 1)
+  bud_gap_1   = 0.2842
+  bud_gap_2   = 0.2077
+  bud_gap_3   = 0.2005
+  bud_gap_4   = 0.04525
+  bud_gap_5   = 0.2857
+  bud_gap_6   = 0.1421
+  bud_gap_7   = 0.06465
+  bud_gap_8   = 0.232
+  leaf_1      = hsv(47.9, 0.94, 1)
+  leaf_2      = hsv(86.2, 0.84, 1)
+  leaf_3      = hsv(23.3, 1, 1)
+  leaf_4      = hsv(130, 0.77, 1)
+  leaf_5      = hsv(53.9, 0.51, 1)
+  leaf_6      = hsv(123.3, 0.7, 1)
+  leaf_7      = hsv(52.4, 0.64, 1)
+  leaf_8      = hsv(31.5, 0.97, 1)
+  leaf_9      = hsv(131.3, 0.69, 1)
+  leaf_gap_1  = 0.3158
+  leaf_gap_2  = 0.3632
+  leaf_gap_3  = 0.227
+  leaf_gap_4  = 0.1748
+  leaf_gap_5  = 0.1351
+  leaf_gap_6  = 0.1645
+  leaf_gap_7  = 0.2539
+  leaf_gap_8  = 0.4155
+}
+
+variant member_12 {
+  tilt        = 113.8
+  segments    = 25.72
+  growth      = (1.031, 1.032, 1.04)
+  twist       = 10.76
+  lean        = 3.113
+  leaf_angle  = 106.3
+  leaf_shape  = (0.4164, 0.9999, 4.845)
+  stalk       = 1.233
+  leaf_twist  = 1176
+  leaf_turn   = -10.97
+  second_leaf = 8.937
+  offset      = 1.068
+  bud_tilt    = -123.9
+  bud_turn    = 3.542
+  bud_stretch = 6.888
+  far_angle   = 62.9
+  far_leaf    = -0.2855
+  far_stalk   = 1.148
+  spine       = 6.616
+  bud_1       = hsv(107.7, 0.88, 1)
+  bud_2       = hsv(62.8, 0.88, 1)
+  bud_3       = hsv(207.8, 0.67, 1)
+  bud_4       = hsv(146.3, 0.56, 1)
+  bud_5       = hsv(45.3, 0.55, 1)
+  bud_6       = hsv(103.1, 0.94, 1)
+  bud_7       = hsv(173.4, 0.73, 1)
+  bud_8       = hsv(48.8, 0.76, 1)
+  bud_9       = hsv(151.8, 1, 1)
+  bud_gap_1   = 0.3378
+  bud_gap_2   = 0.3285
+  bud_gap_3   = 0.414
+  bud_gap_4   = 0.3183
+  bud_gap_5   = 0.02817
+  bud_gap_6   = 0.1578
+  bud_gap_7   = 0.1195
+  bud_gap_8   = 0.09494
+  leaf_1      = hsv(21.1, 0.96, 1)
+  leaf_2      = hsv(37.9, 0.51, 1)
+  leaf_3      = hsv(39.2, 0.98, 1)
+  leaf_4      = hsv(15.4, 0.86, 1)
+  leaf_5      = hsv(86.5, 0.69, 1)
+  leaf_6      = hsv(17.5, 0.59, 1)
+  leaf_7      = hsv(21.7, 0.61, 1)
+  leaf_8      = hsv(105.7, 0.87, 1)
+  leaf_9      = hsv(66.2, 0.87, 1)
+  leaf_gap_1  = 0.1437
+  leaf_gap_2  = 0.3573
+  leaf_gap_3  = 0.09769
+  leaf_gap_4  = 0.3684
+  leaf_gap_5  = 0.434
+  leaf_gap_6  = 0.0653
+  leaf_gap_7  = 0.1223
+  leaf_gap_8  = 0.2287
+}
+
+variant member_13 {
+  tilt        = 113.8
+  segments    = 28.72
+  growth      = (1.031, 1.032, 1.04)
+  twist       = 10.76
+  lean        = 3.113
+  leaf_angle  = 93.63
+  leaf_shape  = (0.4882, 0.9843, 8.012)
+  stalk       = 1.233
+  leaf_twist  = -108
+  leaf_turn   = -22.94
+  second_leaf = 8.937
+  offset      = 1.068
+  bud_tilt    = -4.598
+  bud_turn    = 1.7
+  bud_stretch = 6.888
+  far_angle   = 67.83
+  far_leaf    = 2.498
+  far_stalk   = 0.3342
+  spine       = 6.616
+  bud_1       = hsv(23.8, 0.92, 1)
+  bud_2       = hsv(62.8, 0.88, 1)
+  bud_3       = hsv(167.1, 0.87, 1)
+  bud_4       = hsv(166.3, 0.81, 1)
+  bud_5       = hsv(45.3, 0.55, 1)
+  bud_6       = hsv(103.1, 0.94, 1)
+  bud_7       = hsv(58.5, 0.56, 1)
+  bud_8       = hsv(64.3, 0.59, 1)
+  bud_9       = hsv(151.8, 1, 1)
+  bud_gap_1   = 0.1981
+  bud_gap_2   = 0.4478
+  bud_gap_3   = 0.2547
+  bud_gap_4   = 0.3183
+  bud_gap_5   = 0.203
+  bud_gap_6   = 0.3824
+  bud_gap_7   = 0.05951
+  bud_gap_8   = 0.09494
+  leaf_1      = hsv(21.1, 0.96, 1)
+  leaf_2      = hsv(53.9, 0.66, 1)
+  leaf_3      = hsv(39.2, 0.98, 1)
+  leaf_4      = hsv(15.4, 0.86, 1)
+  leaf_5      = hsv(86.5, 0.69, 1)
+  leaf_6      = hsv(59.1, 0.84, 1)
+  leaf_7      = hsv(21.9, 0.73, 1)
+  leaf_8      = hsv(105.7, 0.87, 1)
+  leaf_9      = hsv(50.3, 0.85, 1)
+  leaf_gap_1  = 0.2077
+  leaf_gap_2  = 0.3573
+  leaf_gap_3  = 0.09769
+  leaf_gap_4  = 0.3684
+  leaf_gap_5  = 0.361
+  leaf_gap_6  = 0.0653
+  leaf_gap_7  = 0.1223
+  leaf_gap_8  = 0.2287
+}
