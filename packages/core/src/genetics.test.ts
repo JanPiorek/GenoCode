@@ -247,6 +247,9 @@ describe("writeGenes", () => {
         expect(Math.abs(wrapHue(c.h - want.h + 180) - 180)).toBeLessThan(0.1);
         expect(c.s).toBeCloseTo(want.s, 1);
         expect(c.v).toBeCloseTo(want.v, 1);
+      } else if (typeof want === "object" && want.type === "vector") {
+        const v = got as Vec;
+        for (const axis of ["x", "y", "z"] as const) expect(v[axis]).toBeCloseTo(want[axis], 1);
       } else expect(got).toEqual(want);
     }
   });
