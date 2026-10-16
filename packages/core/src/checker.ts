@@ -11,6 +11,7 @@ import type {
   PartDecl,
   SourceFile,
   Stmt,
+  VariantDecl,
 } from "./ast.js";
 import { BUILTIN_CONSTANTS, BUILTIN_FUNCTIONS, isBuiltinName } from "./builtins.js";
 import { hexColour } from "./colour.js";
@@ -52,6 +53,15 @@ export interface CheckResult {
   /** The background reads `time`, `beat` or `music`, so it changes while it's shown. */
   backgroundLive: boolean;
   usesRandom: boolean;
+  /** The creature's variants (section 6.6), in the order they're written. */
+  variants: Variant[];
+}
+
+/** Another set of gene values for the creature: only the genes it sets, by full name. */
+export interface Variant {
+  name: string;
+  values: Map<string, Value>;
+  decl: VariantDecl;
 }
 
 /** Parses and checks a GenoCode file. */
@@ -74,6 +84,7 @@ export function check(text: string): CheckResult {
     live: checker.live,
     backgroundLive: checker.backgroundLive,
     usesRandom: checker.usesRandom,
+    variants: checker.variants,
   };
 }
 
@@ -233,6 +244,7 @@ class Checker {
   live = false;
   backgroundLive = false;
   usesRandom = false;
+  variants: Variant[] = [];
   private randomSpan: Span | undefined;
   private readonly fullNames = new Set<string>();
 
@@ -272,6 +284,93 @@ class Checker {
         this.genes.push(seedGene(this.randomSpan ?? { start: 0, end: 0 }));
       }
     }
+    // After every gene is known, including `seed`.
+    if (file.kind === "creature") this.checkVariants(file.items);
+  }
+
+  // ---------- variants ----------
+
+  private checkVariants(items: Stmt[]): void {
+    const names = new Set<string>();
+    for (const item of items) {
+      if (item.kind !== "Variant") continue;
+      if (names.has(item.name)) {
+        this.error(item.nameSpan, `There's already a variant called \`${item.name}\`.`);
+        continue;
+      }
+      names.add(item.name);
+      const values = new Map<string, Value>();
+      for (const s of item.body.items) {
+        if (s.kind !== "GeneSetting") continue;
+        const gene = this.genes.find((g) => g.fullName === s.gene);
+        if (!gene) {
+          this.error(s.geneSpan, `There's no gene called \`${s.gene}\`.`);
+          continue;
+        }
+        if (values.has(s.gene)) {
+          this.error(s.geneSpan, `\`${s.gene}\` is already set in this variant.`);
+          continue;
+        }
+        try {
+          values.set(s.gene, this.variantValue(gene, s.value));
+        } catch (e) {
+          if (!(e instanceof ConstError)) throw e;
+          this.error(e.span, e.message);
+        }
+      }
+      this.variants.push({ name: item.name, values, decl: item });
+    }
+  }
+
+  /** A value set in a variant, which must be one the gene itself could have (section 6.6). */
+  private variantValue(g: GeneInfo, expr: Expr): Value {
+    const outside = () => {
+      throw new ConstError(expr.span, `This is outside \`${g.fullName}\`'s range.`);
+    };
+    if (g.kind === "part") {
+      const name = expr.kind === "Name" ? expr.name : undefined;
+      const option = g.options!.find(
+        (o) => typeof o === "object" && o.type === "part" && o.name === name,
+      );
+      if (!option) throw new ConstError(expr.span, `\`${g.fullName}\` must be one of its parts.`);
+      return option;
+    }
+    const value = this.constant(expr);
+    const type = typeOf(value);
+    if (type !== typeOf(g.value)) {
+      throw new ConstError(
+        expr.span,
+        `\`${g.fullName}\` is ${typeLabel(typeOf(g.value))}, not ${typeLabel(type)}.`,
+      );
+    }
+    if (g.kind === "choice") {
+      if (!g.options!.some((o) => valuesEqual(o, value)))
+        throw new ConstError(expr.span, `\`${g.fullName}\` must be one of its options.`);
+    } else if (typeof value === "number") {
+      const [min, max] = [g.min as number, g.max as number];
+      if (value < min || value > max) outside();
+      if (g.step !== undefined) {
+        const k = (value - min) / g.step;
+        if (Math.abs(k - Math.round(k)) > 1e-9)
+          this.warn(expr.span, `This isn't a whole number of steps of ${g.step} above ${min}.`);
+      }
+    } else if (isVec(value)) {
+      const [min, max] = [g.min as Value, g.max as Value];
+      if (!isVec(min) || !isVec(max)) outside();
+      for (const axis of ["x", "y", "z"] as const) {
+        if (value[axis] < (min as typeof value)[axis] || value[axis] > (max as typeof value)[axis])
+          outside();
+      }
+    } else if (isColour(value)) {
+      const [min, max] = [g.min as Value, g.max as Value];
+      if (!isColour(min) || !isColour(max)) outside();
+      for (const key of ["s", "v", "a"] as const) {
+        if (value[key] < (min as typeof value)[key] || value[key] > (max as typeof value)[key])
+          outside();
+      }
+      if (!inHueArc(value.h, g.hue!)) outside();
+    }
+    return value;
   }
 
   // ---------- creatures ----------
@@ -901,6 +1000,12 @@ class Checker {
             stmt.span,
             `A ${stmt.kind === "Part" ? "part" : "function"} can only be defined at the top level of a creature.`,
           );
+        return;
+      case "Variant":
+        if (!creatureTop || ctx.section !== "creature")
+          this.error(stmt.span, "A variant can only be at the top level of a creature.");
+        return;
+      case "GeneSetting":
         return;
       case "Background":
       case "Dance":

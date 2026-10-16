@@ -39,7 +39,7 @@ export function parse(text: string): ParseResult {
 
 class ParseError extends Error {}
 
-type Context = "normal" | "dance";
+type Context = "normal" | "dance" | "variant";
 
 const COMMANDS = new Set<string>(["forward", "back", "move", "pitch", "yaw", "roll", "grow"]);
 const MATERIALS = new Set<string>(["shape", "colour", "color", "shine", "sharpness", "texture"]);
@@ -379,6 +379,7 @@ class Parser {
   private parseStatement(ctx: Context): Stmt {
     const t = this.peek();
     const start = t.span.start;
+    if (ctx === "variant") return this.parseGeneSetting();
 
     if (t.kind === "name") {
       if (ctx === "dance" && EFFECT_NAMES.has(t.text)) return this.parseEffect();
@@ -427,6 +428,18 @@ class Parser {
         this.next();
         const body = this.parseBlock("dance", "dance");
         return this.endCompound({ kind: "Dance", ...this.base(start), body });
+      }
+      case "variant": {
+        this.next();
+        const name = this.expectName("the variant's name");
+        const body = this.parseBlock("the variant's name", "variant");
+        return this.endCompound({
+          kind: "Variant",
+          ...this.base(start),
+          name: name.text,
+          nameSpan: name.span,
+          body,
+        });
       }
       case "let": {
         this.next();
@@ -680,6 +693,35 @@ class Parser {
       break;
     }
     return this.endCompound({ kind: "If", ...this.base(start), branches, elseBlock });
+  }
+
+  /** `whorl.petals = 9`: a gene by its full name, which may start with `background` or `dance`. */
+  private parseGeneSetting(): Stmt {
+    const first = this.peek();
+    const isPart = (t: Token) =>
+      t.kind === "name" ||
+      (t.kind === "keyword" && (t.text === "background" || t.text === "dance"));
+    if (!isPart(first)) {
+      this.fail(first.span, `Expected a gene's name, but found ${this.describe(first)}.`);
+    }
+    this.next();
+    let gene = first.text;
+    let end = first.span.end;
+    while (this.isOp(".")) {
+      this.next();
+      const part = this.expectName("a name after `.`");
+      gene += `.${part.text}`;
+      end = part.span.end;
+    }
+    this.expectOp("=", "after the gene's name");
+    const value = this.parseExpr();
+    return this.endSimple({
+      kind: "GeneSetting",
+      ...this.base(first.span.start),
+      gene,
+      geneSpan: { start: first.span.start, end },
+      value,
+    });
   }
 
   private parseEffect(): Stmt {

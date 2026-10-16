@@ -340,6 +340,8 @@ class Run {
       case "Function":
       case "Background":
       case "Dance":
+      case "Variant":
+      case "GeneSetting":
       case "Effect":
       case "ErrorStmt":
         return;

@@ -183,6 +183,8 @@ export type Stmt =
   | FunctionDecl
   | BackgroundDecl
   | DanceDecl
+  | VariantDecl
+  | GeneSetting
   | Let
   | Assign
   | PartCall
@@ -240,6 +242,22 @@ export interface FunctionDecl extends StmtBase {
 export interface BackgroundDecl extends StmtBase {
   kind: "Background";
   body: Block;
+}
+
+/** `variant Name { … }`: another set of gene values for the creature (section 6.6). */
+export interface VariantDecl extends StmtBase {
+  kind: "Variant";
+  name: string;
+  nameSpan: Span;
+  body: Block;
+}
+
+/** `whorl.petals = 9` inside a variant: a gene, by its full name, and its value. */
+export interface GeneSetting extends StmtBase {
+  kind: "GeneSetting";
+  gene: string;
+  geneSpan: Span;
+  value: Expr;
 }
 
 export interface DanceDecl extends StmtBase {

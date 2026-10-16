@@ -266,6 +266,14 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
   ],
   ["fill", h("fill p", "What the background shows: a pattern, a colour or a gradient.", "15")],
   ["dance", h("dance { … }", "The creature's dance style: how music moves it as a whole.", "17")],
+  [
+    "variant",
+    h(
+      "variant Name { gene = value }",
+      "Another set of gene values for the creature, such as a member of its family.",
+      "6.6",
+    ),
+  ],
   ["forward", h("forward d", "Moves the turtle `d` along its heading.", "11.2")],
   ["back", h("back d", "Moves the turtle `d` backwards.", "11.2")],
   ["move", h("move (x, y, z)", "Moves the turtle along its side, up and heading axes.", "11.2")],
@@ -391,8 +399,13 @@ function symbolsAt(program: CheckResult, offset: number): InScope[] {
     help: h(name, text, section),
   });
 
-  // Declarations that can be used from anywhere in the creature.
   const items = program.file.items;
+  // Inside a variant, every gene can be set, by its full name.
+  if (items.some((s) => s.kind === "Variant" && contains(s.body.span, offset))) {
+    return program.genes.map((g) => ({ ...geneSymbol(g), name: g.fullName }));
+  }
+
+  // Declarations that can be used from anywhere in the creature.
   const selfContained = items.find(
     (s) => (s.kind === "Background" || s.kind === "Dance") && contains(s.span, offset),
   );
@@ -474,12 +487,12 @@ function symbolsAt(program: CheckResult, offset: number): InScope[] {
 
 // ---------- hover ----------
 
-/** The token at `offset`, counting a position just after a word as on it. */
+/** The word at `offset`, counting a position just after a word, or just before one, as on it. */
 function tokenAt(tokens: readonly Token[], offset: number): number {
-  return tokens.findIndex(
-    (t) =>
-      t.kind !== "newline" && t.kind !== "eof" && t.span.start <= offset && offset <= t.span.end,
-  );
+  const on = (t: Token) => t.span.start <= offset && offset <= t.span.end;
+  const word = tokens.findIndex((t) => (t.kind === "name" || t.kind === "keyword") && on(t));
+  if (word >= 0) return word;
+  return tokens.findIndex((t) => t.kind !== "newline" && t.kind !== "eof" && on(t));
 }
 
 /** Help for the word at `offset`, and where that word is. */
@@ -492,6 +505,16 @@ export function helpAt(
   const t = tokens[i];
   if (!t || (t.kind !== "name" && t.kind !== "keyword")) return undefined;
   const found = (help: Help | undefined) => (help ? { span: t.span, help } : undefined);
+
+  // A gene set in a variant, such as `whorl.petals`.
+  for (const item of program.file.items) {
+    if (item.kind !== "Variant") continue;
+    for (const g of item.body.items) {
+      if (g.kind !== "GeneSetting" || !contains(g.geneSpan, offset)) continue;
+      const gene = symbolsAt(program, offset).find((x) => x.name === g.gene);
+      return gene ? { span: g.geneSpan, help: gene.help } : undefined;
+    }
+  }
 
   // `music.bass`, `turtle.heading`: the word after the dot.
   const dot = tokens[i - 1];

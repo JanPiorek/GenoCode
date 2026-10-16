@@ -1,0 +1,103 @@
+import { describe, expect, it } from "vitest";
+import { check } from "./checker.js";
+import { formatText } from "./format.js";
+import { completionsAt, helpAt } from "./help.js";
+import { build } from "./interpreter.js";
+import { checked } from "./test-helpers.js";
+import { hsv } from "./colour.js";
+
+const CREATURE = `creature T
+
+gene size  = 1 in 0.5..2
+gene n     = 3 in 1..6 step 1
+gene skin  = hsv(120, 0.5, 0.8) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)
+gene plump = true
+gene body  = ball from [ball, cube]
+gene limb  = leg from [leg, fin]
+
+repeat n { limb }
+
+part leg { gene reach = 2 in 1..3; lay }
+part fin { lay }
+
+background {
+  gene hue = 200 in 0..360
+  fill hsv(hue, 1, 1)
+}
+`;
+
+const errorsOf = (variants: string) =>
+  check(CREATURE + variants)
+    .diagnostics.filter((d) => d.severity === "error")
+    .map((d) => d.message);
+
+describe("variants", () => {
+  it("collects each variant's values by full name", () => {
+    const p = checked(
+      CREATURE +
+        "\nvariant Big { size = 2; n = 6 }\n\nvariant Odd {\n  skin = hsv(70, 1, 1)\n  plump = false\n  body = cube\n  limb = fin\n  leg.reach = 3\n  background.hue = 10\n}\n",
+    );
+    expect(p.variants.map((v) => v.name)).toEqual(["Big", "Odd"]);
+    expect(Object.fromEntries(p.variants[0]!.values)).toEqual({ size: 2, n: 6 });
+    const odd = p.variants[1]!.values;
+    expect(odd.get("skin")).toEqual(hsv(70, 1, 1));
+    expect(odd.get("plump")).toBe(false);
+    expect(odd.get("body")).toEqual({ type: "shape", name: "cube" });
+    expect(odd.get("limb")).toEqual({ type: "part", name: "fin" });
+    expect(odd.get("leg.reach")).toBe(3);
+    expect(odd.get("background.hue")).toBe(10);
+  });
+
+  it("only accepts values the gene itself could have", () => {
+    expect(errorsOf("variant A { size = 3 }\n")).toEqual(["This is outside `size`'s range."]);
+    expect(errorsOf("variant A { skin = hsv(300, 1, 1) }\n")).toEqual([
+      "This is outside `skin`'s range.",
+    ]);
+    expect(errorsOf("variant A { size = red }\n")).toEqual(["`size` is a number, not a colour."]);
+    expect(errorsOf("variant A { body = cone }\n")).toEqual(["`body` must be one of its options."]);
+    expect(errorsOf("variant A { limb = leg2 }\n")).toEqual(["`limb` must be one of its parts."]);
+    expect(errorsOf("variant A { size = 1 + time }\n")).toHaveLength(1);
+    expect(check(CREATURE + "variant A { n = 2.5 }\n").diagnostics[0]?.severity).toBe("warning");
+  });
+
+  it("reports unknown genes, genes set twice, repeated names and misplaced variants", () => {
+    expect(errorsOf("variant A { reach = 1 }\n")).toEqual(["There's no gene called `reach`."]);
+    expect(errorsOf("variant A { n = 1; n = 2 }\n")).toEqual([
+      "`n` is already set in this variant.",
+    ]);
+    expect(errorsOf("variant A { n = 1 }\nvariant A { n = 2 }\n")).toEqual([
+      "There's already a variant called `A`.",
+    ]);
+    expect(errorsOf("part p { variant A { n = 1 } }\n")).toContain(
+      "A variant can only be at the top level of a creature.",
+    );
+  });
+
+  it("can set the seed of creatures that use random", () => {
+    const p = checked("creature R\nforward random(0, 1)\nlay\nvariant A { seed = 42 }\n");
+    expect(p.variants[0]!.values.get("seed")).toBe(42);
+  });
+
+  it("doesn't change what the creature builds", () => {
+    const plain = build(checked(CREATURE));
+    const withVariant = build(checked(CREATURE + "\nvariant Big { size = 2; n = 6 }\n"));
+    expect(withVariant.shapes).toEqual(plain.shapes);
+  });
+
+  it("is laid out on one line when it fits, and lined up when it doesn't", () => {
+    const text =
+      CREATURE + "variant  Big {size=2;n=6}\nvariant Odd {\n leg.reach = 3 // longer\n  n = 2\n}\n";
+    expect(formatText(text).text).toContain(
+      "\nvariant Big { size = 2; n = 6 }\n\nvariant Odd {\n  leg.reach = 3  // longer\n  n         = 2\n}\n",
+    );
+  });
+
+  it("offers and explains genes by their full names inside a variant", () => {
+    const text = CREATURE + "variant A {\n  leg.reach = 3\n  \n}\n";
+    const p = check(text);
+    const names = completionsAt(p, text.lastIndexOf("  \n") + 2).map((c) => c.label);
+    expect(names).toEqual(expect.arrayContaining(["leg.reach", "background.hue", "size"]));
+    expect(helpAt(p, text.indexOf("reach = 3"))?.help.title).toBe("gene leg.reach");
+    expect(helpAt(p, text.indexOf("variant A"))?.help.section).toBe("6.6");
+  });
+});

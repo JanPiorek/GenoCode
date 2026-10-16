@@ -7,7 +7,7 @@ export const FILE_EXTENSION = ".genie";
 export type * from "./ast.js";
 export { lex, KEYWORDS, type Token, type TokenKind, type LexResult } from "./lexer.js";
 export { parse, type ParseResult } from "./parser.js";
-export { check, type CheckResult } from "./checker.js";
+export { check, type CheckResult, type Variant } from "./checker.js";
 export { format, formatText, type FormatResult } from "./format.js";
 export {
   build,

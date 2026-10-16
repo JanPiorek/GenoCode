@@ -1,7 +1,16 @@
 // The standard formatter (docs/LANGUAGE.md section 21). It decides spacing, line breaks and
 // brackets, and keeps names, values, structure and comments. The block editor prints code with it.
 
-import type { Block, Comment, EffectArg, Expr, GeneDecl, SourceFile, Stmt } from "./ast.js";
+import type {
+  Block,
+  Comment,
+  EffectArg,
+  Expr,
+  GeneDecl,
+  GeneSetting,
+  SourceFile,
+  Stmt,
+} from "./ast.js";
 import { parse } from "./parser.js";
 import type { Diagnostic } from "./source.js";
 
@@ -41,7 +50,11 @@ export function format(file: SourceFile): string {
 
 function isDefinition(s: Stmt): boolean {
   return (
-    s.kind === "Part" || s.kind === "Function" || s.kind === "Background" || s.kind === "Dance"
+    s.kind === "Part" ||
+    s.kind === "Function" ||
+    s.kind === "Background" ||
+    s.kind === "Dance" ||
+    s.kind === "Variant"
   );
 }
 
@@ -88,9 +101,35 @@ function printItems(out: string[], items: Stmt[], level: number, top: boolean): 
       continue;
     }
 
+    if (item.kind === "GeneSetting") {
+      // A variant's settings are lined up too.
+      let j = i + 1;
+      while (
+        j < items.length &&
+        items[j]!.kind === "GeneSetting" &&
+        items[j]!.leading.length === 0 &&
+        !items[j]!.blankBefore
+      )
+        j++;
+      printSettings(out, items.slice(i, j) as GeneSetting[], level);
+      i = j;
+      continue;
+    }
+
     printStmt(out, item, level);
     i++;
   }
+}
+
+function printSettings(out: string[], settings: GeneSetting[], level: number): void {
+  const nameWidth = Math.max(...settings.map((s) => s.gene.length));
+  const code = settings.map((s) => `${s.gene.padEnd(nameWidth)} = ${expr(s.value)}`);
+  const commented = code.filter((_, k) => settings[k]!.trailing !== undefined);
+  const commentColumn = commented.length > 0 ? Math.max(...commented.map((c) => c.length)) + 2 : 0;
+  settings.forEach((s, k) => {
+    const line = s.trailing ? code[k]!.padEnd(commentColumn) + s.trailing.text : code[k]!;
+    out.push(pad(level) + line);
+  });
 }
 
 function geneValueText(g: GeneDecl): string {
@@ -158,6 +197,8 @@ function simpleText(s: Stmt): string | undefined {
       return [s.name, ...s.args.map(effectArg)].join(" ");
     case "Gene":
       return `gene ${s.name} = ${geneValueText(s)}${s.range ? ` ${geneRangeText(s)}` : ""}`;
+    case "GeneSetting":
+      return `${s.gene} = ${expr(s.value)}`;
     default:
       return undefined;
   }
@@ -198,6 +239,11 @@ function printStmt(out: string[], s: Stmt, level: number): void {
     case "Dance":
       printBlock(out, "dance", s.body, level);
       return;
+    case "Variant": {
+      const header = `variant ${s.name}`;
+      if (!tryOneLine(out, header, s.body, level)) printBlock(out, header, s.body, level);
+      return;
+    }
     case "If":
       s.branches.forEach((b, k) => {
         const header = `${k === 0 ? "if" : "} else if"} ${expr(b.condition)}`;
@@ -253,7 +299,8 @@ function tryOneLine(out: string[], header: string, b: Block, level: number): boo
   if (b.items.length === 0 || hasComments(b)) return false;
   const parts: string[] = [];
   for (const s of b.items) {
-    if (!["Command", "Rotate", "Mirror", "Let", "Assign"].includes(s.kind)) return false;
+    if (!["Command", "Rotate", "Mirror", "Let", "Assign", "GeneSetting"].includes(s.kind))
+      return false;
     parts.push(simpleText(s)!);
   }
   const line = `${pad(level)}${header} { ${parts.join("; ")} }`;

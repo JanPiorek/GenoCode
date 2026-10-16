@@ -167,7 +167,7 @@ allowed as arguments to `print`.
 creature  gene  part  function  return  let  if  else  repeat  as  for  from  to  by  while
 branch  lay  reshape  symmetric  shape  colour  color  shine  sharpness  texture  background
 fill  dance  forward  back  move  pitch  yaw  roll  rotate  around  grow  mirror  in  step  log
-at  and  or  not  true  false  print  turtle  time  beat  music
+at  and  or  not  true  false  print  turtle  time  beat  music  variant
 ```
 
 Some words are only special in one place, and are ordinary names elsewhere:
@@ -302,6 +302,46 @@ part wing(reach, side) { … }
 - Every part in the list must take the same number of parameters. Functions can't be listed.
 - A part gene can only be called. It can't be stored in a variable, passed as an argument or
   compared.
+
+### 6.6 Variants
+
+A creature can keep other sets of gene values alongside its own: its **variants**. Together with
+the creature itself, they form a family of related creatures that share one program, such as the
+members of an evolved population.
+
+```
+creature Cobra
+
+gene hood  = 1.2 in 0.5..2  // how wide the hood spreads
+gene coils = 3   in 1..6 step 1
+gene skin  = hsv(120, 0.7, 0.8) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)
+
+grow hood
+repeat coils {
+  colour skin
+  forward 1
+  lay
+}
+
+variant Coiled { coils = 6; hood = 0.8 }
+
+variant Striker {
+  hood = 2
+  skin = hsv(70, 0.9, 1)  // bright, to warn others off
+}
+```
+
+- `variant Name { … }` sets genes by their **full names** ([6.3](#63-full-names)), one per line
+  (or separated by `;`): `petals = 9`, `whorl.petals = 9`, `background.hue = 200`, `seed = 42`.
+  Genes it doesn't mention keep the values written in their declarations.
+- Variants can only be at the top level of a creature file. Their names must be different from one
+  another; they don't clash with any other names.
+- Each value is a constant expression ([6.1](#61-declaring-genes)) that would be allowed as the
+  gene's own value: of the gene's kind, within its range, one of its options, or one of its parts.
+  A gene can be set at most once in a variant.
+- Variants don't change what the program does. They are used by the app wherever it wants a
+  group of related creatures ([section 19](#19-genetics)), for example as the loop a creature
+  morphs through.
 
 ## 7. Variables
 
@@ -910,14 +950,15 @@ Values aren't limited to either creature's range while morphing.
 
 A morph through several creatures (a loop) is a chain of these morphs between neighbours. When A
 and B share a program, a morph is smooth all the way; when their programs differ, the creature
-changes shape at the halfway point.
+changes shape at the halfway point. A creature with variants ([6.6](#66-variants)) has a loop of its
+own: the creature itself, then each variant in the order they're written.
 
 ### 19.4 Saving
 
 A creature that has been mutated, bred or morphed is saved as an ordinary creature file: its
 program, with each gene's new value written into the gene's line. Nothing else in the program
 changes, except that the file is laid out by the formatter, and a gene whose value hasn't changed
-keeps the text it was written with. The new values are written readably: stepped numbers exactly,
+keeps the text it was written with. Variants are kept as they are. The new values are written readably: stepped numbers exactly,
 other numbers to four significant figures, colours as `hsv(…)`, and choices by name, always within
 the gene's range. The automatic `seed` gene has no line of its own, so it isn't saved yet: a saved
 creature that uses `random` starts again from seed 0.
@@ -992,7 +1033,9 @@ dance_file    = "dance" NAME NL dance_body ;
 
 item          = gene | part | function | statement
               | "background" "{" bg_body "}"
-              | "dance" "{" dance_body "}" ;
+              | "dance" "{" dance_body "}"
+              | "variant" NAME "{" { gene_ref "=" expr NL } "}" ;
+gene_ref      = ( NAME | "background" | "dance" ) { "." NAME } ;
 
 gene          = "gene" NAME "=" expr [ gene_range ] NL ;
 gene_range    = "in" expr ".." expr [ "step" expr | "log" ]
