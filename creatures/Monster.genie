@@ -1,0 +1,594 @@
+creature Monster
+// A many-eyed monster with curling tentacles, sitting on a ring of coral.
+// Inspired by Monster, a DancerDNA creature.
+
+gene head_size   = 5.51 in 2..8
+gene head_colour = hsv(240.5, 1, 0.29) in hsv(0, 1, 0.2)..hsv(252, 1, 0.6)
+
+gene coral_spread = 1.025  in 0.6..2  // how far out the coral reaches
+gene coral_up     = 0.3082 in 0..5    // how tube-like, rather than round, the coral is above
+gene coral_down   = 0.3192 in 0..5    // and below
+gene coral_spiral = 0.4302 in -1..1   // how far the coral spirals round
+
+gene monster_size   = 0.954 in 0.1..2
+gene monster_height = 1.585 in -14.73..10.27                                                      // how far above the coral the monster sits
+gene monster_turn   = (-48.1, -58.75, -34.58) in (-171.9, -171.9, -171.9)..(171.9, 171.9, 171.9)  // how it's turned: up, sideways and round
+gene head_turn      = (-16.97, -137.1, 165.5) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8)
+gene head_stretch   = (0.8865, 0.9851, 1.007) in (0.8, 0.8, 0.8)..(1.2, 1.2, 1.2)
+
+gene eye_count       = 7.933   in 1..35  // how many eyes; the last is cut short to fit
+gene eye_size_waves  = 4.726   in 0..8   // how many times the eyes grow and shrink round the head
+gene eye_size_spread = 0.1634  in -0.6..0.6
+gene eyeball         = hsv(89.5, 0.14, 1) in hsv(0, 0, 1)..hsv(360, 0.25, 1)
+gene iris            = hsv(172.2, 0.87, 0.81) in hsv(0, 0.4, 0.5)..hsv(252, 1, 1)
+gene dilation        = 0.06402 in 0..1   // how wide the pupils are open
+gene slit            = 0.5503  in 0..1   // how much taller than wide they are, like a lizard's
+
+gene tentacle_count     = 2.692  in 0..4                                                            // how many tentacles; the last is cut short to fit
+gene tentacle_waves     = 0.8557 in 0..3                                                            // how many times their length changes round the head
+gene tentacle_thickness = 0.4537 in 0.1..1
+gene tentacle_flatness  = 0.6459 in 0.3..0.8
+gene tentacle_tip       = hsv(132, 0.81, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)
+gene curl               = (16.55, 1.925, 5.863) in (-28.65, -28.65, -28.65)..(28.65, 28.65, 28.65)  // how far the tentacles curl: up, sideways and round
+gene curl_waves         = (2.472, 2.779, 1.467) in (0.5, 0.5, 0.5)..(4, 4, 4)
+gene curl_start         = (0.2076, 0.1888, 0.04261) in (-0.5, -0.5, -0.5)..(0.5, 0.5, 0.5)
+
+// The coral's colours, from its tips below to its tips above, and the gaps between them.
+gene coral_1    = hsv(269.3, 0.8, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)
+gene coral_2    = hsv(303.9, 0.84, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)
+gene coral_3    = hsv(228.6, 0.58, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)
+gene coral_4    = hsv(189.7, 0.61, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)
+gene coral_gaps = (0.4955, 0.7982, 0.3412) in (0.25, 0.25, 0.25)..(1, 1, 1)
+
+let coral_colours = spectrum(coral_1, coral_2 at coral_gaps.x, coral_3 at coral_gaps.x + coral_gaps.y, coral_4 at coral_gaps.x + coral_gaps.y + coral_gaps.z)
+let tentacle_colours = spectrum(head_colour, tentacle_tip)
+
+sharpness 1
+shine 1
+pitch 90
+coral
+monster
+
+// Eight fans of rings round a circle, each curving up and down from the middle.
+part coral {
+  branch {
+    grow 0.3
+    shape ring
+    let width = 20 * sin(22.5)
+    repeat 8 as k {
+      branch {
+        yaw 45 * k
+        segment(1, 0, 0, 0, 10, 0, width)
+        fan(1, coral_up, width)
+        fan(-1, coral_down, width)
+      }
+    }
+  }
+}
+
+part fan(direction, tubeness, start_width) {
+  let roundness = 1 - tubeness
+  let width = start_width
+  let spiral = 0
+  let shift = 0
+  let reach = 10
+  let rise = 0
+  repeat 7 as k {
+    spiral += coral_spiral * 45
+    let shift_by = width / 2 * tubeness
+    shift += shift_by
+    reach -= shift_by * sin(rise)
+    rise += 2 * asin(width / (4 * reach)) * roundness
+    width = cos(rise) * 2 * reach * sin(22.5)
+    segment(direction, shift, spiral, rise, reach, 0.5 * k / 7, width)
+  }
+}
+
+part segment(direction, shift, spiral, rise, reach, along, width) {
+  branch {
+    move (0, -direction * shift, 0)
+    yaw direction * spiral
+    pitch direction * rise
+    forward reach * coral_spread
+    roll -90
+    colour coral_colours(0.5 + along * direction)
+    grow (width, width, 5)
+    lay
+  }
+}
+
+part monster {
+  branch {
+    grow monster_size
+    move (0, monster_height, 0)
+    roll monster_turn.z
+    yaw monster_turn.y
+    pitch monster_turn.x
+    head
+    eyes
+    tentacles
+  }
+}
+
+part head {
+  branch {
+    shape ball
+    grow head_size
+    reshape { roll head_turn.z; yaw head_turn.y; pitch head_turn.x }
+    grow head_stretch
+    pitch -head_turn.x
+    yaw -head_turn.y
+    roll -head_turn.z
+    colour head_colour
+    lay
+  }
+}
+
+part eyes {
+  branch {
+    repeat ceil(eye_count) as k {
+      let along = k / 34
+      roll scatter(1398.73, 1713.58, 1.3424, along)
+      yaw scatter(1989.34, 1433.78, 5.9346, along)
+      pitch scatter(567.972, 917.12, 0.7753, along)
+      let size = 1 + eye_size_spread * sin(180 * eye_size_waves * along)
+      // The last eye is cut short.
+      if k + 1 > eye_count {
+        size *= eye_count % k
+      }
+      branch {
+        forward head_size / 2
+        eye(size)
+      }
+    }
+  }
+}
+
+part eye(size) {
+  let open = 0.2 + dilation * 0.5
+  branch {
+    shape ball
+    grow size
+    grow (1, 1, 0.78)
+    forward -0.2
+    colour eyeball
+    lay
+    forward 0.455
+    texture none
+    grow (0.5, 0.5, 0.06)
+    colour iris
+    lay
+    forward 0.5
+    grow (open, open + (0.7 - open) * slit, 1)
+    forward 0.6
+    colour black
+    lay
+  }
+}
+
+part tentacles {
+  branch {
+    repeat ceil(tentacle_count) as k {
+      let along = k / 3
+      roll scatter(1597.11, 143.324, 0.7739, along)
+      yaw scatter(343.398, 1339.13, 3.916, along)
+      pitch scatter(1259.35, 987.997, 1.1193, along)
+      let completeness = 0.5 + 0.5 * sin(180 * tentacle_waves * along)
+      // The last tentacle is cut short.
+      if k + 1 > tentacle_count {
+        if k == 0 {
+          completeness = 0
+        } else {
+          completeness *= tentacle_count % k
+        }
+      }
+      branch {
+        forward head_size / 2
+        tentacle(completeness)
+      }
+    }
+  }
+}
+
+// A tentacle that tapers away to nothing, curling as it goes.
+part tentacle(completeness) {
+  branch {
+    let start = completeness * tentacle_thickness * head_size
+    grow start
+    grow (1, 1, tentacle_flatness)
+    shape ball
+    let size = start
+    while size > 0.01 {
+      let along = 1 - (size - 0.01) / (start - 0.01)
+      colour tentacle_colours(completeness * along)
+      let taper = cos(90 * along) * completeness * 0.99
+      lay
+      forward 0.4
+      grow taper
+      roll curl.z * sin(180 * curl_waves.z * (along + curl_start.z))
+      pitch curl.x * sin(180 * curl_waves.x * (along + curl_start.x))
+      yaw curl.y * sin(180 * curl_waves.y * (along + curl_start.y))
+      forward 0.4
+      size *= taper
+    }
+  }
+}
+
+// The original's way of scattering eyes and tentacles round the head: turns from very fast
+// waves, which look random.
+function scatter(waves, size, offset, along) {
+  return degrees(sin(degrees(waves * 3.14159 * (along + offset))) * size)
+}
+
+variant member_2 {
+  head_size          = 7.552
+  head_colour        = hsv(247.3, 1, 0.23)
+  coral_spread       = 0.8846
+  coral_up           = 0.1819
+  coral_down         = 0.05147
+  coral_spiral       = 0.6165
+  monster_size       = 0.3673
+  monster_height     = 3.666
+  monster_turn       = (-52.5, -79.8, -16.55)
+  head_turn          = (-5.4, -125.7, 189.4)
+  head_stretch       = (0.8841, 0.9912, 1.113)
+  eye_count          = 6.994
+  eye_size_waves     = 6.795
+  eye_size_spread    = 0.1802
+  eyeball            = hsv(52.8, 0.24, 1)
+  iris               = hsv(162.4, 0.98, 0.78)
+  dilation           = 0.08058
+  slit               = 0.5698
+  tentacle_count     = 1.939
+  tentacle_waves     = 1.325
+  tentacle_thickness = 0.4988
+  tentacle_flatness  = 0.5913
+  tentacle_tip       = hsv(46.8, 0.86, 1)
+  curl               = (20.91, 5.443, 7.557)
+  curl_waves         = (2.354, 3.684, 0.6167)
+  curl_start         = (0.2753, 0.1882, 0.04306)
+  coral_1            = hsv(218, 0.99, 1)
+  coral_2            = hsv(290.2, 0.87, 1)
+  coral_3            = hsv(175.3, 0.51, 1)
+  coral_4            = hsv(110.1, 0.52, 1)
+  coral_gaps         = (0.3567, 0.8656, 0.3399)
+}
+
+variant member_3 {
+  head_size          = 5.892
+  head_colour        = hsv(3.2, 1, 0.44)
+  coral_spread       = 1.773
+  coral_up           = 3.962
+  coral_down         = 4.238
+  coral_spiral       = 0.9069
+  monster_size       = 0.996
+  monster_height     = 4.424
+  monster_turn       = (128.5, 12.51, 91.79)
+  head_turn          = (0.6797, -36.84, -181.7)
+  head_stretch       = (1.049, 0.8445, 1.018)
+  eye_count          = 15.14
+  eye_size_waves     = 5.942
+  eye_size_spread    = 0.1771
+  eyeball            = hsv(334.3, 0.21, 1)
+  iris               = hsv(193.1, 0.76, 0.62)
+  dilation           = 0.1805
+  slit               = 0.6341
+  tentacle_count     = 3.703
+  tentacle_waves     = 2.672
+  tentacle_thickness = 0.1533
+  tentacle_flatness  = 0.3071
+  tentacle_tip       = hsv(112.6, 0.82, 1)
+  curl               = (-9.624, 6.42, 24.53)
+  curl_waves         = (2.384, 3.412, 2.218)
+  curl_start         = (-0.2569, 0.09305, 0.02379)
+  coral_1            = hsv(205.9, 0.69, 1)
+  coral_2            = hsv(42.3, 0.92, 1)
+  coral_3            = hsv(267.5, 0.74, 1)
+  coral_4            = hsv(212.3, 0.86, 1)
+  coral_gaps         = (0.5079, 0.3688, 0.6754)
+}
+
+variant member_4 {
+  head_size          = 3
+  head_colour        = hsv(18.9, 1, 0.28)
+  coral_spread       = 1.826
+  coral_up           = 3.415
+  coral_down         = 4.238
+  coral_spiral       = -0.1217
+  monster_size       = 0.8006
+  monster_height     = 2.232
+  monster_turn       = (-54.91, 12.51, -71.77)
+  head_turn          = (-29.72, -139.6, -157.5)
+  head_stretch       = (1.103, 0.8258, 1.027)
+  eye_count          = 29.81
+  eye_size_waves     = 2.419
+  eye_size_spread    = 0.4882
+  eyeball            = hsv(185.1, 0.12, 1)
+  iris               = hsv(90.3, 0.76, 0.82)
+  dilation           = 0.8495
+  slit               = 0.05274
+  tentacle_count     = 3.407
+  tentacle_waves     = 2.595
+  tentacle_thickness = 0.5836
+  tentacle_flatness  = 0.3604
+  tentacle_tip       = hsv(121.1, 0.83, 1)
+  curl               = (16.37, -4.893, 18.64)
+  curl_waves         = (2.848, 3.013, 2.962)
+  curl_start         = (0.07758, -0.3063, -0.4612)
+  coral_1            = hsv(64.4, 0.75, 1)
+  coral_2            = hsv(3.3, 0.46, 1)
+  coral_3            = hsv(187.1, 0.81, 1)
+  coral_4            = hsv(218.7, 0.76, 1)
+  coral_gaps         = (0.9989, 0.538, 0.681)
+}
+
+variant member_5 {
+  head_size          = 7.73
+  head_colour        = hsv(7.9, 1, 0.41)
+  coral_spread       = 0.909
+  coral_up           = 4.692
+  coral_down         = 3.615
+  coral_spiral       = 0.9069
+  monster_size       = 0.2648
+  monster_height     = 2.232
+  monster_turn       = (1.154, -72.29, 17.6)
+  head_turn          = (-263.1, -301.7, -192.8)
+  head_stretch       = (0.9581, 1.046, 0.9175)
+  eye_count          = 22.06
+  eye_size_waves     = 0.3044
+  eye_size_spread    = -0.4572
+  eyeball            = hsv(72.1, 0.22, 1)
+  iris               = hsv(91.1, 0.67, 1)
+  dilation           = 0.06323
+  slit               = 0.3369
+  tentacle_count     = 0.3948
+  tentacle_waves     = 2.034
+  tentacle_thickness = 0.9441
+  tentacle_flatness  = 0.3278
+  tentacle_tip       = hsv(339, 0.46, 1)
+  curl               = (-16.72, 10.38, 2.914)
+  curl_waves         = (2.119, 3.412, 1.408)
+  curl_start         = (0.08061, -0.07096, 0.1877)
+  coral_1            = hsv(64.4, 0.75, 1)
+  coral_2            = hsv(319.1, 0.5, 1)
+  coral_3            = hsv(89.8, 0.75, 1)
+  coral_4            = hsv(340.6, 0.54, 1)
+  coral_gaps         = (0.75, 0.3474, 0.7318)
+}
+
+variant member_6 {
+  head_size          = 5.892
+  head_colour        = hsv(59.5, 1, 0.45)
+  coral_spread       = 1.999
+  coral_up           = 4.692
+  coral_down         = 3.493
+  coral_spiral       = 0.644
+  monster_size       = 0.8589
+  monster_height     = 2.232
+  monster_turn       = (125.5, -26.41, -104.1)
+  head_turn          = (-149.6, -189.1, -181.7)
+  head_stretch       = (0.8761, 0.9548, 1.015)
+  eye_count          = 18.76
+  eye_size_waves     = 6.806
+  eye_size_spread    = -0.06254
+  eyeball            = hsv(57.6, 0.09, 1)
+  iris               = hsv(90.3, 0.76, 0.82)
+  dilation           = 0.3848
+  slit               = 0.2074
+  tentacle_count     = 3.879
+  tentacle_waves     = 1.444
+  tentacle_thickness = 0.5867
+  tentacle_flatness  = 0.4743
+  tentacle_tip       = hsv(58.4, 0.78, 1)
+  curl               = (-4.248, 18.84, 23.36)
+  curl_waves         = (2.365, 2.359, 2.78)
+  curl_start         = (0.02855, 0.2029, 0.254)
+  coral_1            = hsv(34.1, 0.76, 1)
+  coral_2            = hsv(277.8, 0.52, 1)
+  coral_3            = hsv(91.1, 0.79, 1)
+  coral_4            = hsv(24.4, 0.9, 1)
+  coral_gaps         = (0.6244, 0.8165, 0.4581)
+}
+
+variant member_7 {
+  head_size          = 5.892
+  head_colour        = hsv(7.9, 1, 0.41)
+  coral_spread       = 1.826
+  coral_up           = 4.215
+  coral_down         = 3.763
+  coral_spiral       = 0.9069
+  monster_size       = 1.567
+  monster_height     = -4.959
+  monster_turn       = (-104.6, 12.51, -71.77)
+  head_turn          = (-280.4, -139.6, -157.5)
+  head_stretch       = (0.8981, 0.8511, 0.8283)
+  eye_count          = 5.347
+  eye_size_waves     = 5.942
+  eye_size_spread    = -0.3403
+  eyeball            = hsv(289.8, 0.15, 1)
+  iris               = hsv(157, 0.75, 0.9)
+  dilation           = 0.1089
+  slit               = 0.4724
+  tentacle_count     = 3.16
+  tentacle_waves     = 1.259
+  tentacle_thickness = 0.5836
+  tentacle_flatness  = 0.367
+  tentacle_tip       = hsv(221.9, 0.89, 1)
+  curl               = (-8.767, 15.02, 8.331)
+  curl_waves         = (2.848, 0.7226, 1.408)
+  curl_start         = (0.4752, -0.04906, 0.3015)
+  coral_1            = hsv(64.4, 0.75, 1)
+  coral_2            = hsv(318.3, 0.46, 1)
+  coral_3            = hsv(261.1, 0.8, 1)
+  coral_4            = hsv(169.4, 0.89, 1)
+  coral_gaps         = (0.5786, 0.4922, 0.681)
+}
+
+variant member_8 {
+  head_size          = 7.552
+  head_colour        = hsv(209.3, 1, 0.24)
+  coral_spread       = 0.8899
+  coral_up           = 2.468
+  coral_down         = 0.4473
+  coral_spiral       = 0.6165
+  monster_size       = 0.9793
+  monster_height     = 1.248
+  monster_turn       = (69.81, -86.52, 2.071)
+  head_turn          = (165.8, -320.2, 169.7)
+  head_stretch       = (0.96, 0.8771, 1.084)
+  eye_count          = 17.01
+  eye_size_waves     = 2.189
+  eyeball            = hsv(52.8, 0.24, 1)
+  iris               = hsv(44.6, 0.76, 0.82)
+  dilation           = 0.113
+  slit               = 0.8894
+  tentacle_count     = 3.203
+  tentacle_waves     = 1.325
+  tentacle_thickness = 0.9754
+  tentacle_flatness  = 0.5376
+  tentacle_tip       = hsv(36.9, 0.76, 1)
+  curl               = (-9.139, 12.58, 3.479)
+  curl_waves         = (2.071, 2.589, 0.6515)
+  curl_start         = (0.3299, 0.3114, 0.1739)
+  coral_1            = hsv(350.7, 0.48, 1)
+  coral_2            = hsv(194.5, 0.95, 1)
+  coral_3            = hsv(216.3, 0.69, 1)
+  coral_4            = hsv(221.8, 0.66, 1)
+  coral_gaps         = (0.6515, 0.9425, 0.3033)
+}
+
+variant member_9 {
+  head_size          = 3.479
+  head_colour        = hsv(216.7, 1, 0.58)
+  coral_spread       = 1.616
+  coral_up           = 3.905
+  coral_down         = 3.478
+  coral_spiral       = 0.3343
+  monster_size       = 0.4456
+  monster_height     = -4.775
+  monster_turn       = (99.53, 136.4, -13.69)
+  head_turn          = (-141.7, 81.22, 322.2)
+  head_stretch       = (0.8743, 1.169, 0.8693)
+  eye_count          = 2.083
+  eye_size_waves     = 7.71
+  eye_size_spread    = -0.03683
+  eyeball            = hsv(87.8, 0.17, 1)
+  iris               = hsv(195.7, 0.4, 0.54)
+  dilation           = 0.3647
+  slit               = 0.3322
+  tentacle_count     = 2.602
+  tentacle_waves     = 1.993
+  tentacle_thickness = 0.4899
+  tentacle_flatness  = 0.4404
+  tentacle_tip       = hsv(288.1, 0.62, 1)
+  curl               = (26.55, 23.91, -20.11)
+  curl_waves         = (3.052, 3.404, 3.107)
+  curl_start         = (-0.2763, 0.0438, 0)
+  coral_1            = hsv(151.2, 0.93, 1)
+  coral_2            = hsv(3.5, 0.97, 1)
+  coral_3            = hsv(163.2, 0.55, 1)
+  coral_4            = hsv(135.8, 0.52, 1)
+  coral_gaps         = (0.8373, 0.6357, 0.3024)
+}
+
+variant member_10 {
+  head_size          = 5.892
+  head_colour        = hsv(75, 1, 0.56)
+  coral_spread       = 1.414
+  coral_up           = 0.1196
+  coral_down         = 4.238
+  coral_spiral       = -0.9327
+  monster_size       = 1.248
+  monster_height     = 1.041
+  monster_turn       = (-165.3, -13.08, 8.138)
+  head_turn          = (-214.7, -139.6, -288.7)
+  head_stretch       = (0.9347, 1.004, 0.948)
+  eye_count          = 17.74
+  eye_size_waves     = 5.942
+  eye_size_spread    = -0.3403
+  eyeball            = hsv(51.6, 0.22, 1)
+  iris               = hsv(208.9, 0.95, 0.65)
+  dilation           = 0.7678
+  slit               = 0.3964
+  tentacle_count     = 3.407
+  tentacle_waves     = 1.568
+  tentacle_thickness = 0.5836
+  tentacle_flatness  = 0.4818
+  tentacle_tip       = hsv(176.4, 0.51, 1)
+  curl               = (-1.097, 15.02, 18.64)
+  curl_waves         = (1.101, 2.715, 1.408)
+  curl_start         = (-0.213, -0.04906, 0.3207)
+  coral_1            = hsv(64.4, 0.75, 1)
+  coral_2            = hsv(62.6, 0.42, 1)
+  coral_3            = hsv(145.7, 0.79, 1)
+  coral_4            = hsv(13.1, 0.41, 1)
+  coral_gaps         = (0.6772, 0.8054, 0.4117)
+}
+
+variant member_11 {
+  head_size          = 7.288
+  head_colour        = hsv(211.5, 1, 0.28)
+  coral_spread       = 0.8002
+  coral_up           = 0.7119
+  coral_down         = 0.5415
+  coral_spiral       = 0.9729
+  monster_size       = 1.159
+  monster_height     = 10.27
+  monster_turn       = (151.1, -165, 81.86)
+  head_turn          = (209.6, -325.9, 137.4)
+  head_stretch       = (1.106, 0.9368, 1.097)
+  eye_count          = 7.201
+  eye_size_waves     = 5.406
+  eye_size_spread    = -0.1093
+  eyeball            = hsv(21.3, 0.25, 1)
+  iris               = hsv(15.4, 0.68, 0.93)
+  dilation           = 0.06339
+  slit               = 0.7024
+  tentacle_count     = 3.987
+  tentacle_waves     = 0.612
+  tentacle_thickness = 0.7511
+  tentacle_flatness  = 0.691
+  tentacle_tip       = hsv(81.3, 0.65, 1)
+  curl               = (-9.53, 7.7, 12.98)
+  curl_waves         = (1.598, 2.934, 1.306)
+  curl_start         = (0.268, 0.1377, 0.3551)
+  coral_1            = hsv(283.7, 0.41, 1)
+  coral_2            = hsv(327.6, 0.91, 1)
+  coral_3            = hsv(344.8, 0.52, 1)
+  coral_4            = hsv(184.9, 0.63, 1)
+  coral_gaps         = (0.5032, 0.9833, 0.3687)
+}
+
+variant member_12 {
+  head_size          = 5.772
+  head_colour        = hsv(5.2, 1, 0.4)
+  coral_spread       = 1.623
+  coral_up           = 3.659
+  coral_down         = 4.238
+  coral_spiral       = 0.6606
+  monster_size       = 1.181
+  monster_height     = -14.73
+  monster_turn       = (153.4, 49.65, 99.87)
+  head_turn          = (185.5, -113.2, -181.7)
+  head_stretch       = (1.027, 0.9052, 1.119)
+  eye_count          = 18.16
+  eye_size_waves     = 6.11
+  eye_size_spread    = 0.108
+  eyeball            = hsv(306.5, 0.2, 1)
+  iris               = hsv(165, 0.94, 0.65)
+  dilation           = 0.2432
+  slit               = 0.4104
+  tentacle_count     = 3.491
+  tentacle_waves     = 2.894
+  tentacle_thickness = 0.143
+  tentacle_flatness  = 0.3071
+  tentacle_tip       = hsv(80.8, 0.78, 1)
+  curl               = (-20.25, 13.01, 21.86)
+  curl_waves         = (2.424, 2.765, 1.901)
+  curl_start         = (-0.3338, -0.05715, -0.1156)
+  coral_1            = hsv(205.9, 0.69, 1)
+  coral_2            = hsv(51.5, 0.97, 1)
+  coral_3            = hsv(214.4, 0.66, 1)
+  coral_4            = hsv(199.8, 0.69, 1)
+  coral_gaps         = (0.5079, 0.4718, 0.7986)
+}
