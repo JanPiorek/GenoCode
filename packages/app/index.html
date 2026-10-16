@@ -15,12 +15,15 @@
         ></span
       >
       <label class="field">
-        <span>Example</span>
-        <select id="examples"></select>
+        <span>Creature</span>
+        <select id="creatures"></select>
       </label>
+      <button id="new" type="button">New</button>
       <button id="open" type="button">Open file…</button>
       <input id="file-input" type="file" accept=".genie" hidden />
-      <button id="save" type="button">Save…</button>
+      <button id="save" type="button" title="Keep it in this browser">Save</button>
+      <button id="download" type="button">Download…</button>
+      <button id="delete" type="button" title="Delete it from this browser" hidden>Delete</button>
       <nav class="modes" aria-label="Mode">
         <button type="button" data-mode="view" aria-pressed="true">View</button>
         <button type="button" data-mode="breed" aria-pressed="false">Breed</button>
@@ -30,8 +33,10 @@
     </header>
 
     <main class="layout">
+      <section id="code" class="code" aria-label="Code"></section>
       <section class="stage">
         <div class="tools" id="view-tools">
+          <button id="code-toggle" type="button" aria-pressed="true">Code</button>
           <button id="reset" type="button">Reset view</button>
         </div>
         <div class="tools" id="breed-tools" hidden>
@@ -62,6 +67,9 @@
         <section id="problems-section" hidden>
           <h2>Problems</h2>
           <ul id="problems"></ul>
+        </section>
+        <section id="inputs-section" hidden>
+          <h2>Inputs</h2>
         </section>
         <section>
           <h2>Genes</h2>

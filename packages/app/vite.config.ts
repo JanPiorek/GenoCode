@@ -14,6 +14,6 @@ export default defineConfig({
     },
   },
   server: { fs: { allow: [repo] } },
-  // three.js alone is about 500 kB.
-  build: { target: "es2022", outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 800 },
+  // three.js alone is about 500 kB, and CodeMirror about 400 kB.
+  build: { target: "es2022", outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 1100 },
 });

@@ -4,7 +4,9 @@
 import {
   build,
   buildBackground,
+  check,
   valuesOf,
+  type BuildOptions,
   type BuildResult,
   type CheckResult,
   type Value,
@@ -20,12 +22,19 @@ export function fromProgram(program: CheckResult): Creature {
   return { program, values: valuesOf(program.genes) };
 }
 
-/** Builds a creature and its background at a moment in time. */
+/** Checks text, reusing the last result when the text hasn't changed: the editor and the view share it. */
+export function checkText(text: string): CheckResult {
+  if (lastChecked?.text !== text) lastChecked = check(text);
+  return lastChecked;
+}
+let lastChecked: CheckResult | undefined;
+
+/** Builds a creature and its background, by default in the rest pose. */
 export function buildCreature(
   c: Creature,
-  time = 0,
+  inputs: BuildOptions["inputs"] = {},
 ): { built: BuildResult; background: Value | undefined } {
-  const options = { genes: c.values, inputs: { time } };
+  const options = { genes: c.values, inputs };
   return { built: build(c.program, options), background: buildBackground(c.program, options).fill };
 }
 

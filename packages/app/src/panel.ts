@@ -1,14 +1,16 @@
 // The side panel: the creature's name and description, its problems, and its genes, each with a
-// lock that keeps it fixed while breeding.
+// lock that keeps it fixed while breeding and, in the full view, a control to try other values.
 
 import {
   formatValue,
+  geneRange,
   toRgb,
   type CheckResult,
   type Diagnostic,
   type GeneInfo,
   type Value,
 } from "@genocode/core";
+import { geneControl, type GeneEditing } from "./controls.js";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -57,18 +59,6 @@ function swatch(v: Value): HTMLElement | string {
   return s;
 }
 
-function rangeText(g: GeneInfo): string {
-  if (g.options) return `one of ${g.options.map(formatValue).join(", ")}`;
-  if (g.kind === "bool") return "true or false";
-  if (g.kind === "colour")
-    return g.hue?.whole ? "any hue" : `hues ${g.hue!.start}° + ${g.hue!.length}°`;
-  if (g.min === undefined || g.max === undefined) return "";
-  let text = `${formatValue(g.min)} to ${formatValue(g.max)}`;
-  if (g.step !== undefined) text += `, steps of ${g.step}`;
-  if (g.log) text += ", by ratios";
-  return text;
-}
-
 /** A value as the panel shows it: short, with colours as swatches. */
 function shortValue(v: Value): string {
   if (typeof v === "number") return String(Number(v.toPrecision(4)));
@@ -89,7 +79,12 @@ function groupOf(g: GeneInfo): string | undefined {
   return g.owner;
 }
 
-function geneRow(g: GeneInfo, values: ReadonlyMap<string, Value>, inGroup: boolean): HTMLElement {
+function geneRow(
+  g: GeneInfo,
+  values: ReadonlyMap<string, Value>,
+  inGroup: boolean,
+  edit: GeneEditing | undefined,
+): HTMLElement {
   const row = document.createElement("tr");
   if (inGroup) row.className = "in-group";
   const lockCell = document.createElement("td");
@@ -115,12 +110,29 @@ function geneRow(g: GeneInfo, values: ReadonlyMap<string, Value>, inGroup: boole
   name.title = g.fullName;
   const about = document.createElement("div");
   about.className = "gene-about";
-  about.textContent = [g.description, rangeText(g)].filter(Boolean).join(" · ");
+  about.textContent = [g.description, geneRange(g)].filter(Boolean).join(" · ");
   name.append(about);
   const value = document.createElement("td");
   value.className = "gene-value";
   const v = values.get(g.fullName) ?? g.value;
-  value.append(swatch(v), shortValue(v));
+  const showValue = (x: Value) => value.replaceChildren(swatch(x), shortValue(x));
+  showValue(v);
+  if (edit) {
+    const control = geneControl(g, v, {
+      input: (gene, x) => {
+        showValue(x);
+        edit.input(gene, x);
+      },
+      change: (gene, x) => {
+        showValue(x);
+        edit.change(gene, x);
+      },
+    });
+    if (control) {
+      control.classList.add("gene-control");
+      name.append(control);
+    }
+  }
   row.append(lockCell, name, value);
   return row;
 }
@@ -151,8 +163,15 @@ function groupRow(group: string, count: number, rows: HTMLElement[]): HTMLElemen
   return row;
 }
 
-/** Shows the genes with their current values: top-level genes first, then each part's under its name. */
-export function showGenes(genes: readonly GeneInfo[], values: ReadonlyMap<string, Value>): void {
+/**
+ * Shows the genes with their current values: top-level genes first, then each part's under its
+ * name. With `edit`, each gene gets a control for trying other values.
+ */
+export function showGenes(
+  genes: readonly GeneInfo[],
+  values: ReadonlyMap<string, Value>,
+  edit?: GeneEditing,
+): void {
   const groups = new Map<string | undefined, GeneInfo[]>([[undefined, []]]);
   for (const g of genes) {
     const key = groupOf(g);
@@ -162,10 +181,10 @@ export function showGenes(genes: readonly GeneInfo[], values: ReadonlyMap<string
   const rows: HTMLElement[] = [];
   for (const [group, members] of groups) {
     if (group === undefined) {
-      rows.push(...members.map((g) => geneRow(g, values, false)));
+      rows.push(...members.map((g) => geneRow(g, values, false, edit)));
       continue;
     }
-    const children = members.map((g) => geneRow(g, values, true));
+    const children = members.map((g) => geneRow(g, values, true, edit));
     rows.push(groupRow(group, members.length, children), ...children);
   }
   $("genes").replaceChildren(...rows);

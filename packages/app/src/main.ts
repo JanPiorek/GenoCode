@@ -1,12 +1,17 @@
-// The GenoCode app. View: open a .genie file and see the creature; files opened from disk are
-// watched where the browser allows it (Chromium-based browsers), so saving in another editor
-// updates the view. Breed: a grid of variations to mutate and breed. Morph: a loop blending
-// creatures into one another. Save writes the creature with its gene values filled in.
+// The GenoCode app. View: write a creature's code and see it beside the code, rebuilt as you type,
+// with a control for each gene and sliders for time and music. Breed: a grid of variations to
+// mutate and breed. Morph: a loop blending creatures into one another. Creatures come from the
+// examples, from files (watched for changes where the browser allows it), or from those saved in
+// this browser.
 
-import { check, writeGenes, type CheckResult, type Diagnostic } from "@genocode/core";
+import { geneEdits, type CheckResult, type Diagnostic, type Value } from "@genocode/core";
 import { CreatureView } from "@genocode/render";
 import { Breeder } from "./breed.js";
-import { breedable, buildCreature, fromProgram, type Creature } from "./creature.js";
+import type { GeneEditing } from "./controls.js";
+import { breedable, buildCreature, checkText, fromProgram, type Creature } from "./creature.js";
+import { CodeEditor } from "./editor.js";
+import { InputControls } from "./inputs.js";
+import { deleteCreature, saveCreature, savedNames, savedText } from "./library.js";
 import { Morpher } from "./morph.js";
 import { showGenes, showInfo, showProblems, showStatus } from "./panel.js";
 
@@ -17,62 +22,111 @@ const examples = import.meta.glob("../../../creatures/*.genie", {
   eager: true,
 }) as Record<string, string>;
 
+const NEW_CREATURE = `creature New_Creature
+// What it is, in a line or two.
+
+gene size = 1 in 0.5..2  // how big it is
+
+shape ball
+grow size
+lay
+`;
+
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const canvas = $<HTMLCanvasElement>("view");
 const grid = $("grid");
+const codeSection = $("code");
 const view = new CreatureView(canvas);
-const exampleSelect = $<HTMLSelectElement>("examples");
+const creatureSelect = $<HTMLSelectElement>("creatures");
 const fileInput = $<HTMLInputElement>("file-input");
 const watching = $("watching");
 
 type Mode = "view" | "breed" | "morph";
 let mode: Mode = "view";
 
+/** Where the code came from: an example, a creature saved in this browser, or elsewhere. */
+type Source = { kind: "example" | "mine"; name: string } | { kind: "other" };
+let source: Source = { kind: "other" };
+/** The text as last opened or saved, to tell whether there are changes to lose. */
+let savedAs = "";
+
 /** The latest text, as checked, whether or not it has errors. */
 let program: CheckResult | undefined;
 /** The creature in the full view: the last version without errors, with its gene values. */
 let current: Creature | undefined;
-let started = performance.now();
 let liveFrame = 0;
 let watchTimer = 0;
+
+const editor = new CodeEditor(codeSection, (text) => {
+  // Typed here, so the browser has the latest version now, not the file on disk.
+  stopWatching();
+  show(text, true);
+});
+const inputs = new InputControls($("inputs-section"), () => {
+  if (mode === "view" && !inputs.running) showCurrent(true, false);
+});
 
 // ---------- view ----------
 
 /** Shows new text. Keeps showing the last good version while the text has errors. */
-function show(text: string, keepView: boolean): void {
-  program = check(text);
-  // While a watched file is being edited, keep showing its last version without errors.
-  if (breedable(program)) current = fromProgram(program);
-  else if (!keepView) current = undefined;
+function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Value>): void {
+  program = checkText(text);
+  if (breedable(program)) {
+    current = fromProgram(program);
+    // Genes without a line in the code, such as `seed`, keep the values they came with.
+    for (const g of program.genes) {
+      const v = carried?.get(g.fullName);
+      if (g.decl === undefined && v !== undefined) current.values.set(g.fullName, v);
+    }
+  } else if (!keepView) current = undefined;
   showInfo(program);
-  started = performance.now();
   enableTools();
   if (mode === "breed" && current) breeder.start(current, strength());
   if (mode === "morph" && current) startMorph();
   if (mode === "view") showCurrent(keepView);
 }
 
-/** Shows the current creature in the full view. Creatures that read time are rebuilt every frame. */
-function showCurrent(keepView: boolean): void {
+/** Gene controls write into the code, so they're only offered while the code is what's on show. */
+const geneEditing: GeneEditing = {
+  input(g, v) {
+    current?.values.set(g.fullName, v);
+    showCurrent(true, false);
+  },
+  change(g, v) {
+    if (!current || current.program.text !== editor.text) return;
+    current.values.set(g.fullName, v);
+    editor.applyEdits(geneEdits(current.program, new Map([[g.fullName, v]])));
+  },
+};
+
+/**
+ * Shows the current creature in the full view. Creatures that read time are rebuilt every frame.
+ * `panel` redraws the gene panel too, which mustn't happen while one of its sliders is dragged.
+ */
+function showCurrent(keepView: boolean, panel = true): void {
   cancelAnimationFrame(liveFrame);
   if (!current) {
     view.setCreature([]);
     view.setBackground(undefined);
     showProblems(program!, program!.diagnostics);
     showGenes(program?.genes ?? [], new Map());
+    inputs.show(false);
     showStatus("");
     return;
   }
-  showGenes(current.program.genes, current.values);
   const c = current;
+  const live = c.program.live || c.program.backgroundLive;
+  if (panel) {
+    showGenes(c.program.genes, c.values, c.program === program ? geneEditing : undefined);
+    inputs.show(live);
+  }
   const frame = (keep: boolean) => {
-    const live = c.program.live || c.program.backgroundLive;
-    const { built, background } = buildCreature(c, (performance.now() - started) / 1000);
+    const { built, background } = buildCreature(c, inputs.now());
     view.setCreature(built.shapes, keep);
     view.setBackground(background);
     report(built.diagnostics, built.shapes.length, live);
-    if (live) liveFrame = requestAnimationFrame(() => frame(true));
+    if (live && inputs.running) liveFrame = requestAnimationFrame(() => frame(true));
   };
   frame(keepView);
 }
@@ -87,6 +141,100 @@ function report(buildProblems: Diagnostic[], shapeCount: number, live: boolean):
   showStatus(`${shapes} · ${live ? "moves with time" : "still"}${stale}`);
 }
 
+// ---------- opening ----------
+
+const dirty = () => editor.text !== savedAs;
+
+/** Asks before losing changes. */
+function mayDiscard(): boolean {
+  return !dirty() || confirm("Your changes to this creature aren't saved. Lose them?");
+}
+
+/** Puts new code in the editor and shows it. */
+function load(text: string, from: Source): void {
+  stopWatching();
+  source = from;
+  savedAs = text;
+  editor.setText(text);
+  inputs.restart();
+  show(text, false);
+  showSource();
+}
+
+/** Shows where the code came from in the creature menu and the address. */
+function showSource(): void {
+  fillCreatureMenu();
+  creatureSelect.value = source.kind === "other" ? "" : `${source.kind}:${source.name}`;
+  $("delete").hidden = source.kind !== "mine";
+  const url = new URL(location.href);
+  url.searchParams.delete("example");
+  url.searchParams.delete("mine");
+  if (source.kind !== "other") url.searchParams.set(source.kind, source.name);
+  history.replaceState(null, "", url);
+}
+
+const exampleNames = Object.keys(examples)
+  .map((path) =>
+    path
+      .split("/")
+      .pop()!
+      .replace(/\.genie$/, ""),
+  )
+  .sort();
+
+function exampleText(name: string): string | undefined {
+  const path = Object.keys(examples).find((p) => p.endsWith(`/${name}.genie`));
+  return path ? examples[path] : undefined;
+}
+
+function fillCreatureMenu(): void {
+  const group = (label: string, kind: string, names: string[]) => {
+    const g = document.createElement("optgroup");
+    g.label = label;
+    for (const n of names) {
+      const option = document.createElement("option");
+      option.value = `${kind}:${n}`;
+      option.textContent = n;
+      g.append(option);
+    }
+    return g;
+  };
+  const other = document.createElement("option");
+  other.value = "";
+  other.textContent = "—";
+  other.hidden = true;
+  const mine = savedNames();
+  creatureSelect.replaceChildren(
+    other,
+    ...(mine.length > 0 ? [group("Mine", "mine", mine)] : []),
+    group("Examples", "example", exampleNames),
+  );
+}
+
+function openListed(kind: "example" | "mine", name: string): boolean {
+  const text = kind === "example" ? exampleText(name) : savedText(name);
+  if (text === undefined) return false;
+  load(text, { kind, name });
+  return true;
+}
+
+creatureSelect.addEventListener("change", () => {
+  const [kind, ...rest] = creatureSelect.value.split(":");
+  if (!mayDiscard()) {
+    showSource();
+    return;
+  }
+  openListed(kind as "example" | "mine", rest.join(":"));
+});
+
+$("new").addEventListener("click", () => {
+  if (mayDiscard()) load(NEW_CREATURE, { kind: "other" });
+});
+
+window.addEventListener("beforeunload", (e) => {
+  if (dirty()) e.preventDefault();
+});
+
 // ---------- modes ----------
 
 const breeder = new Breeder(grid, {
@@ -95,7 +243,13 @@ const breeder = new Breeder(grid, {
     enableTools();
   },
   open(c) {
-    current = c;
+    // Write its genes into the code, so the code is the creature on show.
+    let text = c.program.text;
+    for (const e of geneEdits(c.program, c.values).reverse()) {
+      text = text.slice(0, e.start) + e.text + text.slice(e.end);
+    }
+    editor.setText(text);
+    show(text, false, c.values);
     setMode("view");
   },
 });
@@ -110,6 +264,14 @@ const morpher = new Morpher(view, (f) => {
   showProblems(f.creature.program, f.problems);
 });
 
+const showCode = () => {
+  try {
+    return localStorage.getItem("genocode.code") !== "hidden";
+  } catch {
+    return true;
+  }
+};
+
 function setMode(next: Mode): void {
   mode = next;
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
@@ -118,10 +280,13 @@ function setMode(next: Mode): void {
   $("view-tools").hidden = mode !== "view";
   $("breed-tools").hidden = mode !== "breed";
   $("morph-tools").hidden = mode !== "morph";
+  codeSection.hidden = mode !== "view" || !showCode();
+  document.body.classList.toggle("with-code", !codeSection.hidden);
   canvas.hidden = mode === "breed";
   grid.hidden = mode !== "breed";
   cancelAnimationFrame(liveFrame);
   morpher.stop();
+  inputs.show(false);
   if (mode === "view") showCurrent(false);
   if (mode === "breed" && current) {
     if (!breeder.holds(current)) breeder.start(current, strength());
@@ -160,7 +325,6 @@ function enableTools(): void {
   )) {
     b.disabled = !ok;
   }
-  $<HTMLButtonElement>("save").disabled = !ok;
   const chosen = breeder.selection.length;
   $<HTMLButtonElement>("mutate").disabled = chosen < 1;
   $<HTMLButtonElement>("breed").disabled = chosen < 2;
@@ -174,6 +338,18 @@ function enableTools(): void {
 for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
   b.addEventListener("click", () => setMode(b.dataset["mode"] as Mode));
 }
+
+$("code-toggle").addEventListener("click", () => {
+  const on = !showCode();
+  try {
+    localStorage.setItem("genocode.code", on ? "shown" : "hidden");
+  } catch {
+    // Not remembered, then.
+  }
+  $("code-toggle").setAttribute("aria-pressed", String(on));
+  setMode(mode);
+});
+$("code-toggle").setAttribute("aria-pressed", String(showCode()));
 
 $("mutate").addEventListener("click", () => {
   breeder.mutateSelection(strength(), keepParents());
@@ -199,16 +375,41 @@ $<HTMLInputElement>("speed").addEventListener("input", (e) => {
 
 // ---------- saving ----------
 
+/** The name to save under: the one in the code's header. */
+const creatureName = () => checkText(editor.text).file.name || "Untitled";
+
+$("save").addEventListener("click", () => {
+  const name = creatureName();
+  const replacing = source.kind !== "mine" || source.name !== name;
+  if (replacing && savedText(name) !== undefined && !confirm(`Replace your saved ${name}?`)) return;
+  try {
+    saveCreature(name, editor.text);
+  } catch {
+    alert("This browser won't keep it (its storage is full or turned off). Use Download instead.");
+    return;
+  }
+  source = { kind: "mine", name };
+  savedAs = editor.text;
+  showSource();
+});
+
+$("delete").addEventListener("click", () => {
+  if (source.kind !== "mine" || !confirm(`Delete ${source.name} from this browser?`)) return;
+  deleteCreature(source.name);
+  savedAs = "";
+  source = { kind: "other" };
+  showSource();
+});
+
 type SaveWindow = Window & {
   showSaveFilePicker?: (options: object) => Promise<{
     createWritable(): Promise<{ write(data: string): Promise<void>; close(): Promise<void> }>;
   }>;
 };
 
-$("save").addEventListener("click", async () => {
-  if (!current) return;
-  const text = writeGenes(current.program, current.values);
-  const name = `${current.program.file.name || "Creature"}.genie`;
+$("download").addEventListener("click", async () => {
+  const text = editor.text;
+  const name = `${creatureName()}.genie`;
   const picker = (window as SaveWindow).showSaveFilePicker;
   if (picker) {
     try {
@@ -243,11 +444,11 @@ function stopWatching(): void {
   watching.hidden = true;
 }
 
-/** Shows a file, and keeps checking it for changes while it's open. */
+/** Shows a file, and keeps checking it for changes until it's edited here or another is opened. */
 async function openHandle(handle: FileHandleLike): Promise<void> {
-  stopWatching();
+  if (!mayDiscard()) return;
   let file = await handle.getFile();
-  show(await file.text(), false);
+  load(await file.text(), { kind: "other" });
   let modified = file.lastModified;
   watching.textContent = `Watching ${handle.name} for changes`;
   watching.hidden = false;
@@ -256,7 +457,10 @@ async function openHandle(handle: FileHandleLike): Promise<void> {
       file = await handle.getFile();
       if (file.lastModified !== modified) {
         modified = file.lastModified;
-        show(await file.text(), true);
+        const text = await file.text();
+        savedAs = text;
+        editor.setText(text);
+        show(text, true);
       }
     } catch {
       stopWatching();
@@ -265,8 +469,8 @@ async function openHandle(handle: FileHandleLike): Promise<void> {
 }
 
 async function openFile(file: File): Promise<void> {
-  stopWatching();
-  show(await file.text(), false);
+  if (!mayDiscard()) return;
+  load(await file.text(), { kind: "other" });
 }
 
 type PickerWindow = Window & {
@@ -317,37 +521,12 @@ window.addEventListener("drop", async (e) => {
 
 $("reset").addEventListener("click", () => view.resetView());
 
-// ---------- examples ----------
+// ---------- start ----------
 
-const names = Object.keys(examples)
-  .map((path) =>
-    path
-      .split("/")
-      .pop()!
-      .replace(/\.genie$/, ""),
-  )
-  .sort();
-exampleSelect.replaceChildren(
-  ...names.map((n) => {
-    const option = document.createElement("option");
-    option.value = n;
-    option.textContent = n;
-    return option;
-  }),
-);
-
-function showExample(name: string): void {
-  const path = Object.keys(examples).find((p) => p.endsWith(`/${name}.genie`));
-  if (!path) return;
-  stopWatching();
-  exampleSelect.value = name;
-  show(examples[path]!, false);
-  const url = new URL(location.href);
-  url.searchParams.set("example", name);
-  history.replaceState(null, "", url);
+const params = new URL(location.href).searchParams;
+const mine = params.get("mine");
+const example = params.get("example");
+if (!(mine && openListed("mine", mine)) && !(example && openListed("example", example))) {
+  openListed("example", exampleNames[0] ?? "");
 }
-
-exampleSelect.addEventListener("change", () => showExample(exampleSelect.value));
-
-const requested = new URL(location.href).searchParams.get("example");
-showExample(requested && names.includes(requested) ? requested : (names[0] ?? ""));
+setMode("view");

@@ -77,7 +77,7 @@ export class Morpher {
     }
     this.last = now;
     const f = this.at(this.position);
-    const { built, background } = buildCreature(f.creature, (now - this.started) / 1000);
+    const { built, background } = buildCreature(f.creature, { time: (now - this.started) / 1000 });
     f.problems = built.diagnostics;
     this.view.setCreature(built.shapes, !first);
     this.view.setBackground(background);

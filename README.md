@@ -48,15 +48,19 @@ npm test          # run the tests
 npm run check     # build, type-check, test and check formatting, as CI does
 ```
 
-**See creatures in the browser:** `npm run dev`, then open the address it prints. Pick one of the
-starter creatures in `creatures/`, or open or drop any `.genie` file. Starter creatures update as
-soon as you save them. In Chromium-based browsers, a file opened from disk is watched too, so you
-can edit it in any editor and see the changes.
+**Write creatures in the browser:** `npm run dev`, then open the address it prints. Pick one of
+the starter creatures in `creatures/`, start a **New** one, or open or drop any `.genie` file. In
+Chromium-based browsers, a file opened from disk is watched too, so you can edit it in any editor
+and see the changes (until you edit it in the app). **Save** keeps a creature in the browser, under
+**Mine** in the creature menu, and **Download…** writes it as a `.genie` file.
 
 The app has three modes:
 
-- **View** shows one creature, with its genes. Lock a gene (🔓) to keep it fixed while breeding,
-  and **Save…** writes the creature, with its gene values filled in, as a `.genie` file.
+- **View** shows the code beside the creature, rebuilt as you type. The editor colours the code,
+  marks problems as you type, completes names and explains whatever you point at. Each gene has a
+  slider, colour picker or menu in the side panel; letting go writes the new value into the code.
+  Creatures that react to time or music get sliders for `time`, `beat` and the `music` values. Lock
+  a gene (🔓) to keep it fixed while breeding. **Code** hides or shows the editor.
 - **Breed** shows a grid of variations. Click creatures to choose them as parents, then **Mutate**
   (the strength sets how far genes move) or **Breed** (children of random pairs of parents).
   **Back** returns to the previous generation, and double-clicking a creature opens it in View.
