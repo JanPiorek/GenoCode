@@ -949,7 +949,8 @@ class Parser {
         return this.fail(t.span, `Expected a value, but found the keyword \`${t.text}\`.`);
       case "name":
         this.next();
-        if (t.text === "gradient" && this.isOp("(")) return this.parseGradient(t);
+        if ((t.text === "gradient" || t.text === "spectrum") && this.isOp("("))
+          return this.parseGradient(t);
         return { kind: "Name", name: t.text, span: t.span };
       case "op":
         if (t.text === "(") return this.parseBrackets();
@@ -999,6 +1000,11 @@ class Parser {
       this.next();
     }
     this.expectOp(")", "after the gradient's colours");
-    return { kind: "Gradient", stops, span: { start: name.span.start, end: this.lastEnd } };
+    return {
+      kind: "Gradient",
+      stops,
+      straight: name.text === "spectrum",
+      span: { start: name.span.start, end: this.lastEnd },
+    };
   }
 }

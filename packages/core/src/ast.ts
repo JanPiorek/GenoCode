@@ -146,6 +146,8 @@ export interface GradientLit {
   kind: "Gradient";
   span: Span;
   stops: GradientStop[];
+  /** Written `spectrum(…)`: hue blends in a straight line (section 13.3). */
+  straight: boolean;
 }
 
 export interface ErrorExpr {

@@ -26,6 +26,8 @@ export interface GradientStopValue {
 export interface Gradient {
   type: "gradient";
   stops: GradientStopValue[];
+  /** A spectrum: hue blends in a straight line, rather than the short way round. */
+  straight: boolean;
 }
 
 export const SHAPES = ["tube", "cube", "cone", "ball", "ring", "donut"] as const;
@@ -173,7 +175,7 @@ export function formatValue(v: Value): string {
     case "colour":
       return `hsv(${formatNumber(v.h)}, ${formatNumber(v.s)}, ${formatNumber(v.v)}, ${formatNumber(v.a)})`;
     case "gradient":
-      return `gradient(${v.stops.map((s) => `${formatValue(s.colour)} at ${formatNumber(s.pos)}`).join(", ")})`;
+      return `${v.straight ? "spectrum" : "gradient"}(${v.stops.map((s) => `${formatValue(s.colour)} at ${formatNumber(s.pos)}`).join(", ")})`;
     case "shape":
     case "patternKind":
     case "part":

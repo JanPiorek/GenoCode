@@ -729,7 +729,7 @@ class Run {
             );
           return { colour, at: s.at ? this.num(s.at, env, "A gradient position") : undefined };
         });
-        return this.guard(e.span, () => makeGradient(stops));
+        return this.guard(e.span, () => makeGradient(stops, e.straight));
       }
       case "ErrorExpr":
         throw new RuntimeError(e.span, "This expression couldn't be read.");

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { check } from "./checker.js";
 import { build, buildBackground } from "./interpreter.js";
 import { mulberry32 } from "./noise.js";
-import { centre, checked, near, run } from "./test-helpers.js";
+import { centre, checked, errors, near, run } from "./test-helpers.js";
 import { formatValue } from "./values.js";
 
 const positions = (body: string) => run(body).shapes.map((s) => near(centre(s)));
@@ -188,6 +188,21 @@ describe("values and library", () => {
     expect(value("gradient(red, blue)(2).hue")).toBe("240");
     const r = run("let g = gradient(red at 0.5, blue at 0.2)\nprint(g(0))");
     expect(r.diagnostics[0]!.message).toContain("must not go down");
+  });
+
+  it("builds spectrums, whose hue goes in a straight line", () => {
+    // Blue (240°) to red (0°): a gradient goes the short way, through magenta (300°); a spectrum
+    // goes through green (120°).
+    expect(value("gradient(blue, red)(0.5).hue")).toBe("300");
+    expect(value("spectrum(blue, red)(0.5).hue")).toBe("120");
+    expect(value("spectrum(hsv(350, 1, 1), hsv(10, 1, 1))(0.25).hue")).toBe("265");
+    expect(value("spectrum(black, white at 0.5)(0.25).val")).toBe("0.5");
+    expect(value("spectrum(red, blue)")).toBe(
+      "spectrum(hsv(0, 1, 1, 1) at 0, hsv(240, 1, 1, 1) at 1)",
+    );
+    expect(errors("let spectrum = 1")).toEqual([
+      "`spectrum` is built in, so it can't be used as the name of a variable.",
+    ]);
   });
 
   it("knows its colours", () => {

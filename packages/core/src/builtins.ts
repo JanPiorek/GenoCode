@@ -243,7 +243,12 @@ function buildConstants(): Map<string, Value> {
 
 export const BUILTIN_CONSTANTS: ReadonlyMap<string, Value> = buildConstants();
 
-/** Names nobody may define: every built-in, plus `gradient`, which is syntax. */
+/** Names nobody may define: every built-in, plus `gradient` and `spectrum`, which are syntax. */
 export function isBuiltinName(name: string): boolean {
-  return BUILTIN_FUNCTIONS.has(name) || BUILTIN_CONSTANTS.has(name) || name === "gradient";
+  return (
+    BUILTIN_FUNCTIONS.has(name) ||
+    BUILTIN_CONSTANTS.has(name) ||
+    name === "gradient" ||
+    name === "spectrum"
+  );
 }

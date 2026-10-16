@@ -139,6 +139,14 @@ export const FUNCTION_HELP: ReadonlyMap<string, Help> = new Map([
     ),
   ],
   [
+    "spectrum",
+    h(
+      "spectrum(c1, c2 at p, …)",
+      "Like `gradient`, but hue moves in a straight line between colours, through every hue in between.",
+      "13.3",
+    ),
+  ],
+  [
     "gradient",
     h(
       "gradient(c1, c2 at p, …)",

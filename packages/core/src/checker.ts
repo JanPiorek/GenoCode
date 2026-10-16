@@ -1390,8 +1390,8 @@ class Checker {
       this.error(span, `\`${name}\` is a function. Call it with brackets: \`${name}(…)\`.`);
       return "unknown";
     }
-    if (name === "gradient") {
-      this.error(span, "Write a gradient as `gradient(colour, colour, …)`.");
+    if (name === "gradient" || name === "spectrum") {
+      this.error(span, `Write a ${name} as \`${name}(colour, colour, …)\`.`);
       return "unknown";
     }
     if (name === "side" && !ctx.inSymmetric) {

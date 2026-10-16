@@ -409,7 +409,7 @@ export function expr(e: Expr): string {
     case "Call":
       return `${wrap(e.callee, precedence(e.callee) < 9 || e.callee.kind === "Number")}(${e.args.map(expr).join(", ")})`;
     case "Gradient":
-      return `gradient(${e.stops.map((s) => (s.at ? `${expr(s.colour)} at ${expr(s.at)}` : expr(s.colour))).join(", ")})`;
+      return `${e.straight ? "spectrum" : "gradient"}(${e.stops.map((s) => (s.at ? `${expr(s.colour)} at ${expr(s.at)}` : expr(s.colour))).join(", ")})`;
     case "ErrorExpr":
       throw new Error("Can't format a file with syntax errors.");
   }

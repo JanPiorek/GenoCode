@@ -176,7 +176,8 @@ Some words are only special in one place, and are ordinary names elsewhere:
 - the effect names `morph`, `zoom`, `spin`, `turn`, `reverse` and `flat` inside a `dance` block.
 
 **Built-in names**, such as the library functions, constants, colour names, shape names and pattern
-kinds, can't be used as names of genes, variables, parameters, parts or functions.
+kinds, and the words `gradient` and `spectrum`, can't be used as names of genes, variables, parameters,
+parts or functions.
 
 `colour` and `color` mean the same thing everywhere, including in `turtle.colour` / `turtle.color`.
 
@@ -604,7 +605,7 @@ opacity: 1 is solid and 0 is invisible.
 
 **Blending two colours** (in `mix`, `smoothmix`, gradients and morphing) blends saturation, value
 and alpha in a straight line, and hue the short way round the circle. Hues exactly 180 degrees
-apart blend in the increasing direction.
+apart blend in the increasing direction. Spectrums ([13.3](#133-gradients)) are the one exception.
 
 The named colours are:
 
@@ -649,6 +650,15 @@ repeat 20 as i {
 - The position is clamped to 0–1. Before the first stop the colour is the first stop's, after the
   last stop it's the last stop's, and between two stops it's those two colours blended
   ([13.1](#131-colours)).
+
+**Spectrums.** `spectrum(…)` is written and sampled like `gradient(…)`, with one difference: between
+two stops, hue moves in a straight line from one number to the other, never across 0°. So
+`spectrum(blue, red)` passes through cyan, green and yellow (240° down to 0°), where
+`gradient(blue, red)` goes the short way, through magenta.
+
+```
+let flame = spectrum(hsv(60, 1, 1), hsv(0, 1, 1), hsv(280, 1, 0.5))   // yellow, red, then back through every hue to violet
+```
 
 ## 14. Textures
 
@@ -841,7 +851,7 @@ All angles are in degrees.
 
 ### 18.3 Colours
 
-`hsv(…)`, `rgb(…)`, `mix(a, b, t)`, `smoothmix(a, b, t)` and `gradient(…)`, plus the colour names in
+`hsv(…)`, `rgb(…)`, `mix(a, b, t)`, `smoothmix(a, b, t)`, `gradient(…)` and `spectrum(…)`, plus the colour names in
 [13.1](#131-colours) and the parts `.hue`, `.sat`, `.val` and `.alpha`.
 
 ### 18.4 Reading the turtle
@@ -1097,7 +1107,7 @@ primary       = NUMBER | HEX_COLOUR | STRING | "true" | "false"
               | "turtle" "." NAME | "time" | "beat" | "music" "." NAME
               | "(" expr ")"
               | "(" expr "," expr "," expr ")"
-              | "gradient" "(" stop "," stop { "," stop } ")" ;
+              | ( "gradient" | "spectrum" ) "(" stop "," stop { "," stop } ")" ;
 stop          = expr [ "at" expr ] ;
 args          = expr { "," expr } ;
 ```

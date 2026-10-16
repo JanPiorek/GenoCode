@@ -37,7 +37,8 @@ function colour(state: EditorState): DecorationSet {
     else if (t.kind === "string") cls = "string";
     else if (t.kind === "name") {
       if (genes.has(t.text)) cls = "gene";
-      else if (BUILTIN_FUNCTIONS.has(t.text) || t.text === "gradient") cls = "function";
+      else if (BUILTIN_FUNCTIONS.has(t.text) || t.text === "gradient" || t.text === "spectrum")
+        cls = "function";
       else if (BUILTIN_CONSTANTS.has(t.text)) cls = "constant";
       else if (program.parts.has(t.text) || program.functions.has(t.text)) cls = "part";
     }

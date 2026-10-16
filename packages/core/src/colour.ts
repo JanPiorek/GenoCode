@@ -95,7 +95,10 @@ export function mixColour(a: Colour, b: Colour, t: number): Colour {
 }
 
 /** Builds a gradient, filling in missing positions (section 13.3). */
-export function makeGradient(stops: { colour: Colour; at: number | undefined }[]): Gradient {
+export function makeGradient(
+  stops: { colour: Colour; at: number | undefined }[],
+  straight = false,
+): Gradient {
   if (stops.length < 2) throw new ValueError("A gradient needs at least two colours.");
   const pos: (number | undefined)[] = stops.map((s) => s.at);
   if (pos[0] === undefined) pos[0] = 0;
@@ -121,7 +124,7 @@ export function makeGradient(stops: { colour: Colour; at: number | undefined }[]
       throw new ValueError("A gradient's positions must not go down.");
     }
   }
-  return { type: "gradient", stops: result };
+  return { type: "gradient", stops: result, straight };
 }
 
 export function sampleGradient(g: Gradient, t: number): Colour {
@@ -134,8 +137,12 @@ export function sampleGradient(g: Gradient, t: number): Colour {
   for (let k = 0; k < stops.length - 1; k++) {
     const a = stops[k]!;
     const b = stops[k + 1]!;
-    if (t >= a.pos && t < b.pos)
-      return mixColour(a.colour, b.colour, (t - a.pos) / (b.pos - a.pos));
+    if (t >= a.pos && t < b.pos) {
+      const u = (t - a.pos) / (b.pos - a.pos);
+      const c = mixColour(a.colour, b.colour, u);
+      // A spectrum's hue goes straight from one to the other, never across 0°.
+      return g.straight ? { ...c, h: a.colour.h + (b.colour.h - a.colour.h) * u } : c;
+    }
   }
   return last.colour;
 }
