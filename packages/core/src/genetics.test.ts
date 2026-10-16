@@ -270,4 +270,13 @@ describe("writeGenes", () => {
     expect(text).toContain("gene k = 4 in 0..10 step 2");
     expect(text).toContain("gene c = hsv(123.5, 0.5, 0.25) in hsv(0, 0, 0)..hsv(360, 1, 1)");
   });
+
+  it("keeps a hue just under 360° from rounding round to 0°", () => {
+    const program = checked("creature T\ngene c = red in hsv(0, 0, 0)..hsv(360, 1, 1)\nlay\n");
+    const text = writeGenes(
+      program,
+      new Map<string, Value>([["c", { type: "colour", h: 359.98, s: 1, v: 1, a: 1 }]]),
+    );
+    expect(text).toContain("gene c = hsv(359.9, 1, 1)");
+  });
 });

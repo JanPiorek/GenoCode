@@ -293,7 +293,9 @@ export function geneLiteral(g: GeneInfo, v: Value): string {
   }
   if (g.kind === "colour" && isColour(v)) {
     const [lo, hi] = [g.min as Colour, g.max as Colour];
-    let h = Number(clampHue(v.h, g.hue!).toFixed(1));
+    // A hue just under 360° mustn't round up to 360°, which reads back as 0°: the other end of
+    // a spectrum (section 13.3).
+    let h = Math.min(Number(clampHue(v.h, g.hue!).toFixed(1)), 359.9);
     if (!inHueArc(h, g.hue!)) h = clampHue(v.h, g.hue!);
     const ch = (k: "s" | "v" | "a") => short(clamp(Number(v[k].toFixed(2)), lo[k], hi[k]));
     const alpha = ch("a");
