@@ -8,7 +8,14 @@ import { geneEdits, type CheckResult, type Diagnostic, type Value } from "@genoc
 import { CreatureView } from "@genocode/render";
 import { Breeder } from "./breed.js";
 import type { GeneEditing } from "./controls.js";
-import { breedable, buildCreature, checkText, fromProgram, type Creature } from "./creature.js";
+import {
+  breedable,
+  buildCreature,
+  checkText,
+  familyOf,
+  fromProgram,
+  type Creature,
+} from "./creature.js";
 import { CodeEditor } from "./editor.js";
 import { InputControls } from "./inputs.js";
 import { deleteCreature, saveCreature, savedNames, savedText } from "./library.js";
@@ -82,7 +89,7 @@ function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Val
   } else if (!keepView) current = undefined;
   showInfo(program);
   enableTools();
-  if (mode === "breed" && current) breeder.start(current, strength());
+  if (mode === "breed" && current) breeder.start(familyOf(current), strength());
   if (mode === "morph" && current) startMorph();
   if (mode === "view") showCurrent(keepView);
 }
@@ -259,8 +266,13 @@ const morpher = new Morpher(view, (f) => {
   if (performance.now() - lastPanel < 200) return;
   lastPanel = performance.now();
   showGenes(f.creature.program.genes, f.creature.values);
+  const next = (f.index + 1) % morpher.count;
+  const label = (i: number) => {
+    const c = morpher.member(i);
+    return c.variant ?? (c === current ? (c.program.file.name ?? "") : `Creature ${i + 1}`);
+  };
   $("morph-hint").textContent =
-    `Creature ${f.index + 1} → ${((f.index + 1) % morpher.count) + 1} of ${morpher.count}`;
+    `${label(f.index)} → ${label(next)} · ${f.index + 1} of ${morpher.count}`;
   showProblems(f.creature.program, f.problems);
 });
 
@@ -289,7 +301,7 @@ function setMode(next: Mode): void {
   inputs.show(false);
   if (mode === "view") showCurrent(false);
   if (mode === "breed" && current) {
-    if (!breeder.holds(current)) breeder.start(current, strength());
+    if (!breeder.holds(current)) breeder.start(familyOf(current), strength());
     else breeder.render();
     showGenes(current.program.genes, current.values);
   }
@@ -298,17 +310,18 @@ function setMode(next: Mode): void {
 }
 
 /**
- * Morphs through the creatures chosen in the grid, or the whole grid, or variations of the current
- * one. The grid only counts while it holds the current creature: one opened since breeding starts
- * afresh.
+ * Morphs through the creatures chosen in the grid, or else the creature's family (itself and its
+ * variants), or else the whole grid, or else variations of the creature. The grid only counts
+ * while it holds the current creature: one opened since breeding starts afresh.
  */
 function startMorph(): void {
   if (!current) return;
   const ours = breeder.holds(current);
   let members = ours ? breeder.selection : [];
+  if (members.length < 2) members = familyOf(current);
   if (members.length < 2 && ours) members = [...breeder.creatures];
   if (members.length < 2) {
-    breeder.start(current, 0.5);
+    breeder.start([current], 0.5);
     members = breeder.creatures.slice(0, 6);
   }
   morpher.start(members);

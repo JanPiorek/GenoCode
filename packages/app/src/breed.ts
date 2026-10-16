@@ -48,12 +48,26 @@ export class Breeder {
     return this.generation.some((g) => g.program === c.program);
   }
 
-  /** Starts a new grid: the creature itself, and mutations of it. */
-  start(c: Creature, strength: number): void {
+  /**
+   * Starts a new grid from a creature's family: the creature and its variants, filled up with
+   * mutations of them. A creature without variants starts with mutations of itself.
+   */
+  start(family: Creature[], strength: number): void {
     this.history.length = 0;
     this.selected.clear();
     this.selected.add(0);
-    this.next([c], strength, true);
+    if (family.length === 1) {
+      this.next(family, strength, true);
+      return;
+    }
+    const kept = family.slice(0, GRID_SIZE);
+    const children: Creature[] = [];
+    while (kept.length + children.length < GRID_SIZE) {
+      const p = kept[Math.floor(Math.random() * kept.length)]!;
+      const values = mutate(p.program.genes, p.values, { strength, random: Math.random, locked });
+      children.push({ program: p.program, values });
+    }
+    this.show(kept, children);
   }
 
   /** The next generation: mutations of the selected creatures. */

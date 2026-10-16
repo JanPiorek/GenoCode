@@ -15,11 +15,26 @@ import {
 export interface Creature {
   program: CheckResult;
   values: Map<string, Value>;
+  /** The variant it is, for creatures from a family. */
+  variant?: string;
 }
 
 /** A creature with the gene values written in its program. */
 export function fromProgram(program: CheckResult): Creature {
   return { program, values: valuesOf(program.genes) };
+}
+
+/**
+ * The creature's family: the creature itself, then each of its variants (docs/LANGUAGE.md section
+ * 6.6). Just the creature when it has none.
+ */
+export function familyOf(c: Creature): Creature[] {
+  const variants = c.program.variants.map((v) => ({
+    program: c.program,
+    values: valuesOf(c.program.genes, v.values),
+    variant: v.name,
+  }));
+  return [c, ...variants];
 }
 
 /** Checks text, reusing the last result when the text hasn't changed: the editor and the view share it. */

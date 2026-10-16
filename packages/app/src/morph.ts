@@ -32,6 +32,10 @@ export class Morpher {
     return this.members.length;
   }
 
+  member(i: number): Creature {
+    return this.members[i]!;
+  }
+
   /** Starts morphing through these creatures, from the first. */
   start(members: Creature[]): void {
     this.members = members;

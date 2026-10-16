@@ -61,10 +61,11 @@ The app has three modes:
   slider, colour picker or menu in the side panel; letting go writes the new value into the code.
   Creatures that react to time or music get sliders for `time`, `beat` and the `music` values. Lock
   a gene (🔓) to keep it fixed while breeding. **Code** hides or shows the editor.
-- **Breed** shows a grid of variations. Click creatures to choose them as parents, then **Mutate**
+- **Breed** shows a grid of variations, starting from the creature's variants if it has any. Click creatures to choose them as parents, then **Mutate**
   (the strength sets how far genes move) or **Breed** (children of random pairs of parents).
   **Back** returns to the previous generation, and double-clicking a creature opens it in View.
-- **Morph** blends through the chosen creatures (or the whole grid) in a loop.
+- **Morph** blends through the chosen creatures in a loop: those chosen in the grid, or else the
+  creature and its variants, or else the whole grid.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 
