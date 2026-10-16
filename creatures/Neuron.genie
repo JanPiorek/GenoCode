@@ -1,0 +1,649 @@
+creature Neuron
+// A nerve cell: a body with three branching trees of wiggling dendrites, inside two mirrored
+// loops of field lines.
+// Inspired by Neuron, a DancerDNA creature.
+
+gene turn      = (-77.86, 18.88, -140.4) in (-229.2, -229.2, -229.2)..(229.2, 229.2, 229.2)  // how the cell is turned: up, sideways and round
+gene body_size = 2.929 in 2..7
+gene turn_2    = (-86.24, 173.8, -168.6) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8)  // how the second tree turns from the first
+gene turn_3    = (204.1, 343.5, -101.1) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8)   // and the third from the second
+
+gene knot_size    = 1.588 in 1.5..4         // how big the knots where the trees fork are
+gene branch_scale = 1.068 in 0.8..3         // how big the smaller branches are, times three
+gene fork         = 53.76 in -114.6..114.6  // how far the smaller branches tip out
+
+gene dendrite_length = 10.6    in 0..14                                                          // how many segments each dendrite has; the last is cut short to fit
+gene stride          = 1.088   in 0.9..1.2
+gene wiggle          = (21.93, 8.185, 3.105) in (-22.92, -22.92, -22.92)..(22.92, 22.92, 22.92)  // how far a dendrite wiggles: up, sideways and round
+gene wiggle_waves    = (1.181, 1.006, 1.707) in (1, 1, 1)..(3, 3, 3)
+gene swell           = 0.02547 in -0.16..0.16                                                    // how much its segments grow and shrink
+gene swell_waves     = 1       in 0.1..4
+
+gene field_size       = 0.4969  in 0.2..2
+gene field_shift      = (-0.1875, 0.1901, 0.3583) in (-0.5, -0.5, -0.5)..(0.5, 0.5, 0.5)
+gene loop_tilt        = 18.45   in -171.9..171.9  // how far the field lines swing out
+gene loop_waves       = 1       in 1..15
+gene loop_start       = 0.02981 in 0..1
+gene loop_swing       = -60.11  in -171.9..171.9  // how far they swing round
+gene loop_swing_waves = 1.825   in 1..15
+gene loop_swing_start = 0.4572  in 0..1
+
+// The cell's colours, from its middle out, and the gaps between them; and the field lines', all
+// one hue, from dark to light.
+gene nerve_1     = hsv(237.6, 1, 1) in hsv(0, 1, 1)..hsv(360, 1, 1)
+gene nerve_2     = hsv(24.1, 0.82, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)
+gene nerve_3     = hsv(19.7, 0.81, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)
+gene nerve_gap_1 = 0.5903 in 0.333..1.5
+gene nerve_gap_2 = 0.3354 in 0.333..1.5
+gene field_hue   = 257.7  in 0..360
+gene field_shade = (0.1397, 0.01734, 0.08495) in (0, 0, 0)..(1, 1, 1)  // how bright the field lines are at their ends, and further in
+gene field_light = 0.6858 in 0..1                                      // how bright they are in the middle
+gene field_gaps  = (0.3759, 0.5049, 0.3476) in (0.25, 0.25, 0.25)..(1, 1, 1)
+
+let nerve = spectrum(nerve_1, nerve_2 at nerve_gap_1, nerve_3 at nerve_gap_1 + nerve_gap_2)
+let field_colours = spectrum(hsv(field_hue, 1, field_shade.x), hsv(field_hue, 1, field_shade.y) at field_gaps.x, hsv(field_hue, 1, field_shade.z) at field_gaps.x + field_gaps.y, hsv(field_hue, 1, field_light) at field_gaps.x + field_gaps.y + field_gaps.z)
+
+cell
+grow field_size * 40
+move field_shift
+symmetric y {
+  field
+}
+
+part cell {
+  branch {
+    roll turn.z
+    yaw turn.y
+    pitch turn.x
+    shine 1
+    sharpness 1
+    blob(body_size)
+    shape tube
+    limb(2, body_size / 2)
+    yaw turn_2.y
+    pitch turn_2.x
+    roll turn_2.z
+    limb(2, body_size / 2)
+    yaw turn_3.y
+    pitch turn_3.x
+    roll turn_3.z
+    limb(2, body_size / 2)
+  }
+}
+
+// A dendrite with a knot at its end, forking into three smaller limbs until `depth` runs out.
+part limb(depth, reach) {
+  branch {
+    forward reach
+    dendrite
+    forward knot_size / 2
+    blob(knot_size)
+    if depth > 1 {
+      let scale = branch_scale / 3
+      grow scale
+      repeat 3 as k {
+        branch {
+          roll 120 * k
+          pitch fork
+          limb(depth - 1, knot_size / (2 * scale))
+        }
+      }
+    }
+  }
+}
+
+part blob(size) {
+  colour nerve(0)
+  branch {
+    shape ball
+    lay { grow size }
+  }
+}
+
+part dendrite {
+  let rest = dendrite_length % 1
+  colour nerve(0)
+  forward stride / 2
+  repeat ceil(dendrite_length) as k {
+    lay
+    if k < dendrite_length - 1 {
+      let along = k / (dendrite_length - 1)
+      forward stride / 2
+      yaw wiggle.y * sin(180 * wiggle_waves.y * along)
+      pitch wiggle.x * sin(180 * wiggle_waves.x * along)
+      roll wiggle.z * sin(180 * wiggle_waves.z * along)
+      grow 1 + swell * sin(180 * swell_waves * along)
+      forward stride / 2
+      colour nerve(1 - abs(1 - 2 * ((k + 1) / dendrite_length)))
+    }
+  }
+  // The last segment is cut short by what's left of the length.
+  if rest > 0 {
+    forward stride / 2
+    yaw wiggle.y * sin(180 * wiggle_waves.y)
+    pitch wiggle.x * sin(180 * wiggle_waves.x)
+    roll wiggle.z * sin(180 * wiggle_waves.z)
+    grow 1 + swell * sin(180 * swell_waves)
+    grow (1, 1, rest)
+    forward stride / 2
+    colour nerve(0)
+    lay
+    forward stride / 2
+    grow (1, 1, 1 / rest)
+  } else {
+    forward stride / 2
+  }
+}
+
+// A loop of field lines round the cell.
+part field {
+  branch {
+    sharpness 0
+    shine 0
+    let first = (0, 1, 0)
+    let previous = first
+    repeat 20 as k {
+      let along = k / 19
+      let tilt = loop_tilt * sin(180 * loop_waves * (along - loop_start))
+      let swing = loop_swing * sin(180 * loop_swing_waves * (along - loop_swing_start))
+      let next = (sin(tilt) * cos(swing), cos(tilt), sin(tilt) * sin(swing))
+      colour field_colours(1 - abs(1 - 2 * along))
+      line(previous, next)
+      previous = next
+    }
+    line(previous, first)
+  }
+}
+
+// A thin line from `a` to `b`.
+part line(a, b) {
+  let d = b - a
+  branch {
+    move a
+    yaw atan2(d.x, d.z)
+    pitch -atan2(d.y, length((d.x, 0, d.z)))
+    forward length(d) / 2
+    grow (0.01, 0.01, length(d))
+    lay
+  }
+}
+
+variant member_2 {
+  turn             = (-51.18, -86.69, -149.4)
+  body_size        = 2.137
+  turn_2           = (-174.9, 12.2, -286.5)
+  turn_3           = (246.8, 279.5, 2.977)
+  knot_size        = 2.392
+  branch_scale     = 1.394
+  fork             = 46.61
+  dendrite_length  = 8.43
+  wiggle           = (11.71, 8.185, 1.543)
+  wiggle_waves     = (1.412, 1.447, 1.684)
+  swell            = 0.09295
+  field_size       = 0.6445
+  loop_tilt        = -15.44
+  loop_waves       = 4.271
+  loop_start       = 0.1532
+  loop_swing_waves = 2.986
+  loop_swing_start = 0.2278
+  nerve_1          = hsv(349.5, 1, 1)
+  nerve_2          = hsv(57.6, 0.93, 1)
+  nerve_3          = hsv(83.3, 0.83, 1)
+  nerve_gap_1      = 0.4576
+  field_hue        = 152.1
+  field_shade      = (0.3415, 0.2144, 0.2895)
+  field_light      = 0.6864
+  field_gaps       = (0.3711, 0.3627, 0.5147)
+}
+
+variant member_3 {
+  turn             = (51.84, -73.55, -50.6)
+  turn_2           = (-46.21, 173.8, -262.4)
+  turn_3           = (307, 339.2, -129.5)
+  knot_size        = 2.006
+  fork             = 35.93
+  dendrite_length  = 11.14
+  stride           = 1.023
+  wiggle           = (2.716, 9.488, 0)
+  wiggle_waves     = (1.216, 1.28, 1.779)
+  swell            = 0.08387
+  swell_waves      = 1.861
+  field_size       = 0.7901
+  field_shift      = (-0.2869, 0.0781, 0.1464)
+  loop_tilt        = 68.12
+  loop_waves       = 6.81
+  loop_start       = 0.03052
+  loop_swing       = -136.1
+  loop_swing_waves = 4.536
+  loop_swing_start = 0.5624
+  nerve_1          = hsv(278, 1, 1)
+  nerve_2          = hsv(70.7, 0.89, 1)
+  nerve_3          = hsv(23, 0.78, 1)
+  nerve_gap_1      = 0.3803
+  nerve_gap_2      = 0.568
+  field_hue        = 214.4
+  field_shade      = (0.5036, 0.4845, 0.1552)
+  field_gaps       = (0.3759, 0.2982, 0.5226)
+}
+
+variant member_4 {
+  turn             = (196.8, -32.35, -50.6)
+  body_size        = 3.71
+  turn_2           = (-46.21, 325.1, -322.1)
+  turn_3           = (147.9, 216.3, -12.61)
+  knot_size        = 1.527
+  branch_scale     = 1.151
+  dendrite_length  = 7.3
+  stride           = 1.162
+  wiggle           = (1.376, 22.05, 10.54)
+  wiggle_waves     = (1.441, 1.456, 1.199)
+  swell            = 0.02622
+  swell_waves      = 1.254
+  field_size       = 0.7734
+  field_shift      = (-0.1555, 0.2671, 0.2311)
+  loop_tilt        = 46.58
+  loop_waves       = 1.728
+  loop_start       = 0.2585
+  loop_swing       = -120.2
+  loop_swing_waves = 4.536
+  loop_swing_start = 0.3179
+  nerve_1          = hsv(357.6, 1, 1)
+  nerve_2          = hsv(11.4, 0.86, 1)
+  nerve_3          = hsv(157.9, 0.65, 1)
+  nerve_gap_1      = 0.6058
+  nerve_gap_2      = 0.6456
+  field_hue        = 180.8
+  field_shade      = (0.5036, 0.356, 0.6446)
+  field_gaps       = (0.3759, 0.2982, 0.4127)
+}
+
+variant member_5 {
+  turn             = (106.4, -94.63, -50.6)
+  body_size        = 3.284
+  turn_2           = (-138.7, 325.1, -322.1)
+  turn_3           = (147.9, 248.3, -12.61)
+  knot_size        = 1.523
+  branch_scale     = 1.918
+  dendrite_length  = 13.3
+  stride           = 1.091
+  wiggle           = (1.376, 7.137, 11.43)
+  wiggle_waves     = (1.441, 1.445, 1.147)
+  swell            = 0.02622
+  swell_waves      = 0.1557
+  field_size       = 1.001
+  field_shift      = (-0.1555, 0.2671, 0.2311)
+  loop_tilt        = 54.24
+  loop_waves       = 3.359
+  loop_start       = 0.07784
+  loop_swing_waves = 6.901
+  loop_swing_start = 0.3742
+  nerve_1          = hsv(274.6, 1, 1)
+  nerve_2          = hsv(71.9, 0.9, 1)
+  nerve_3          = hsv(103.1, 0.79, 1)
+  nerve_gap_1      = 0.519
+  nerve_gap_2      = 0.6091
+  field_hue        = 169.7
+  field_shade      = (0.5036, 0.356, 0.6048)
+  field_light      = 0.6763
+  field_gaps       = (0.3759, 0.3722, 0.5226)
+}
+
+variant member_6 {
+  turn             = (216.1, -32.35, -50.6)
+  body_size        = 6.907
+  turn_2           = (124.8, -259.6, -309.7)
+  turn_3           = (147.9, 216.3, -272.1)
+  knot_size        = 3.119
+  branch_scale     = 1.414
+  fork             = -111.8
+  dendrite_length  = 7.301
+  stride           = 1.021
+  wiggle           = (-1.562, 22.2, 10.54)
+  wiggle_waves     = (1.441, 2.46, 2.251)
+  swell            = 0.02622
+  swell_waves      = 1.254
+  field_size       = 0.7734
+  field_shift      = (-0.1555, 0.2671, 0.2311)
+  loop_tilt        = 46.58
+  loop_waves       = 1.728
+  loop_start       = 0.8046
+  loop_swing       = -101.3
+  loop_swing_waves = 2.976
+  loop_swing_start = 0.099
+  nerve_1          = hsv(239.9, 1, 1)
+  nerve_2          = hsv(11.4, 0.86, 1)
+  nerve_3          = hsv(131.5, 0.73, 1)
+  nerve_gap_1      = 1.402
+  nerve_gap_2      = 0.6456
+  field_hue        = 180.8
+  field_shade      = (0.5036, 0.2928, 0.6446)
+  field_gaps       = (0.6467, 0.8208, 0.3841)
+}
+
+variant member_7 {
+  turn             = (201.5, -32.35, -50.6)
+  body_size        = 6.315
+  turn_2           = (251.7, 325.1, 214.1)
+  turn_3           = (147.9, 216.3, -12.61)
+  knot_size        = 1.527
+  branch_scale     = 1.151
+  fork             = -4.52
+  dendrite_length  = 7.971
+  stride           = 0.9788
+  wiggle           = (4.991, 22.05, 10.54)
+  wiggle_waves     = (2.953, 1.456, 1.199)
+  swell            = 0.1571
+  swell_waves      = 0.2512
+  field_size       = 0.7734
+  field_shift      = (-0.03251, -0.3279, 0.4989)
+  loop_tilt        = -63.08
+  loop_waves       = 1.728
+  loop_start       = 0.2585
+  loop_swing       = -78.71
+  loop_swing_waves = 4.536
+  loop_swing_start = 0.4414
+  nerve_1          = hsv(55.6, 1, 1)
+  nerve_2          = hsv(11.4, 0.86, 1)
+  nerve_3          = hsv(117.8, 0.53, 1)
+  nerve_gap_1      = 0.3878
+  nerve_gap_2      = 1.103
+  field_hue        = 319.1
+  field_shade      = (0.5036, 0.6212, 0.6446)
+  field_gaps       = (0.3759, 0.2982, 0.4127)
+}
+
+variant member_8 {
+  turn             = (-98.98, -56.87, -220)
+  body_size        = 6.07
+  turn_2           = (232.8, -125.6, -290.1)
+  turn_3           = (11.33, -213, -302.4)
+  knot_size        = 2.44
+  branch_scale     = 2.85
+  fork             = -109.6
+  dendrite_length  = 12.82
+  stride           = 1.051
+  wiggle           = (3.191, 1.09, -19.43)
+  wiggle_waves     = (1.441, 1.456, 2.444)
+  swell            = -0.1167
+  swell_waves      = 0.9935
+  field_size       = 0.223
+  field_shift      = (0.147, 0.04243, -0.3845)
+  loop_tilt        = -133.6
+  loop_waves       = 3.564
+  loop_start       = 0.5634
+  loop_swing       = 77.24
+  loop_swing_waves = 10.44
+  loop_swing_start = 0.942
+  nerve_1          = hsv(6.7, 1, 1)
+  nerve_2          = hsv(88.4, 0.85, 1)
+  nerve_3          = hsv(9.6, 0.95, 1)
+  nerve_gap_1      = 0.4082
+  nerve_gap_2      = 0.6456
+  field_hue        = 251.9
+  field_shade      = (0.7717, 0.02088, 0.3593)
+  field_gaps       = (0.6798, 0.7812, 0.6659)
+}
+
+variant member_9 {
+  turn             = (-98.98, 183.8, 47.55)
+  body_size        = 3.71
+  turn_2           = (105.8, 325.1, -322.1)
+  turn_3           = (-146.9, -213, -302.4)
+  knot_size        = 2.44
+  branch_scale     = 1.01
+  fork             = -109.6
+  dendrite_length  = 13.44
+  stride           = 1.042
+  wiggle           = (9.182, -21.01, -21.96)
+  wiggle_waves     = (1.401, 1.456, 1.199)
+  swell            = -0.1385
+  swell_waves      = 1.254
+  field_size       = 1.213
+  field_shift      = (0.1101, -0.2813, -0.2258)
+  loop_tilt        = 22.62
+  loop_waves       = 2.246
+  loop_start       = 0.3767
+  loop_swing       = 77.24
+  loop_swing_waves = 10.44
+  loop_swing_start = 0.4471
+  nerve_1          = hsv(335.7, 1, 1)
+  nerve_2          = hsv(237.9, 0.58, 1)
+  nerve_3          = hsv(14.4, 0.51, 1)
+  nerve_gap_1      = 1.017
+  nerve_gap_2      = 0.6456
+  field_hue        = 180.8
+  field_shade      = (0.2496, 0.3655, 0.8954)
+  field_light      = 0.4421
+  field_gaps       = (0.5682, 0.2982, 0.7081)
+}
+
+variant member_10 {
+  turn             = (29.7, -14.77, -6.675)
+  body_size        = 6.635
+  turn_2           = (-280.6, 177.2, 334.5)
+  turn_3           = (-291, -152.1, -334.3)
+  knot_size        = 2.919
+  branch_scale     = 1.445
+  fork             = -26.4
+  dendrite_length  = 13.33
+  stride           = 0.9668
+  wiggle           = (4.228, -12.49, -8.184)
+  wiggle_waves     = (2.273, 2.397, 2.533)
+  swell            = 0
+  swell_waves      = 2.595
+  field_size       = 0.5839
+  field_shift      = (-0.3933, -0.2833, -0.05196)
+  loop_tilt        = 57.3
+  loop_waves       = 3.427
+  loop_start       = 0.5319
+  loop_swing       = -37.28
+  loop_swing_waves = 10.62
+  loop_swing_start = 0.159
+  nerve_1          = hsv(74.3, 1, 1)
+  nerve_2          = hsv(6, 0.88, 1)
+  nerve_3          = hsv(104.1, 0.67, 1)
+  nerve_gap_1      = 0.5186
+  nerve_gap_2      = 1.333
+  field_hue        = 245
+  field_shade      = (0.8467, 0.1004, 0.665)
+  field_light      = 0.1952
+  field_gaps       = (0.2954, 0.6823, 0.9526)
+}
+
+variant member_11 {
+  turn             = (83.24, -27.8, 35.07)
+  body_size        = 5.888
+  turn_2           = (184, 120, 270.7)
+  turn_3           = (-178.6, -72.14, -44.83)
+  knot_size        = 3.124
+  branch_scale     = 2.519
+  fork             = -56.73
+  dendrite_length  = 4.6
+  stride           = 1.026
+  wiggle           = (21.89, 14.16, -13.75)
+  wiggle_waves     = (1.929, 1.359, 2.447)
+  swell            = -0.01162
+  swell_waves      = 2.814
+  field_size       = 0.2626
+  field_shift      = (-0.123, 0.1142, -0.2325)
+  loop_tilt        = 144.3
+  loop_waves       = 4.888
+  loop_start       = 0.4874
+  loop_swing       = 4.012
+  loop_swing_waves = 4.017
+  loop_swing_start = 0.1638
+  nerve_1          = hsv(4.7, 1, 1)
+  nerve_2          = hsv(255, 0.7, 1)
+  nerve_3          = hsv(200.3, 0.56, 1)
+  nerve_gap_1      = 1.037
+  nerve_gap_2      = 1.3
+  field_hue        = 191.8
+  field_shade      = (0.2089, 0.9443, 0.9438)
+  field_light      = 0.2565
+  field_gaps       = (0.7123, 0.9355, 0.4641)
+}
+
+variant member_12 {
+  turn             = (-140.2, -55.59, -12.98)
+  body_size        = 3.507
+  turn_2           = (71.37, -147.1, -184.7)
+  turn_3           = (-35.77, -46.33, -226.9)
+  knot_size        = 3.115
+  branch_scale     = 0.8467
+  fork             = -81.41
+  dendrite_length  = 12.94
+  stride           = 0.9091
+  wiggle           = (-10.48, 8.208, 5.346)
+  wiggle_waves     = (2.027, 1.052, 2.677)
+  swell            = -0.1229
+  swell_waves      = 1.597
+  field_size       = 0.2429
+  field_shift      = (0.2021, -0.09562, 0.2247)
+  loop_tilt        = 170.2
+  loop_waves       = 1.782
+  loop_start       = 0.02744
+  loop_swing       = 5.903
+  loop_swing_waves = 13.72
+  loop_swing_start = 0.6696
+  nerve_1          = hsv(150.4, 1, 1)
+  nerve_2          = hsv(208.5, 0.52, 1)
+  nerve_3          = hsv(117.7, 0.9, 1)
+  nerve_gap_1      = 0.4766
+  nerve_gap_2      = 0.7389
+  field_hue        = 263.1
+  field_shade      = (0.6487, 0.08516, 0.783)
+  field_light      = 0.2807
+  field_gaps       = (0.8618, 0.6816, 0.7775)
+}
+
+variant member_13 {
+  turn             = (0, 24.76, 0)
+  body_size        = 3.827
+  turn_2           = (154.2, -253.5, -325.3)
+  turn_3           = (224.7, 278.9, 140)
+  knot_size        = 3.092
+  branch_scale     = 1.027
+  fork             = 22.92
+  dendrite_length  = 4.977
+  stride           = 0.9809
+  wiggle           = (-3.427, -6.821, 10.83)
+  wiggle_waves     = (2.016, 2.148, 2.728)
+  swell            = 0.1137
+  swell_waves      = 0.3733
+  field_size       = 0.6286
+  field_shift      = (-0.3694, -0.4737, -0.4893)
+  loop_tilt        = 57.3
+  loop_waves       = 1.866
+  loop_start       = 0
+  loop_swing       = 67.65
+  loop_swing_waves = 1.826
+  loop_swing_start = 0.2232
+  nerve_1          = hsv(329.8, 1, 1)
+  nerve_2          = hsv(157.8, 0.87, 1)
+  nerve_3          = hsv(176.4, 1, 1)
+  nerve_gap_1      = 1.384
+  nerve_gap_2      = 0.7779
+  field_hue        = 131
+  field_shade      = (0.5, 0.9369, 0.5)
+  field_light      = 0.3176
+  field_gaps       = (0.2807, 0.7333, 0.6197)
+}
+
+variant member_14 {
+  turn             = (-220.1, -32.35, -50.6)
+  body_size        = 6.907
+  turn_2           = (177.6, -259.6, -309.7)
+  turn_3           = (147.9, -229.5, -104.7)
+  knot_size        = 3.119
+  branch_scale     = 1.414
+  fork             = -111.8
+  dendrite_length  = 8.44
+  stride           = 1.188
+  wiggle           = (-1.562, 22.2, 10.54)
+  wiggle_waves     = (1.441, 2.46, 2.251)
+  swell            = 0.02622
+  swell_waves      = 0.6625
+  field_size       = 1.298
+  field_shift      = (0.4463, -0.08449, 0.2299)
+  loop_tilt        = 46.58
+  loop_waves       = 2.497
+  loop_start       = 0.8046
+  loop_swing       = -101.3
+  loop_swing_waves = 2.976
+  loop_swing_start = 0.2529
+  nerve_1          = hsv(239.9, 1, 1)
+  nerve_2          = hsv(11.4, 0.86, 1)
+  nerve_3          = hsv(131.5, 0.73, 1)
+  nerve_gap_1      = 0.8377
+  nerve_gap_2      = 1.265
+  field_hue        = 88.45
+  field_shade      = (0.5036, 0.2928, 0.314)
+  field_light      = 0.5871
+  field_gaps       = (0.6467, 0.2769, 0.4131)
+}
+
+variant member_15 {
+  turn             = (29.7, -141.1, -215.1)
+  body_size        = 2.024
+  turn_2           = (36.31, 200.1, 203.8)
+  turn_3           = (-291, -316.2, 243.5)
+  knot_size        = 2.919
+  branch_scale     = 1.445
+  fork             = -71.51
+  dendrite_length  = 9.829
+  stride           = 0.997
+  wiggle           = (-4.122, -13.92, -8.184)
+  wiggle_waves     = (2.273, 2.397, 2.533)
+  swell            = -0.06923
+  swell_waves      = 2.595
+  field_size       = 0.4948
+  field_shift      = (-0.3933, -0.2833, -0.05196)
+  loop_tilt        = 57.3
+  loop_waves       = 3.427
+  loop_start       = 0.04552
+  loop_swing       = -5.642
+  loop_swing_waves = 12.2
+  loop_swing_start = 0.159
+  nerve_1          = hsv(98.9, 1, 1)
+  nerve_2          = hsv(53.3, 0.96, 1)
+  nerve_3          = hsv(104.1, 0.67, 1)
+  nerve_gap_1      = 1.116
+  nerve_gap_2      = 1.354
+  field_hue        = 245
+  field_shade      = (0.5112, 0.8506, 0.1525)
+  field_light      = 0.1952
+  field_gaps       = (0.2954, 0.8167, 0.8047)
+}
+
+variant member_16 {
+  turn             = (190.6, -27.8, 87.79)
+  body_size        = 4.577
+  turn_2           = (1.165, -225.4, 270.7)
+  turn_3           = (45.97, 47.77, -11.48)
+  knot_size        = 3.874
+  branch_scale     = 2.519
+  fork             = -56.73
+  dendrite_length  = 4.6
+  stride           = 1.026
+  wiggle           = (-13.5, 14.16, -11.49)
+  wiggle_waves     = (1.929, 1.359, 2.447)
+  swell            = 0.06209
+  swell_waves      = 2.814
+  field_size       = 0.4351
+  field_shift      = (-0.08917, -0.2688, -0.152)
+  loop_tilt        = 144.3
+  loop_waves       = 4.888
+  loop_start       = 0.865
+  loop_swing       = 4.012
+  loop_swing_waves = 7.676
+  loop_swing_start = 0.1507
+  nerve_1          = hsv(4.7, 1, 1)
+  nerve_2          = hsv(103.9, 0.99, 1)
+  nerve_3          = hsv(270.1, 0.77, 1)
+  nerve_gap_1      = 1.24
+  nerve_gap_2      = 1.3
+  field_hue        = 334.4
+  field_shade      = (0.8164, 0.1827, 0.9438)
+  field_light      = 0.2565
+  field_gaps       = (0.7123, 0.9355, 0.5797)
+}
