@@ -132,11 +132,16 @@ function setMode(next: Mode): void {
   enableTools();
 }
 
-/** Morphs through the creatures chosen in the grid, or the whole grid, or variations of the current one. */
+/**
+ * Morphs through the creatures chosen in the grid, or the whole grid, or variations of the current
+ * one. The grid only counts while it holds the current creature: one opened since breeding starts
+ * afresh.
+ */
 function startMorph(): void {
   if (!current) return;
-  let members = breeder.selection;
-  if (members.length < 2 && breeder.holds(current)) members = [...breeder.creatures];
+  const ours = breeder.holds(current);
+  let members = ours ? breeder.selection : [];
+  if (members.length < 2 && ours) members = [...breeder.creatures];
   if (members.length < 2) {
     breeder.start(current, 0.5);
     members = breeder.creatures.slice(0, 6);
