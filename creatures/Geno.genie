@@ -1,0 +1,186 @@
+creature Geno
+// The GenoCode logo come to life: the G's chain of balls, each a little smaller than the last and a
+// little further round the colour wheel. Its form genes bend the chain into other shapes: a sea
+// turtle, whose shell the chain spirals over as head, flippers and tail grow out, and a double
+// helix with rungs in four colours. Morph it through its variants, or breed it for hybrids.
+
+gene logo       = 1 in 0..1  // how much the chain keeps the shape of the G
+gene sea_turtle = 0 in 0..1  // how much it curls into a turtle
+gene helix      = 0 in 0..1  // how much it twists into a double helix
+
+gene beads   = 18   in 8..40 step 1                               // how many balls are in the chain
+gene big     = 1.35 in 0.5..2.5                                   // the first ball's radius
+gene shrink  = 0.41 in 0.2..1                                     // the last ball's radius compared with the first's
+gene start   = hsv(195, 0.75, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)  // the first ball's colour
+gene turn    = 140  in -360..360                                  // how far round the colour wheel the chain goes
+gene gloss   = 0.6  in 0..1
+gene focus   = 0.5  in 0..1
+gene breathe = 0.06 in 0..0.3                                     // how much the balls swell and shrink as time goes by
+gene pulse   = 0.3  in 0..1                                       // how much they swell with the bass
+
+gene shell  = hsv(272, 0.5, 0.34) in hsv(0, 0, 0)..hsv(360, 1, 1)
+gene skin   = hsv(168, 0.45, 0.8) in hsv(0, 0, 0)..hsv(360, 1, 1)
+gene paddle = 25  in 0..60  // how far the flippers sweep
+gene pace   = 0.4 in 0..2   // flipper strokes a second
+
+gene twists = 1.25 in 0.5..4     // how many times the helix turns along its span
+gene spin   = 40   in -180..180  // how fast the helix turns, in degrees a second
+gene base_a = hsv(195, 0.75, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)
+gene base_t = hsv(335, 0.75, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)
+gene base_g = hsv(265, 0.75, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)
+gene base_c = hsv(45, 0.75, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)
+
+// How much of each form the creature is, out of 1.
+let total = max(logo + sea_turtle + helix, 0.001)
+let wl = logo / total
+let wt = sea_turtle / total
+let wh = helix / total
+
+shine gloss
+sharpness focus
+if wt > 0 {
+  branch {
+    turtle_body(wt)
+  }
+}
+chain
+
+// The balls, each where the forms put it, mixed by how much of each form the creature is.
+part chain {
+  let n = round(beads)
+  let scale = 18 / n
+  repeat n as k {
+    let u = k / max(n - 1, 1)
+    let p = wl * on_g(u) + wt * on_shell(u) + wh * on_helix(u)
+    let swell = 1 + breathe * (wave(time / 3 - u) - wave(-u)) + pulse * music.bass
+    let r = scale * big * swell * (wl * shrink ^ u + wt * 0.55 * shrink ^ (0.3 * u) + wh * 0.6)
+    colour hsv(start.hue + turn * u, start.sat, start.val)
+    branch {
+      move p
+      lay { grow 2 * r }
+    }
+    if wh > 0 {
+      branch {
+        move (p.x, -p.y, -p.z)
+        lay { grow 2 * r * wh }
+      }
+      branch {
+        rung(k, p, 0.5 * r * wh)
+      }
+    }
+  }
+}
+
+// The G: 315° round a circle from its top right, then the bar in towards the middle. The balls
+// are spaced by their size, as in the logo.
+function on_g(u) {
+  let radius = 3.9
+  let arc = radius * radians(315)
+  let span = arc + 2.7
+  let s = span * u
+  if shrink < 0.99 {
+    s = span * (1 - shrink ^ u) / (1 - shrink)
+  }
+  if s <= arc {
+    let a = 45 + 315 * s / arc
+    return (radius * cos(a), radius * sin(a), 0)
+  }
+  return (radius - (s - arc), 0, 0)
+}
+
+// A spiral over the turtle's shell, winding out from the crown the way the G winds.
+function on_shell(u) {
+  let lat = 6 + 74 * u
+  let lon = 45 + 420 * u
+  return (3.75 * sin(lat) * cos(lon), 4.5 * sin(lat) * sin(lon), 1.9 * cos(lat))
+}
+
+// One strand of the helix, lying along x. The other strand is this one turned half way round.
+function on_helix(u) {
+  let a = 360 * twists * u + spin * time
+  return ((u - 0.5) * 12, 2.3 * cos(a), 2.3 * sin(a))
+}
+
+// A rung joining a ball to its partner on the other strand: a pair of bases, A with T or G with C.
+part rung(k, p, thick) {
+  let reach = sqrt(p.y ^ 2 + p.z ^ 2)
+  let near = base_a
+  let far = base_t
+  if noise(k * 1.7 + 0.3) > 0 {
+    near = base_g
+    far = base_c
+  }
+  if noise(k * 2.3 + 5.1) > 0 {
+    let swap = near
+    near = far
+    far = swap
+  }
+  shape tube
+  move (p.x, 0, 0)
+  pitch atan2(p.z, p.y) - 90
+  branch {
+    colour near
+    forward reach / 2
+    lay { grow (thick, thick, reach) }
+  }
+  colour far
+  back reach / 2
+  lay { grow (thick, thick, reach) }
+}
+
+// The shell, head, flippers and tail, which grow out of the middle as `w` rises.
+part turtle_body(w) {
+  grow w
+  colour shell
+  branch {
+    move (0, 0, -0.1)
+    lay { grow (7.5, 9, 3.8) }
+  }
+
+  colour skin
+  branch {
+    move (0.3 * wave(time * pace / 2), 5.3, 0)
+    lay { grow (1.9, 2.4, 1.5) }
+    symmetric x {
+      colour black
+      move (0.5, 0.5, 0.55)
+      lay { grow 0.4 }
+    }
+  }
+
+  symmetric x {
+    branch {
+      move (2.9, 2.6, -0.2)
+      yaw 90
+      pitch -40 - paddle * wave(time * pace)
+      forward 1.6
+      lay { grow (0.35, 1.1, 3.8) }
+    }
+    branch {
+      move (2.4, -3.3, -0.2)
+      yaw 90
+      pitch 35 + 0.5 * paddle * wave(time * pace + 0.25)
+      forward 1
+      lay { grow (0.3, 0.9, 2.3) }
+    }
+  }
+
+  branch {
+    move (0, -4.5, -0.2)
+    pitch 90
+    forward 0.5
+    shape cone
+    lay { grow (0.7, 0.4, 1.4) }
+  }
+}
+
+background {
+  gene top    = hsv(250, 0.55, 0.18) in hsv(0, 0, 0)..hsv(360, 1, 1)
+  gene bottom = hsv(290, 0.45, 0.36) in hsv(0, 0, 0)..hsv(360, 1, 1)
+
+  fill gradient(bottom, top)
+}
+
+variant Turtle { logo = 0; sea_turtle = 1; start = hsv(170, 0.7, 0.95); turn = 120 }
+
+variant Helix { logo = 0; helix = 1; big = 0.9 }
