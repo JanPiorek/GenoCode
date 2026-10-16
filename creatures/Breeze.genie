@@ -1,0 +1,386 @@
+creature Breeze
+// Four sprays of rings blowing out round a pale ball, their colours shading with height and
+// depth.
+// Inspired by Breeze, a DancerDNA creature.
+
+gene reach       = (1.652, 3, 4.867) in (0, 1, 2)..(5, 5, 6)                                  // how far the rings wander: across, up and forward
+gene reach_waves = (0.3183, 0.4983, 0.3183) in (0, 0, 0)..(0.7958, 0.7958, 0.7958)            // how many waves they wander in, from the first ring to the last
+gene reach_start = (0.23, 0.03289, 0.05205) in (0, 0, 0)..(1, 1, 1)
+gene size        = (1.359, 1, 0.7441) in (0, 0, 0)..(2, 2, 2)                                 // how big the rings grow
+gene size_waves  = (0.2247, 0.2069, 0.2629) in (0.1592, 0.1592, 0.1592)..(0.3183, 0.3183, 0.3183)
+gene size_start  = (0.5685, 0.5697, 0.4083) in (0.2, 0.2, 0.2)..(0.8, 0.8, 0.8)
+gene turn        = (-36.23, 54.05, -15.7) in (-171.9, -171.9, -171.9)..(171.9, 171.9, 171.9)  // how far the rings turn: up, sideways and round
+gene turn_waves  = (0.199, 0.1399, -0.6864) in (-0.7958, -0.7958, -0.7958)..(0.7958, 0.7958, 0.7958)
+gene turn_start  = (0.7319, 0.4213, 0.4487) in (0, 0, 0)..(1, 1, 1)
+
+gene gloss      = 0.826  in 0..1    // how strong the highlights are
+gene focus      = 0.907  in 0..1    // how tight the highlights are
+gene hue        = 189.1  in 0..252  // the rings' hue at mid-height
+gene hue_spread = 65.48  in 0..108  // how much the hue changes towards the top and bottom
+gene saturation = 0.7    in 0.5..1
+gene fade       = 0.5129 in 0.5..1  // how much darker the rings are at the front and back
+
+pitch 90
+shape ball
+lay
+// Turned round front to back, as the original was.
+grow (1, 1, -1)
+repeat 4 {
+  spray
+  yaw -90
+}
+
+part spray {
+  branch {
+    shine gloss
+    sharpness focus
+    shape ring
+    repeat 10 as k {
+      branch {
+        let along = k / 9
+        let place = (reach.x * wave(reach_waves.x * (along - reach_start.x)), reach.y * wave(reach_waves.y * (along - reach_start.y)), reach.z * wave(reach_waves.z * (along - reach_start.z)))
+        move place
+        grow (0.1 + size.x * (1 + wave(size_waves.x * (along - size_start.x))), 0.1 + size.y * (1 + wave(size_waves.y * (along - size_start.y))), 0.1 + size.z * (1 + wave(size_waves.z * (along - size_start.z))))
+        pitch turn.x * wave(turn_waves.x * (along - turn_start.x))
+        yaw turn.y * wave(turn_waves.y * (along - turn_start.y))
+        roll turn.z * wave(turn_waves.z * (along - turn_start.z))
+        colour hsv(hue + hue_spread * abs(place.y / reach.y), saturation, 1 - fade * abs(place.z / reach.z))
+        lay
+      }
+    }
+  }
+}
+
+variant member_2 {
+  reach       = (0.007514, 3.047, 4.232)
+  reach_waves = (0.603, 0.4983, 0.3183)
+  reach_start = (0.23, 0.9328, 0.179)
+  size        = (1, 0.2605, 1)
+  size_waves  = (0.2501, 0.2839, 0.2629)
+  size_start  = (0.439, 0.7777, 0.2607)
+  turn        = (-34.39, -61.19, -110.7)
+  turn_waves  = (0.199, -0.7085, 0.1091)
+  turn_start  = (0.8117, 0.5705, 0.07485)
+  gloss       = 0.1
+  hue         = 59.52
+  hue_spread  = 39.6
+  saturation  = 0.9553
+  fade        = 0.9473
+}
+
+variant member_3 {
+  reach       = (0.9058, 2.711, 6)
+  reach_waves = (0.6048, 0.2955, 0.319)
+  reach_start = (0.2486, 0.2, 0.8)
+  size        = (1, 1, 0.09204)
+  size_waves  = (0.2111, 0.2069, 0.1874)
+  size_start  = (0.6, 0.4467, 0.5576)
+  turn        = (85.33, 58.78, -9.777)
+  turn_waves  = (0.199, -0.06849, 0.3927)
+  turn_start  = (0.8117, 0.5705, 0.7997)
+  hue         = 94.04
+  hue_spread  = 88.83
+  saturation  = 0.7812
+  fade        = 0.6713
+}
+
+variant member_4 {
+  reach       = (4.75, 3, 4.578)
+  reach_waves = (0.3019, 0.582, 0.179)
+  reach_start = (0.9254, 0.5961, 0.8)
+  size        = (0.5104, 1.512, 1.45)
+  size_waves  = (0.2486, 0.2069, 0.2247)
+  size_start  = (0.6, 0.7777, 0.2999)
+  turn        = (7.422, 116, 149.2)
+  turn_waves  = (-0.1763, 0.4423, -0.5392)
+  turn_start  = (0.8117, 0.992, 0.6479)
+  gloss       = 0.2119
+  focus       = 0.7201
+  hue_spread  = 20.27
+  saturation  = 0.6745
+  fade        = 0.5644
+}
+
+variant member_5 {
+  reach       = (2.312, 2.435, 6)
+  reach_waves = (0.3183, 0.3285, 0.4489)
+  reach_start = (0.9592, 0.8749, 0.8)
+  size        = (1, 1, 1)
+  size_waves  = (0.2111, 0.2069, 0.3158)
+  size_start  = (0.7399, 0.4988, 0.6)
+  turn        = (-153.8, -8.39, -9.777)
+  turn_waves  = (0.199, 0.4423, 0.1091)
+  turn_start  = (0.7381, 0.5705, 0.493)
+  hue         = 70.24
+  hue_spread  = 39.6
+  fade        = 0.6043
+}
+
+variant member_6 {
+  reach       = (1.652, 4.947, 6)
+  reach_waves = (0.3183, 0.7656, 0.3183)
+  reach_start = (0.06554, 0.2, 0.8)
+  size        = (1, 1.57, 0.1823)
+  size_waves  = (0.3066, 0.2778, 0.2629)
+  size_start  = (0.6, 0.7777, 0.215)
+  turn        = (-153.8, -170.8, 76.27)
+  turn_waves  = (-0.05836, 0.4423, 0.3225)
+  turn_start  = (0.6727, 0.5705, 0.2063)
+  gloss       = 0.6802
+  hue_spread  = 39.6
+  fade        = 0.5481
+}
+
+variant member_7 {
+  reach       = (4.759, 3, 4.172)
+  reach_waves = (0.3183, 0.4983, 0.02956)
+  reach_start = (0.23, 0.3993, 0.8)
+  size        = (0.6052, 1, 1)
+  size_waves  = (0.2111, 0.2069, 0.3157)
+  size_start  = (0.7609, 0.7777, 0.6)
+  turn        = (-38.64, -61.19, -9.777)
+  turn_waves  = (-0.04254, 0.4423, 0.1091)
+  turn_start  = (0.9465, 0.5705, 0.1094)
+  hue         = 125.5
+  hue_spread  = 39.6
+  saturation  = 0.807
+  fade        = 0.5481
+}
+
+variant member_8 {
+  reach       = (1.652, 3.021, 6)
+  reach_start = (0.5543, 0.2, 0.2804)
+  size        = (1.213, 1, 1.771)
+  size_waves  = (0.2111, 0.2099, 0.2074)
+  size_start  = (0.6, 0.7777, 0.6)
+  turn        = (103.2, -151.5, 122.1)
+  turn_waves  = (-0.2791, 0.4423, 0.1091)
+  turn_start  = (0.1133, 0.5705, 0.0345)
+  focus       = 0.7608
+  hue_spread  = 39.6
+  fade        = 0.5481
+}
+
+variant member_9 {
+  reach       = (1.578, 2.435, 4.37)
+  reach_waves = (0.3183, 0.2622, 0.3183)
+  reach_start = (0.23, 0.2, 0.7146)
+  size        = (1, 1, 1)
+  size_waves  = (0.2332, 0.2069, 0.2629)
+  size_start  = (0.6, 0.5881, 0.6)
+  turn        = (-153.8, -31.15, -9.777)
+  turn_waves  = (0.199, 0.2666, 0.2897)
+  turn_start  = (0.7121, 0.5705, 0.4296)
+  gloss       = 0.8282
+  hue         = 158.1
+  hue_spread  = 72.13
+  fade        = 0.559
+}
+
+variant member_10 {
+  reach       = (4.912, 1.177, 4.665)
+  reach_waves = (0.3183, 0.1004, 0.3183)
+  reach_start = (0.9556, 0.6519, 0.9902)
+  size        = (1, 1.411, 1.9)
+  size_waves  = (0.2111, 0.2069, 0.1988)
+  size_start  = (0.5931, 0.4307, 0.6)
+  turn        = (-153.8, -61.19, 90.05)
+  turn_waves  = (0.2729, 0.4423, 0.1091)
+  turn_start  = (0.8117, 0.5705, 0.2063)
+  focus       = 0.2511
+  hue_spread  = 24.29
+  fade        = 0.7001
+}
+
+variant member_11 {
+  reach       = (4.099, 3, 4.377)
+  reach_waves = (0.5567, 0.6664, 0.3183)
+  reach_start = (0.9742, 0.2, 0.3135)
+  size        = (1.659, 0.2358, 1)
+  size_waves  = (0.3049, 0.2069, 0.2629)
+  size_start  = (0.558, 0.6892, 0.3527)
+  turn        = (-141.5, 60.1, -9.777)
+  turn_waves  = (-0.6525, 0.4423, 0.235)
+  turn_start  = (0.8601, 0.1078, 0.9322)
+  gloss       = 0.4384
+  hue_spread  = 39.6
+  saturation  = 0.7456
+  fade        = 0.7283
+}
+
+variant member_12 {
+  reach       = (1.652, 3, 3.855)
+  reach_waves = (0.1119, 0.4983, 0.3183)
+  reach_start = (0.1581, 0.2, 0.6524)
+  size        = (0.05234, 1, 1)
+  size_waves  = (0.2806, 0.3123, 0.2349)
+  size_start  = (0.7384, 0.3466, 0.6)
+  turn        = (-153.8, -61.19, 34.25)
+  turn_waves  = (0.199, 0.4423, 0.1091)
+  turn_start  = (0.9714, 0.5705, 0.2063)
+  focus       = 0.4741
+  hue_spread  = 39.6
+  fade        = 0.5481
+}
+
+variant member_13 {
+  reach       = (3.469, 2.072, 4.327)
+  reach_waves = (0.2276, 0.5072, 0.1879)
+  reach_start = (0.161, 0.4874, 0.6643)
+  size        = (1.654, 0.07875, 1.782)
+  size_waves  = (0.1945, 0.219, 0.1923)
+  size_start  = (0.3373, 0.7971, 0.3371)
+  turn        = (14.45, -8.621, -2.018)
+  turn_waves  = (0.4897, 0.3131, 0.048)
+  turn_start  = (0.8346, 0.28, 0.3287)
+  gloss       = 0.04727
+  focus       = 0.914
+  hue         = 216.4
+  hue_spread  = 56.63
+  saturation  = 0.7516
+  fade        = 0.9031
+}
+
+variant member_14 {
+  reach       = (4.74, 2.852, 4.286)
+  reach_waves = (0.02082, 0.03943, 0.4061)
+  reach_start = (0.4471, 0.1222, 0.1716)
+  size        = (1.213, 1.201, 1.871)
+  size_waves  = (0.2314, 0.3077, 0.1923)
+  size_start  = (0.2635, 0.72, 0.636)
+  turn        = (103.2, -35.76, 122.1)
+  turn_waves  = (-0.2791, 0.4423, 0.5274)
+  turn_start  = (0.3902, 0.4327, 0.0345)
+  gloss       = 0.2295
+  focus       = 0.3347
+  hue         = 5.14
+  hue_spread  = 72.12
+  saturation  = 0.7516
+  fade        = 0.8726
+}
+
+variant member_15 {
+  reach       = (3.312, 1.048, 4.406)
+  reach_waves = (0.5877, 0.3071, 0.6263)
+  reach_start = (0.24, 0.05911, 0.04241)
+  size        = (0.9961, 1, 0.1568)
+  size_waves  = (0.2458, 0.2703, 0.2687)
+  size_start  = (0.6578, 0.6594, 0.4588)
+  turn        = (103.2, -73.59, 116.4)
+  turn_waves  = (0.3516, 0.4423, -0.4668)
+  turn_start  = (0.1253, 0.5705, 0.0345)
+  gloss       = 0.06229
+  focus       = 0.1904
+  hue         = 191.8
+  hue_spread  = 39.6
+  saturation  = 0.9935
+  fade        = 0.8068
+}
+
+variant member_16 {
+  reach       = (4.849, 2.852, 4.327)
+  reach_waves = (0.2276, 0.01119, 0.1879)
+  reach_start = (0.0374, 0.411, 0.09288)
+  size        = (0.5628, 1.007, 1.782)
+  size_waves  = (0.2798, 0.219, 0.1923)
+  size_start  = (0.3373, 0.72, 0.5563)
+  turn        = (14.45, -8.621, -2.018)
+  turn_waves  = (0.4897, 0.3131, -0.01804)
+  turn_start  = (0.04221, 0.28, 0.3287)
+  gloss       = 0.04727
+  focus       = 0.07164
+  hue         = 26.12
+  hue_spread  = 56.63
+  saturation  = 0.7516
+  fade        = 0.7807
+}
+
+variant member_17 {
+  reach       = (0.2081, 4.407, 4.4)
+  reach_waves = (0.1657, 0.4672, 0.468)
+  reach_start = (0.02747, 0.2446, 0.9483)
+  size        = (1.08, 0.7698, 1.782)
+  size_waves  = (0.1934, 0.2772, 0.2228)
+  size_start  = (0.2531, 0.5937, 0.3371)
+  turn        = (14.45, -8.621, -2.018)
+  turn_waves  = (0.4912, -0.3, 0.048)
+  turn_start  = (0.7599, 0.28, 0.3477)
+  gloss       = 0.2619
+  focus       = 0.7794
+  hue         = 181.8
+  hue_spread  = 50.9
+  saturation  = 0.5608
+  fade        = 0.9031
+}
+
+variant member_18 {
+  reach       = (0.2081, 4.583, 4.4)
+  reach_waves = (0.1657, 0.2421, 0.468)
+  reach_start = (0.02747, 0.2446, 0.9312)
+  size        = (1.723, 0.3096, 1.388)
+  size_waves  = (0.1874, 0.2186, 0.1614)
+  size_start  = (0.3607, 0.5937, 0.3371)
+  turn        = (100.8, -8.621, 84.24)
+  turn_waves  = (0.4274, -0.3, 0.6281)
+  turn_start  = (0.9959, 0.28, 0.3477)
+  gloss       = 0.2619
+  focus       = 0.7794
+  hue         = 181.8
+  hue_spread  = 50.9
+  saturation  = 0.5114
+  fade        = 0.885
+}
+
+variant member_19 {
+  reach       = (0.2636, 3.67, 4.4)
+  reach_waves = (0.1657, 0.4671, 0.3169)
+  reach_start = (0.04886, 0.3882, 0.5795)
+  size        = (1.08, 1.42, 1.106)
+  size_waves  = (0.1934, 0.2315, 0.1943)
+  size_start  = (0.2813, 0.5937, 0.5145)
+  turn        = (14.45, -8.621, -2.018)
+  turn_waves  = (0.4912, -0.3, 0.07287)
+  turn_start  = (0.745, 0.4432, 0.09259)
+  gloss       = 0.2619
+  focus       = 0.7794
+  hue         = 181.8
+  hue_spread  = 50.9
+  saturation  = 0.6284
+  fade        = 0.8446
+}
+
+variant member_20 {
+  reach       = (0.7671, 3.67, 4.384)
+  reach_waves = (0.1657, 0.4671, 0.06568)
+  reach_start = (0.368, 0.2096, 0.5795)
+  size        = (0.5814, 1.309, 0.4483)
+  size_waves  = (0.2554, 0.2124, 0.2404)
+  size_start  = (0.4126, 0.5937, 0.4339)
+  turn        = (58.14, 117.7, 24.45)
+  turn_waves  = (0.4912, -0.3, -0.03224)
+  turn_start  = (0.745, 0.3671, 0.101)
+  gloss       = 0.6054
+  focus       = 0.6201
+  hue         = 151.5
+  hue_spread  = 71.25
+  saturation  = 0.7824
+  fade        = 0.8935
+}
+
+variant member_21 {
+  reach       = (0.7671, 3.67, 3.268)
+  reach_waves = (0.1142, 0.6753, 0.06568)
+  reach_start = (0.158, 0.4256, 0.6634)
+  size        = (0.5814, 1.877, 0.1458)
+  size_waves  = (0.2123, 0.2504, 0.1864)
+  size_start  = (0.3677, 0.7116, 0.3314)
+  turn        = (-24.79, 71.54, 24.45)
+  turn_waves  = (0.4912, -0.1401, 0.07287)
+  turn_start  = (0.9286, 0.7346, 0.4839)
+  gloss       = 0.2619
+  focus       = 0.7794
+  hue         = 135.1
+  hue_spread  = 50.9
+  saturation  = 0.8843
+  fade        = 0.969
+}
