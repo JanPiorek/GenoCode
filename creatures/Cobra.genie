@@ -3,15 +3,17 @@ creature Cobra
 // their sides and a pearl in a ring between them.
 // Inspired by Cobra, a DancerDNA creature.
 
-gene scales = 0 in 0..1  // how much its skin and pearl wear their textures, as the Scales variant does
+gene scales = 1 in 0..1  // how much its skin and pearl wear their textures
 
-gene sway        = 28.09  in -28.65..28.65  // how far the body sways from side to side
-gene sway_waves  = 2.659  in 1..3           // how many half-waves the sway makes along the body
-gene rise        = -3.236 in -28.65..28.65  // how far the body rises and falls
+gene sway        = 28.09  in -28.65..28.65                         // how far the body sways from side to side
+gene sway_waves  = 2.659  in 1..3                                  // how many half-waves the sway makes along the body
+gene rise        = -3.236 in -28.65..28.65                         // how far the body rises and falls
 gene rise_waves  = 1.111  in 1..3
-gene twist       = 3.975  in -28.65..28.65  // how far the body twists
+gene twist       = 3.975  in -28.65..28.65                         // how far the body twists
 gene twist_waves = 1      in 1..3
-gene taper       = 1.083  in 0.9..1.1       // how much bigger each segment is than the last
+gene taper       = 1.083  in 0.9..1.1                              // how much bigger each segment is than the last
+gene offset      = (0, 2.1, 0.9) in (-10, -10, -10)..(10, 10, 10)  // where its middle is: each member's keeps them all in the middle of the view
+gene size        = 0.143  in 0.1..2 log                            // how big it is overall: each member's keeps them all about the same size
 
 gene fin       = (1.387, 1.316, 0.5628) in (-2, -2, -2)..(2, 2, 2)  // how far the fins reach: sideways, up and back
 gene fin_waves = (2.396, 1.035, 1) in (1, 1, 1)..(3, 3, 3)          // how many half-waves the fins make along the body
@@ -45,6 +47,8 @@ let middle_z = 0
 
 shine 1
 sharpness 1
+move -offset
+grow size
 symmetric x {
   snake(side)
 }
@@ -84,7 +88,8 @@ part snake(side) {
 }
 
 part pearl_ring {
-  move (0, middle_y, middle_z)
+  // The middle was measured as drawn: moved by offset and grown by size.
+  move (0, middle_y - turtle.position.y, middle_z - turtle.position.z) / size
   shape ball
   colour pearl_colour
   texture pattern(plasma, pearl_colour.hue, 5, pastel, pearl)
@@ -102,6 +107,8 @@ part pearl_ring {
 }
 
 variant member_2 {
+  offset       = (0, 0.8, -1.4)
+  size         = 0.309
   sway         = 28.08
   sway_waves   = 1.739
   rise         = 10.86
@@ -129,6 +136,8 @@ variant member_2 {
 }
 
 variant member_3 {
+  offset       = (0, 0, 4.8)
+  size         = 1.6
   sway         = 11.04
   sway_waves   = 1.798
   rise         = 15.61
@@ -154,6 +163,8 @@ variant member_3 {
 }
 
 variant member_4 {
+  offset       = (0, -1.2, 4.7)
+  size         = 1.26
   sway         = -15.35
   sway_waves   = 1.777
   rise         = -9.783
@@ -179,6 +190,8 @@ variant member_4 {
 }
 
 variant member_5 {
+  offset       = (0, -4, 5.2)
+  size         = 1.72
   sway         = -10.2
   sway_waves   = 1.717
   rise         = 10.86
@@ -206,6 +219,8 @@ variant member_5 {
 }
 
 variant member_6 {
+  offset       = (0, -1.4, 3.5)
+  size         = 1.05
   sway         = -17.1
   sway_waves   = 1
   rise         = 7.915
@@ -233,6 +248,8 @@ variant member_6 {
 }
 
 variant member_7 {
+  offset       = (0, -3.5, 5.4)
+  size         = 1.38
   sway         = -16.94
   sway_waves   = 1.765
   rise         = 14.89
@@ -259,6 +276,8 @@ variant member_7 {
 }
 
 variant member_8 {
+  offset       = (0, -2, 2.8)
+  size         = 1.23
   sway         = 25.55
   sway_waves   = 1.107
   rise         = 16.99
@@ -286,6 +305,8 @@ variant member_8 {
 }
 
 variant member_9 {
+  offset       = (0, 3.7, 4.1)
+  size         = 1.29
   sway         = 23.13
   sway_waves   = 1.031
   rise         = -8.053
@@ -313,6 +334,8 @@ variant member_9 {
 }
 
 variant member_10 {
+  offset       = (0, -4, 3.5)
+  size         = 0.994
   sway         = 9.906
   sway_waves   = 2.299
   rise         = 10.86
@@ -340,6 +363,8 @@ variant member_10 {
 }
 
 variant member_11 {
+  offset       = (0, -2.8, 0.9)
+  size         = 0.841
   sway         = -19.08
   sway_waves   = 2.375
   rise         = 10.86
@@ -367,6 +392,8 @@ variant member_11 {
 }
 
 variant member_12 {
+  offset       = (0, -4.6, 5)
+  size         = 1.56
   sway         = 10.06
   sway_waves   = 1.956
   rise         = 3.727
@@ -392,5 +419,3 @@ variant member_12 {
   ring_size    = 1.826
   ring_tilt    = (-0.7805, -101, -184.1)
 }
-
-variant Scales { scales = 1 }
