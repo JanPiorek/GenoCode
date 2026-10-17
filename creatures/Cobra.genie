@@ -67,7 +67,7 @@ part snake(side) {
     grow taper
     forward 0.45
     colour skin(bump(along))
-    texture pattern(cells, skin(bump(along)).hue, 4, pastel)
+    texture mixed(pattern(kaleidoscope, 47, 35, jewel, pearl), blend, lightning, 0.5)
     wear scales
     total_y += turtle.position.y
     total_z += turtle.position.z
@@ -92,7 +92,7 @@ part pearl_ring {
   move (0, middle_y - turtle.position.y, middle_z - turtle.position.z) / size
   shape ball
   colour pearl_colour
-  texture pattern(plasma, pearl_colour.hue, 5, pastel, pearl)
+  texture mixed(pattern(kaleidoscope, 125, 19, pastel, pearl), blend, lightning, 0.6)
   wear scales
   grow pearl_size
   lay
@@ -104,6 +104,15 @@ part pearl_ring {
   texture none
   colour ring_colour
   lay
+}
+
+// Its own dance: Wanderer, the style DancerDNA's Cobra was saved with (as far as can be told).
+dance {
+  morph   follows music.mid  speed 1.2  settle 0.38
+  zoom    follows music.mid_hit  amount 0.5  settle 50
+  spin    follows music.level  from 45.8 to 229  smooth 0
+  turn    on music.bass changes  by 1
+  reverse on music.bass drops  by 1  on 4 off 4
 }
 
 variant member_2 {
