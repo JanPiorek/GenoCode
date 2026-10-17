@@ -163,6 +163,9 @@ interface Textured {
 /** How much of the way to the camera a dance's zoom can bring the creature. */
 const NEAREST = 0.75;
 
+/** How long, in seconds, the camera takes to settle on a creature that has changed size. */
+const FOLLOW_TIME = 1.5;
+
 /** Light strengths in three are scaled by π compared with the software renderer's. */
 const LIGHT_SCALE = Math.PI;
 
@@ -425,6 +428,11 @@ export class CreatureView {
   /** The camera's turn in the front view, which the lights are set for. */
   private readonly frontTurn = new Quaternion();
   private readonly stopListening: () => void;
+  /**
+   * The framing the camera is easing towards while it follows a creature: the creature's middle
+   * and the distance that fits it in, each eased, and when it was last moved on.
+   */
+  private following: { centre: Vector3; distance: number; at: number } | undefined;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -444,10 +452,48 @@ export class CreatureView {
   }
 
   /** Replaces the creature on show. With `keepView`, the camera stays where the viewer left it. */
-  setCreature(shapes: readonly LaidShape[], keepView = false): void {
+  /**
+   * Replaces the creature on show. With `keepView`, the camera stays where the viewer left it; with
+   * `follow` as well, it eases to keep the creature framed as it grows, shrinks or moves, as when
+   * it dances through creatures of different sizes.
+   */
+  setCreature(shapes: readonly LaidShape[], keepView = false, follow = false): void {
     this.look.setCreature(shapes, "high");
     if (!keepView) this.resetView();
+    else if (follow) this.follow();
     this.requestFrame();
+  }
+
+  /**
+   * Moves the camera a step towards framing the creature as it is now. The viewer's own turning,
+   * panning and zooming are kept: the camera moves with the creature's middle, and its distance
+   * grows or shrinks in proportion to what fits the creature in.
+   */
+  private follow(): void {
+    const aspect = this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight);
+    const want = frameCamera(creatureBounds(this.look.shapes), aspect);
+    const centre = new Vector3(...want.target);
+    const distance = centre.distanceTo(new Vector3(...want.position));
+    const now = performance.now();
+    const f = this.following;
+    if (f === undefined) {
+      this.following = { centre, distance, at: now };
+      return;
+    }
+    const dt = Math.min((now - f.at) / 1000, 0.1);
+    const k = 1 - Math.exp(-dt / FOLLOW_TIME);
+    const step = centre.sub(f.centre).multiplyScalar(k);
+    const scale = (f.distance + (distance - f.distance) * k) / f.distance;
+    f.centre.add(step);
+    f.distance *= scale;
+    f.at = now;
+    const target = this.controls.target.add(step);
+    const offset = this.camera.position.clone().sub(target).multiplyScalar(scale);
+    this.camera.position.copy(target).add(offset);
+    this.camera.near = (want.near / 4) * (f.distance / distance);
+    this.camera.far = want.far * 4 * (f.distance / distance);
+    this.camera.updateProjectionMatrix();
+    this.controls.maxDistance *= scale;
   }
 
   /** Shows a background's fill: a colour, a gradient or a pattern. */
@@ -471,6 +517,7 @@ export class CreatureView {
     }
     const placement = this.look.frame(this.camera, aspect, side);
     if (side === undefined) this.frontTurn.copy(this.camera.quaternion);
+    this.following = undefined;
     this.controls.target.set(...placement.target);
     this.controls.minDistance = 0;
     this.controls.maxDistance =
