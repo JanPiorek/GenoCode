@@ -394,6 +394,11 @@ function setMode(next: Mode): void {
   patternsSection.hidden = mode !== "patterns";
   librarySection.hidden = mode !== "library";
   $("views").hidden = pictureless;
+  // While dancing, the dance turns the creature and the camera follows it, so the sides to look
+  // from don't apply; full screen still does.
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-side]")) {
+    b.disabled = mode === "dance";
+  }
   cancelAnimationFrame(liveFrame);
   morpher.stop();
   floor.stop();
