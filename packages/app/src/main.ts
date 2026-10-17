@@ -8,7 +8,6 @@
 
 import {
   check,
-  formatText,
   geneEdits,
   MUSIC_FIELDS,
   type CheckResult,
@@ -33,7 +32,7 @@ import { CodeEditor } from "./editor.js";
 import { InputControls } from "./inputs.js";
 import { deleteCreature, saveCreature, savedNames, savedText } from "./library.js";
 import { Morpher } from "./morph.js";
-import { PatternDesigner } from "./patterns.js";
+import { PatternDesigner, withBackground } from "./patterns.js";
 import { showGenes, showInfo, showProblems, showStatus } from "./panel.js";
 
 // The starter creatures in the repository's creatures/ folder.
@@ -166,7 +165,10 @@ function report(buildProblems: Diagnostic[], shapeCount: number, live: boolean):
   const fresh = current?.program === latest;
   showProblems(latest, [...latest.diagnostics, ...(fresh ? buildProblems : [])]);
   const stale = current && !fresh ? " · showing the last version without errors" : "";
-  const shapes = `${shapeCount} shape${shapeCount === 1 ? "" : "s"}`;
+  const shapes =
+    current?.program.file.kind === "background"
+      ? "A background"
+      : `${shapeCount} shape${shapeCount === 1 ? "" : "s"}`;
   showStatus(`${shapes} · ${live ? "moves with time" : "still"}${stale}`);
 }
 
@@ -437,33 +439,6 @@ function creaturePattern(): Pattern | undefined {
   return typeof background === "object" && background.type === "pattern" ? background : undefined;
 }
 
-/**
- * The code with its background replaced by one holding these lines: the creature's background
- * block (added before its dance block or variants if it has none), or a background file's
- * contents. Undefined when the code has errors that hide where the background goes.
- */
-function withBackground(text: string, lines: string[]): string | undefined {
-  const p = checkText(text);
-  const file = p.file;
-  let out: string;
-  if (file.kind === "background") {
-    const first = file.items[0];
-    if (!first) return undefined;
-    out = text.slice(0, first.span.start) + lines.join("\n") + "\n";
-  } else if (file.kind === "creature") {
-    const block = ["background {", ...lines.map((l) => (l ? `  ${l}` : "")), "}"].join("\n");
-    const old = file.items.find((i) => i.kind === "Background");
-    const before = file.items.find((i) => i.kind === "Dance" || i.kind === "Variant");
-    if (old) out = text.slice(0, old.span.start) + block + text.slice(old.span.end);
-    else if (before)
-      out = `${text.slice(0, before.span.start)}${block}\n\n${text.slice(before.span.start)}`;
-    else out = `${text.trimEnd()}\n\n${block}\n`;
-  } else {
-    return undefined;
-  }
-  return formatText(out).text ?? out;
-}
-
 // ---------- dancing ----------
 
 const player = new MusicPlayer();
@@ -689,9 +664,10 @@ function stopWatching(): void {
 
 /** Shows a file, and keeps checking it for changes until it's edited here or another is opened. */
 async function openHandle(handle: FileHandleLike): Promise<void> {
-  if (!mayDiscard()) return;
   let file = await handle.getFile();
-  load(await file.text(), { kind: "other" });
+  const text = await file.text();
+  if (offerBackground(text) || !mayDiscard()) return;
+  load(text, { kind: "other" });
   let modified = file.lastModified;
   watching.textContent = `Watching ${handle.name} for changes`;
   watching.hidden = false;
@@ -712,8 +688,29 @@ async function openHandle(handle: FileHandleLike): Promise<void> {
 }
 
 async function openFile(file: File): Promise<void> {
-  if (!mayDiscard()) return;
-  load(await file.text(), { kind: "other" });
+  const text = await file.text();
+  if (offerBackground(text) || !mayDiscard()) return;
+  load(text, { kind: "other" });
+}
+
+/**
+ * Offers to put a background file behind the creature on show, replacing its background block
+ * (docs/LANGUAGE.md section 15). Says whether it did; if not, the file is opened on its own.
+ */
+function offerBackground(text: string): boolean {
+  const p = checkText(text);
+  const first = p.file.items[0];
+  const creature = current?.program.file;
+  if (p.file.kind !== "background" || !first || creature?.kind !== "creature") return false;
+  const ask =
+    `Put the background ${p.file.name} behind ${creature.name}?\n\n` +
+    "Cancel opens the background on its own.";
+  if (!confirm(ask)) return false;
+  const out = withBackground(editor.text, text.slice(first.span.start).trimEnd().split("\n"));
+  if (out === undefined) return false;
+  editor.setText(out);
+  show(out, true);
+  return true;
 }
 
 type PickerWindow = Window & {

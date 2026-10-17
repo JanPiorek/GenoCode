@@ -1,10 +1,13 @@
 // Patterns: a designer for texture and background recipes (docs/LANGUAGE.md section 14). A big
-// preview, a control for every part of the recipe, and a row of variations to pick from. A recipe
+// preview, a control for every part of the recipe, and a grid of variations to mutate and breed,
+// as the Breed mode does for creatures. A recipe
 // can be copied as code, put behind the creature as its background, or exported as a background
 // file or a picture.
 
 import {
+  check,
   FINISHES,
+  formatText,
   formatValue,
   MIX_WAYS,
   NO_PATTERN,
@@ -62,6 +65,31 @@ export function vary(p: Pattern): Pattern {
   };
 }
 
+/** A child of two recipes: each part from one parent or the other, the hue and amount blended. */
+export function cross(a: Pattern, b: Pattern): Pattern {
+  const either = <T>(x: T, y: T): T => (Math.random() < 0.5 ? x : y);
+  // The hue goes the short way round the circle between the parents.
+  const apart = ((((b.hue - a.hue) % 360) + 540) % 360) - 180;
+  let mix = either(a.mix, b.mix);
+  if (a.mix && b.mix) {
+    const t = Math.random();
+    mix = {
+      way: either(a.mix.way, b.mix.way),
+      kind: either(a.mix.kind, b.mix.kind),
+      amount: round2(a.mix.amount + (b.mix.amount - a.mix.amount) * t),
+    };
+  }
+  return {
+    ...a,
+    kind: either(a.kind, b.kind),
+    hue: wrapHue(a.hue + apart * Math.random()),
+    seed: either(a.seed, b.seed),
+    scheme: either(a.scheme, b.scheme),
+    finish: either(a.finish, b.finish),
+    mix,
+  };
+}
+
 function round2(x: number): number {
   return Math.round(x * 100) / 100;
 }
@@ -108,6 +136,33 @@ export function backgroundFile(p: Pattern): string {
   ].join("\n");
 }
 
+/**
+ * The code with its background replaced by one holding these lines: the creature's background
+ * block (added before its dance block or variants if it has none), or a background file's
+ * contents. Undefined when the code has errors that hide where the background goes.
+ */
+export function withBackground(text: string, lines: string[]): string | undefined {
+  const p = check(text);
+  const file = p.file;
+  let out: string;
+  if (file.kind === "background") {
+    const first = file.items[0];
+    if (!first) return undefined;
+    out = text.slice(0, first.span.start) + lines.join("\n") + "\n";
+  } else if (file.kind === "creature") {
+    const block = ["background {", ...lines.map((l) => (l ? `  ${l}` : "")), "}"].join("\n");
+    const old = file.items.find((i) => i.kind === "Background");
+    const before = file.items.find((i) => i.kind === "Dance" || i.kind === "Variant");
+    if (old) out = text.slice(0, old.span.start) + block + text.slice(old.span.end);
+    else if (before)
+      out = `${text.slice(0, before.span.start)}${block}\n\n${text.slice(before.span.start)}`;
+    else out = `${text.trimEnd()}\n\n${block}\n`;
+  } else {
+    return undefined;
+  }
+  return formatText(out).text ?? out;
+}
+
 function drawInto(target: HTMLCanvasElement, p: Pattern, size: number): void {
   target.width = size;
   target.height = size;
@@ -145,6 +200,12 @@ export class PatternDesigner {
   private recipe: Pattern = DEFAULT_RECIPE;
   private readonly preview = element("canvas", { className: "pattern-preview" });
   private readonly variations = element("div", { className: "pattern-variations" });
+  /** The recipes in the grid, and which are chosen as parents. */
+  private tiles: { p: Pattern; el: HTMLCanvasElement }[] = [];
+  private readonly chosen = new Set<number>();
+  private readonly mutateButton = element("button", { type: "button", textContent: "Mutate" });
+  private readonly breedButton = element("button", { type: "button", textContent: "Breed" });
+  private readonly gridHint = element("span", { className: "hint" });
   private readonly code = element("code");
   private readonly hint = element("span", { className: "hint" });
 
@@ -194,7 +255,6 @@ export class PatternDesigner {
     const actionsBar = element(
       "div",
       { className: "pattern-actions" },
-      button("New variations", "Show other variations of this recipe", () => this.showVariations()),
       button("Copy code", "Copy the recipe, for `texture` or `fill`", () => void this.copy()),
       button("Use as background", "Put this recipe behind the creature, with genes", () =>
         this.actions.useAsBackground(backgroundLines(this.recipe)),
@@ -203,8 +263,19 @@ export class PatternDesigner {
       button("Export PNG", "Save the pattern as a picture", () => void this.exportPicture()),
       this.hint,
     );
+    this.mutateButton.title = "Variations of the chosen recipes, or of the one above";
+    this.breedButton.title = "Children of the chosen recipes";
+    this.mutateButton.addEventListener("click", () => this.mutate());
+    this.breedButton.addEventListener("click", () => this.breed());
     root.append(
       element("div", { className: "pattern-top" }, this.preview, controls),
+      element(
+        "div",
+        { className: "pattern-actions" },
+        this.mutateButton,
+        this.breedButton,
+        this.gridHint,
+      ),
       this.variations,
       element("div", { className: "pattern-code" }, this.code),
       actionsBar,
@@ -230,7 +301,7 @@ export class PatternDesigner {
     if (start && start.kind !== null) this.recipe = start;
     this.toControls();
     this.draw(PREVIEW_SIZE);
-    this.showVariations();
+    if (this.tiles.length === 0) this.mutate();
   }
 
   private fromControls(size: number, settled = false): void {
@@ -253,7 +324,7 @@ export class PatternDesigner {
     };
     this.showMixRows();
     this.draw(size);
-    if (settled) this.showVariations();
+    if (settled) this.hint.textContent = "";
   }
 
   private toControls(): void {
@@ -279,21 +350,60 @@ export class PatternDesigner {
     this.hint.textContent = "";
   }
 
-  /** Fills the row of variations; clicking one makes it the recipe. */
-  private showVariations(): void {
-    const tiles = Array.from({ length: VARIATIONS }, () => {
-      const p = vary(this.recipe);
-      const tile = element("canvas", { className: "pattern-variation", title: formatValue(p) });
-      drawInto(tile, p, VARIATION_SIZE);
-      tile.addEventListener("click", () => {
+  private parents(): Pattern[] {
+    return [...this.chosen].map((i) => this.tiles[i]!.p);
+  }
+
+  /** Fills the grid with variations of the chosen recipes, or of the one above. */
+  private mutate(): void {
+    const parents = this.chosen.size > 0 ? this.parents() : [this.recipe];
+    this.fill(() => vary(pick(parents)));
+  }
+
+  /** Fills the grid with children of two of the chosen recipes at a time. */
+  private breed(): void {
+    const parents = this.parents();
+    if (parents.length < 2) return;
+    this.fill(() => {
+      const a = pick(parents);
+      const b = pick(parents.filter((p) => p !== a));
+      return cross(a, b);
+    });
+  }
+
+  /**
+   * Fills the grid. Clicking a recipe chooses it as a parent (or not); double-clicking one puts it
+   * above, to work on.
+   */
+  private fill(make: () => Pattern): void {
+    this.chosen.clear();
+    this.tiles = Array.from({ length: VARIATIONS }, (_, i) => {
+      const p = make();
+      const el = element("canvas", { className: "pattern-variation", title: formatValue(p) });
+      drawInto(el, p, VARIATION_SIZE);
+      el.addEventListener("click", () => {
+        if (!this.chosen.delete(i)) this.chosen.add(i);
+        this.showChosen();
+      });
+      el.addEventListener("dblclick", () => {
         this.recipe = p;
         this.toControls();
         this.draw(PREVIEW_SIZE);
-        this.showVariations();
       });
-      return tile;
+      return { p, el };
     });
-    this.variations.replaceChildren(...tiles);
+    this.variations.replaceChildren(...this.tiles.map((t) => t.el));
+    this.showChosen();
+  }
+
+  private showChosen(): void {
+    this.tiles.forEach((t, i) => t.el.classList.toggle("selected", this.chosen.has(i)));
+    const n = this.chosen.size;
+    this.breedButton.disabled = n < 2;
+    this.gridHint.textContent =
+      n === 0
+        ? "Click recipes to choose parents · double-click one to work on it"
+        : `${n} parent${n === 1 ? "" : "s"} chosen`;
   }
 
   private async copy(): Promise<void> {

@@ -1,5 +1,6 @@
 // A creature in the app: a checked program and the values of its genes, which may differ from the
-// values written in the program after mutating, breeding or morphing.
+// values written in the program after mutating, breeding or morphing. A background file is shown
+// and bred the same way, as a creature with no shapes.
 
 import {
   build,
@@ -50,10 +51,14 @@ export function buildCreature(
   inputs: BuildOptions["inputs"] = {},
 ): { built: BuildResult; background: Value | undefined } {
   const options = { genes: c.values, inputs };
-  return { built: build(c.program, options), background: buildBackground(c.program, options).fill };
+  const built =
+    c.program.file.kind === "creature"
+      ? build(c.program, options)
+      : { shapes: [], diagnostics: [], printed: [], ok: true };
+  return { built, background: buildBackground(c.program, options).fill };
 }
 
-/** Whether a program can be shown and bred: a creature that checked without errors. */
+/** Whether a program can be shown and bred: a creature or background that checked without errors. */
 export function breedable(program: CheckResult | undefined): boolean {
-  return program !== undefined && program.ok && program.file.kind === "creature";
+  return program !== undefined && program.ok && program.file.kind !== "dance";
 }

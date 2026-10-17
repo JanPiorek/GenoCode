@@ -580,7 +580,12 @@ input[type="color"].gene-control {
 }
 
 .pattern-variation:hover {
+  border-color: #3a4560;
+}
+
+.pattern-variation.selected {
   border-color: var(--accent);
+  box-shadow: 0 0 12px rgb(240 107 192 / 0.4);
 }
 
 .pattern-code {
