@@ -79,7 +79,8 @@ body {
 }
 
 button,
-select {
+select,
+a.button {
   font: inherit;
   color: var(--text);
   background: #1b2133;
@@ -89,7 +90,8 @@ select {
 }
 
 button:hover,
-select:hover {
+select:hover,
+a.button:hover {
   border-color: #3a4560;
 }
 
@@ -712,4 +714,90 @@ input[type="color"].gene-control {
   padding: 0;
   border: 1px solid var(--line);
   background: none;
+}
+
+/* The library: sections of tiles, each a picture with a name and a line about it. */
+.library {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 16px 16px;
+}
+
+.library h2 {
+  margin: 16px 0 2px;
+  font-size: 1em;
+}
+
+.library .hint {
+  margin: 0 0 10px;
+}
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.library-tile {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.library-tile:hover,
+.library-tile:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.library-tile canvas,
+.library-dance {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--bg) center / cover no-repeat;
+}
+
+.library-dance {
+  display: grid;
+  place-items: center;
+  font-size: 3em;
+  color: #6bc8f2;
+}
+
+.library-name {
+  padding: 6px 8px 0;
+  font-weight: 600;
+}
+
+.library-about {
+  /* A margin, not padding, below: the clamp would show a cut line in the padding. */
+  padding: 2px 8px 0;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.85em;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.library-buttons {
+  display: flex;
+  gap: 6px;
+  padding: 0 8px 8px;
+  margin-top: auto;
+}
+
+.library-buttons button {
+  padding: 3px 8px;
+  font-size: 0.85em;
+}
+
+a.button {
+  text-decoration: none;
 }

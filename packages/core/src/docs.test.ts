@@ -10,6 +10,7 @@ import { parse } from "./parser.js";
 
 const spec = readFileSync(new URL("../../../docs/LANGUAGE.md", import.meta.url), "utf8");
 const blocks = [...spec.matchAll(/```\n([\s\S]*?)```/g)].map((m) => m[1]!);
+const guide = readFileSync(new URL("../../../docs/GETTING_STARTED.md", import.meta.url), "utf8");
 
 const isFile = (b: string) => /^(creature|background|dance) \w+\n/.test(b);
 const isWrappedBlock = (b: string) => /^(background|dance) \{\n/.test(b);
@@ -47,4 +48,21 @@ describe("docs/LANGUAGE.md examples", () => {
     const flower = blocks.find((b) => b.startsWith("creature Flower"))!;
     expect(build(check(flower)).shapes).toHaveLength(22);
   });
+});
+
+describe("docs/GETTING_STARTED.md examples", () => {
+  const files = [...guide.matchAll(/```\n([\s\S]*?)```/g)]
+    .map((m) => m[1]!)
+    .filter((b) => b.startsWith("creature "));
+
+  it("has its creatures", () => expect(files.length).toBeGreaterThanOrEqual(4));
+
+  for (const [i, b] of files.entries()) {
+    it(`creature ${i} builds and is in the standard layout`, () => {
+      const r = check(b);
+      expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+      expect(formatText(b).text).toBe(b);
+      expect(build(r).shapes.length).toBeGreaterThan(0);
+    });
+  }
 });

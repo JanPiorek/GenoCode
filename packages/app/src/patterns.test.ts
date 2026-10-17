@@ -7,7 +7,15 @@ import {
   type Pattern,
 } from "@genocode/core";
 import { describe, expect, it } from "vitest";
-import { backgroundFile, backgroundLines, cross, vary, withBackground } from "./patterns.js";
+import {
+  backgroundFile,
+  backgroundLines,
+  cross,
+  definitionLines,
+  vary,
+  withBackground,
+  withDefinition,
+} from "./patterns.js";
 
 const recipe: Pattern = { ...NO_PATTERN, kind: "aurora", hue: 160, seed: 12, scheme: "dusk" };
 const mixed: Pattern = {
@@ -42,6 +50,29 @@ describe("recipes as code", () => {
   it("puts it before the creature's variants", () => {
     const text = withBackground(`${CREATURE}\nvariant Big { }\n`, backgroundLines(recipe))!;
     expect(text.indexOf("background {")).toBeLessThan(text.indexOf("variant Big"));
+  });
+});
+
+describe("dances into creatures", () => {
+  const dance = "dance Calm\n// slow\n\nmorph follows music.level  speed 0.5  settle 3\n";
+
+  it("puts a dance file into a creature, before its variants, replacing any it had", () => {
+    const creature = `${CREATURE}\nvariant Big { }\n`;
+    const once = withDefinition(creature, "dance", definitionLines(dance)!)!;
+    expect(check(once).diagnostics).toEqual([]);
+    expect(once.indexOf("dance {")).toBeLessThan(once.indexOf("variant Big"));
+    const twice = withDefinition(once, "dance", [
+      "spin follows music.bass  from 10 to 90  smooth 1",
+    ])!;
+    expect(twice.match(/dance \{/g)).toHaveLength(1);
+    expect(twice).toContain("spin follows music.bass");
+    expect(twice).not.toContain("morph");
+  });
+
+  it("puts a background before the dance", () => {
+    const withDance = withDefinition(CREATURE, "dance", definitionLines(dance)!)!;
+    const both = withBackground(withDance, backgroundLines(recipe))!;
+    expect(both.indexOf("background {")).toBeLessThan(both.indexOf("dance {"));
   });
 });
 

@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
+import { page, PAGES } from "./docs.js";
 
 const repo = fileURLToPath(new URL("../..", import.meta.url));
 const src = (name: string) => fileURLToPath(new URL(`../${name}/src/index.ts`, import.meta.url));
@@ -50,9 +51,36 @@ function blocklyMedia(): Plugin {
   };
 }
 
+/** The documentation pages, made from docs/ (see docs.ts), served at `docs/`. */
+function documentation(): Plugin {
+  return {
+    name: "documentation",
+    configureServer(server) {
+      server.middlewares.use("/docs", (req, res, next) => {
+        // Pages link to the app and each other relative to docs/, so it needs its slash.
+        if (req.originalUrl === "/docs") {
+          res.statusCode = 301;
+          res.setHeader("Location", "/docs/");
+          res.end();
+          return;
+        }
+        const html = page((req.url ?? "/").split("?")[0]!.replace(/^\//, "") || "index.html");
+        if (!html) return next();
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.end(html);
+      });
+    },
+    generateBundle() {
+      for (const p of PAGES) {
+        this.emitFile({ type: "asset", fileName: `docs/${p.file}`, source: page(p.file)! });
+      }
+    },
+  };
+}
+
 export default defineConfig({
   base: "./",
-  plugins: [blocklyMedia()],
+  plugins: [blocklyMedia(), documentation()],
   resolve: {
     // Use the other packages' sources directly, so changes show up without rebuilding them.
     alias: {

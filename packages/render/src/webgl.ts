@@ -668,11 +668,31 @@ export class CreatureView {
       // keeps it drawing until the fade is done.
       if (this.controls.update()) this.requestFrame();
       if (this.look.stepFades()) this.requestFrame();
-      this.look.turnLights(
-        this.camera.quaternion.clone().multiply(this.frontTurn.clone().invert()),
-      );
-      this.renderer.render(this.look.scene, this.camera);
+      this.draw();
     });
+  }
+
+  private draw(): void {
+    this.look.turnLights(this.camera.quaternion.clone().multiply(this.frontTurn.clone().invert()));
+    this.renderer.render(this.look.scene, this.camera);
+  }
+
+  /** The view as it is now, as a PNG picture `scale` times as big as it's shown. */
+  picture(scale = 2): Promise<Blob | null> {
+    const w = this.canvas.clientWidth;
+    const h = this.canvas.clientHeight;
+    const ratio = this.renderer.getPixelRatio();
+    this.renderer.setPixelRatio(scale);
+    this.renderer.setSize(w, h, false);
+    this.draw();
+    return new Promise((resolve) =>
+      this.canvas.toBlob((blob) => {
+        this.renderer.setPixelRatio(ratio);
+        this.renderer.setSize(w, h, false);
+        this.requestFrame();
+        resolve(blob);
+      }, "image/png"),
+    );
   }
 
   dispose(): void {

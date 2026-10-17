@@ -20,9 +20,11 @@ gene shrink = 0.7 in 0.4..0.95      // each ring's size compared with the ring o
 gene twist  = 29  in 0..180         // how far each ring turns from the last
 ```
 
-**Status:** early development. Nothing is usable yet.
+**Status:** early development, heading for a first public release. The web app works: write,
+view, breed, morph and dance creatures, as code or as blocks.
 
-The language is defined in [docs/LANGUAGE.md](docs/LANGUAGE.md).
+New to GenoCode? Start with [Getting started](docs/GETTING_STARTED.md). The language is defined in
+[docs/LANGUAGE.md](docs/LANGUAGE.md).
 
 ## Repository layout
 
@@ -48,29 +50,35 @@ npm test          # run the tests
 npm run check     # build, type-check, test and check formatting, as CI does
 ```
 
-**Write creatures in the browser:** `npm run dev`, then open the address it prints. Pick one of
-the starter creatures in `creatures/`, start a **New** one, or open or drop any `.genie` file. In
-Chromium-based browsers, a file opened from disk is watched too, so you can edit it in any editor
-and see the changes (until you edit it in the app). **Save** keeps a creature in the browser, under
-**Mine** in the creature menu, and **Download…** writes it as a `.genie` file.
+**Write creatures in the browser:** `npm run dev`, then open the address it prints. Pick a creature
+from the **Library**, start a **New** one, or open or drop any `.genie` file. In Chromium-based
+browsers, a file opened from disk is watched too, so you can edit it in any editor and see the
+changes (until you edit it in the app). **Save** keeps a creature in the browser, and
+**Download…** writes it as a `.genie` file.
 
-The app has three modes:
+The app has six modes:
 
-- **View** shows the code beside the creature, rebuilt as you type. The editor colours the code,
-  marks problems as you type, completes names and explains whatever you point at. Each gene has a
-  slider, colour picker or menu in the side panel; letting go writes the new value into the code.
-  Creatures that react to time or music get sliders for `time`, `beat` and the `music` values. Lock
-  a gene (🔓) to keep it fixed while breeding. **Code** hides or shows the editor.
+- **View** shows the creature beside its code, rebuilt as you type. The editor colours the code,
+  marks problems, completes names and explains whatever you point at. **Blocks** shows the code as
+  blocks too, kept in step with it, to build creatures by dragging. Each gene has a slider, colour
+  picker or menu in the side panel; creatures that react to time or music get sliders for those.
+  Lock a gene (🔓) to keep it fixed while breeding. **Picture…** saves the view as a PNG.
+- **Breed** shows a grid of variations. Click creatures to choose them as parents, then **Mutate**
+  or **Breed**; **Back** returns to the previous generation, and double-clicking one opens it.
+- **Morph** blends the creature through its variants, or the creatures chosen in the grid, in a
+  loop.
+- **Dance** moves the creature to music (a file, a web address, the microphone or another browser
+  tab), by a dance style.
+- **Patterns** designs texture and background recipes, with variations to breed, and exports
+  them as code, background files or pictures.
+- **Library** has the starter creatures and dance styles, and everything saved in the browser.
 
-In View and Morph, the buttons at the bottom right of the picture turn it to look at the creature
-from the front, back, left, right, top or bottom, and ⛶ (or the F key) shows it full screen. The
-lights turn with the view, so every side is lit as the front is.
+In View, Morph and Dance, the buttons at the bottom right turn the picture to look from each side,
+and ⛶ (or the F key) shows it full screen.
 
-- **Breed** shows a grid of variations, starting from the creature's variants if it has any. Click creatures to choose them as parents, then **Mutate**
-  (the strength sets how far genes move) or **Breed** (children of random pairs of parents).
-  **Back** returns to the previous generation, and double-clicking a creature opens it in View.
-- **Morph** blends through the chosen creatures in a loop: those chosen in the grid, or else the
-  creature and its variants, or else the whole grid.
+**Help** in the app opens the documentation: the getting-started guide and the language reference,
+made from `docs/` when the app is built. `npm run build` puts the whole website in
+`packages/app/dist`; on every push to main, the Site workflow publishes it on GitHub Pages.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 

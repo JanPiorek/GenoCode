@@ -143,17 +143,33 @@ export function backgroundFile(p: Pattern): string {
  * contents. Undefined when the code has errors that hide where the background goes.
  */
 export function withBackground(text: string, lines: string[]): string | undefined {
-  const p = check(text);
-  const file = p.file;
+  return withDefinition(text, "background", lines);
+}
+
+/**
+ * The code with its background or dance replaced by one holding these lines (docs/LANGUAGE.md
+ * sections 15 and 17): the creature's block of that kind, or the contents of a file of that kind.
+ * A creature without one gets it before its variants (and a background before its dance).
+ * Undefined when the code has errors that hide where it goes.
+ */
+export function withDefinition(
+  text: string,
+  kind: "background" | "dance",
+  lines: string[],
+): string | undefined {
+  const file = check(text).file;
   let out: string;
-  if (file.kind === "background") {
+  if (file.kind === kind) {
     const first = file.items[0];
     if (!first) return undefined;
     out = text.slice(0, first.span.start) + lines.join("\n") + "\n";
   } else if (file.kind === "creature") {
-    const block = ["background {", ...lines.map((l) => (l ? `  ${l}` : "")), "}"].join("\n");
-    const old = file.items.find((i) => i.kind === "Background");
-    const before = file.items.find((i) => i.kind === "Dance" || i.kind === "Variant");
+    const block = [`${kind} {`, ...lines.map((l) => (l ? `  ${l}` : "")), "}"].join("\n");
+    const own = kind === "background" ? "Background" : "Dance";
+    const old = file.items.find((i) => i.kind === own);
+    const before = file.items.find(
+      (i) => i.kind === "Variant" || (kind === "background" && i.kind === "Dance"),
+    );
     if (old) out = text.slice(0, old.span.start) + block + text.slice(old.span.end);
     else if (before)
       out = `${text.slice(0, before.span.start)}${block}\n\n${text.slice(before.span.start)}`;
@@ -162,6 +178,12 @@ export function withBackground(text: string, lines: string[]): string | undefine
     return undefined;
   }
   return formatText(out).text ?? out;
+}
+
+/** The lines inside a background or dance file, below its header and description. */
+export function definitionLines(text: string): string[] | undefined {
+  const first = check(text).file.items[0];
+  return first ? text.slice(first.span.start).trimEnd().split("\n") : undefined;
 }
 
 /** The latest picture asked of each canvas, so one that arrives late isn't drawn over it. */

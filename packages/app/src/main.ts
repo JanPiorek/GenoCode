@@ -2,7 +2,8 @@
 // with a control for each gene and sliders for time and music. Breed: a grid of variations to
 // mutate and breed. Morph: a loop blending creatures into one another. Dance: music moves the
 // creature along that loop, turns it and brings it nearer, by a dance style. Patterns: design
-// texture and background recipes. Creatures come from the
+// texture and background recipes. Library: the starter creatures and dance styles, and everything
+// kept in this browser, as pictures to open. Creatures come from the
 // examples, from files (watched for changes where the browser allows it), or from those saved in
 // this browser.
 
@@ -34,9 +35,16 @@ import { DanceFloor, type DanceFrame } from "./dance.js";
 import { CodeEditor } from "./editor.js";
 import { drawFieldsInWorkers } from "./fields.js";
 import { InputControls } from "./inputs.js";
+import { kindOf, LibraryView, type LibraryEntry } from "./libraryview.js";
 import { deleteCreature, saveCreature, savedNames, savedText } from "./library.js";
 import { Morpher } from "./morph.js";
-import { PatternDesigner, saveBlob, withBackground } from "./patterns.js";
+import {
+  definitionLines,
+  PatternDesigner,
+  saveBlob,
+  withBackground,
+  withDefinition,
+} from "./patterns.js";
 import { showGenes, showInfo, showProblems, showStatus } from "./panel.js";
 
 // The starter creatures in the repository's creatures/ folder.
@@ -74,7 +82,7 @@ const creatureSelect = $<HTMLSelectElement>("creatures");
 const fileInput = $<HTMLInputElement>("file-input");
 const watching = $("watching");
 
-type Mode = "view" | "breed" | "morph" | "dance" | "patterns";
+type Mode = "view" | "breed" | "morph" | "dance" | "patterns" | "library";
 let mode: Mode = "view";
 
 /** Where the code came from: an example, a creature saved in this browser, or elsewhere. */
@@ -380,10 +388,12 @@ function setMode(next: Mode): void {
   blocksSection.hidden = mode !== "view" || !showBlocks();
   document.body.classList.toggle("with-blocks", !blocksSection.hidden);
   if (!blocksSection.hidden) blocks.revealed();
-  canvas.hidden = mode === "breed" || mode === "patterns";
+  const pictureless = mode === "breed" || mode === "patterns" || mode === "library";
+  canvas.hidden = pictureless;
   grid.hidden = mode !== "breed";
   patternsSection.hidden = mode !== "patterns";
-  $("views").hidden = mode === "breed" || mode === "patterns";
+  librarySection.hidden = mode !== "library";
+  $("views").hidden = pictureless;
   cancelAnimationFrame(liveFrame);
   morpher.stop();
   floor.stop();
@@ -397,6 +407,7 @@ function setMode(next: Mode): void {
   if (mode === "morph") startMorph();
   if (mode === "dance") startDance();
   if (mode === "patterns") designer.show(creaturePattern());
+  if (mode === "library") library.show(libraryEntries());
   enableTools();
 }
 
@@ -510,6 +521,63 @@ function creaturePattern(): Pattern | undefined {
   if (!current) return undefined;
   const { background } = buildCreature(current);
   return typeof background === "object" && background.type === "pattern" ? background : undefined;
+}
+
+// ---------- the library ----------
+
+const librarySection = $("library");
+const library = new LibraryView(librarySection, {
+  open(entry) {
+    if (!mayDiscard()) return;
+    const from: Source = entry.yours
+      ? { kind: "mine", name: entry.name }
+      : entry.kind === "creature"
+        ? { kind: "example", name: entry.name }
+        : { kind: "other" };
+    load(entry.text, from);
+    setMode("view");
+  },
+  putIn(entry) {
+    if (putIn(entry.text)) setMode("view");
+  },
+  remove(entry) {
+    if (!confirm(`Delete ${entry.name} from this browser?`)) return;
+    deleteCreature(entry.name);
+    if (source.kind === "mine" && source.name === entry.name) {
+      source = { kind: "other" };
+      savedAs = "";
+    }
+    showSource();
+    library.show(libraryEntries());
+  },
+  creature() {
+    const file = current?.program.file;
+    return file?.kind === "creature" ? file.name : undefined;
+  },
+});
+
+/** Everything the library shows: what's kept in this browser, then what comes with GenoCode. */
+function libraryEntries(): LibraryEntry[] {
+  const yours = savedNames().map((name) => {
+    const text = savedText(name)!;
+    return { kind: kindOf(text), name, text, yours: true };
+  });
+  const starters = exampleNames.map((name) => {
+    const text = exampleText(name)!;
+    return { kind: kindOf(text), name, text, yours: false };
+  });
+  const styles = Object.entries(danceFiles)
+    .map(([path, text]) => ({
+      kind: "dance" as const,
+      name: path
+        .split("/")
+        .pop()!
+        .replace(/\.genie$/, ""),
+      text,
+      yours: false,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return [...yours, ...starters, ...styles];
 }
 
 // ---------- dancing ----------
@@ -739,7 +807,7 @@ function stopWatching(): void {
 async function openHandle(handle: FileHandleLike): Promise<void> {
   let file = await handle.getFile();
   const text = await file.text();
-  if (offerBackground(text) || !mayDiscard()) return;
+  if (offerDefinition(text) || !mayDiscard()) return;
   load(text, { kind: "other" });
   let modified = file.lastModified;
   watching.textContent = `Watching ${handle.name} for changes`;
@@ -762,24 +830,33 @@ async function openHandle(handle: FileHandleLike): Promise<void> {
 
 async function openFile(file: File): Promise<void> {
   const text = await file.text();
-  if (offerBackground(text) || !mayDiscard()) return;
+  if (offerDefinition(text) || !mayDiscard()) return;
   load(text, { kind: "other" });
 }
 
 /**
- * Offers to put a background file behind the creature on show, replacing its background block
- * (docs/LANGUAGE.md section 15). Says whether it did; if not, the file is opened on its own.
+ * Offers to put a background or dance file into the creature on show, replacing its background or
+ * dance block (docs/LANGUAGE.md sections 15 and 17). Says whether it did; if not, the file is
+ * opened on its own.
  */
-function offerBackground(text: string): boolean {
-  const p = checkText(text);
-  const first = p.file.items[0];
+function offerDefinition(text: string): boolean {
+  const file = checkText(text).file;
   const creature = current?.program.file;
-  if (p.file.kind !== "background" || !first || creature?.kind !== "creature") return false;
+  if (file.kind === "creature" || creature?.kind !== "creature") return false;
   const ask =
-    `Put the background ${p.file.name} behind ${creature.name}?\n\n` +
-    "Cancel opens the background on its own.";
-  if (!confirm(ask)) return false;
-  const out = withBackground(editor.text, text.slice(first.span.start).trimEnd().split("\n"));
+    file.kind === "background"
+      ? `Put the background ${file.name} behind ${creature.name}?`
+      : `Give ${creature.name} the dance ${file.name}?`;
+  if (!confirm(`${ask}\n\nCancel opens the ${file.kind} on its own.`)) return false;
+  return putIn(text);
+}
+
+/** Puts a background or dance file into the creature on show. Says whether it could. */
+function putIn(text: string): boolean {
+  const kind = checkText(text).file.kind;
+  const lines = definitionLines(text);
+  if (kind === "creature" || !lines) return false;
+  const out = withDefinition(editor.text, kind, lines);
   if (out === undefined) return false;
   editor.setText(out);
   show(out, true);
@@ -836,6 +913,11 @@ window.addEventListener("drop", async (e) => {
 });
 
 $("reset").addEventListener("click", () => view.resetView());
+
+$("picture").addEventListener("click", async () => {
+  const blob = await view.picture(2);
+  if (blob) await saveBlob(blob, `${creatureName()}.png`, "PNG pictures", ".png");
+});
 
 // ---------- looking from each side, and full screen ----------
 
