@@ -125,6 +125,73 @@ body.with-code .layout {
   grid-template-columns: minmax(320px, 42%) 1fr 320px;
 }
 
+body.with-blocks .layout {
+  grid-template-columns: minmax(360px, 48%) 1fr 320px;
+}
+
+body.with-blocks.with-code .layout {
+  grid-template-columns: minmax(340px, 36%) minmax(260px, 24%) 1fr 320px;
+}
+
+/* The blocks: Blockly's workspace fills the pane. Out of date, they're dimmed and can't be used. */
+.blocks {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+}
+
+.blocks-area {
+  position: absolute;
+  inset: 0;
+}
+
+/* Blocks without glare: labels in soft grey rather than white, and the fields you edit dark
+   with light text, like the code editor, instead of white boxes. */
+#blocks .blocklyText {
+  fill: #c3c9d6;
+}
+
+#blocks .blocklyEditableField > rect.blocklyFieldRect {
+  fill: #0e121c;
+  fill-opacity: 1;
+  stroke: none;
+}
+
+#blocks .blocklyEditableField .blocklyText {
+  fill: #e2e6ef;
+}
+
+#blocks .blocklyEditableField .blocklyText tspan {
+  fill: #8a93a8 !important;
+}
+
+/* A block's note: dark like the code, not light text on yellow. */
+#blocks .blocklyCommentText {
+  background: #121725;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.blocks.stale .blocks-area {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.blocks-stale {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  max-width: 90%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #3a2a10;
+  color: var(--warning);
+  font-size: 0.9em;
+}
+
 .code {
   min-width: 0;
   min-height: 0;
@@ -480,9 +547,21 @@ input[type="color"].gene-control {
   }
 
   .layout,
-  body.with-code .layout {
+  body.with-code .layout,
+  body.with-blocks .layout,
+  body.with-blocks.with-code .layout {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 60vh auto;
+    grid-template-rows: none;
+  }
+
+  .stage {
+    height: 60vh;
+  }
+
+  .blocks {
+    height: 60vh;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
   }
 
   .code {

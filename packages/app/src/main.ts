@@ -17,6 +17,7 @@ import {
 } from "@genocode/core";
 import { MusicPlayer } from "@genocode/music";
 import { CreatureView, type Side } from "@genocode/render";
+import { BlocksView } from "./blocksview.js";
 import { Breeder } from "./breed.js";
 import type { GeneEditing } from "./controls.js";
 import {
@@ -92,6 +93,13 @@ const editor = new CodeEditor(codeSection, (text) => {
   stopWatching();
   show(text, true);
 });
+const blocksSection = $("blocks");
+const blocks = new BlocksView(blocksSection, (text) => {
+  // Built with blocks: the code is written for them.
+  stopWatching();
+  editor.setText(text);
+  show(text, true);
+});
 const inputs = new InputControls($("inputs-section"), () => {
   if (mode === "view" && !inputs.running) showCurrent(true, false);
 });
@@ -100,6 +108,7 @@ const inputs = new InputControls($("inputs-section"), () => {
 
 /** Shows new text. Keeps showing the last good version while the text has errors. */
 function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Value>): void {
+  blocks.show(text);
   program = checkText(text);
   if (breedable(program)) {
     current = fromProgram(program);
@@ -310,6 +319,14 @@ const showCode = () => {
   }
 };
 
+const showBlocks = () => {
+  try {
+    return localStorage.getItem("genocode.blocks") === "shown";
+  } catch {
+    return false;
+  }
+};
+
 function setMode(next: Mode): void {
   mode = next;
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
@@ -321,6 +338,9 @@ function setMode(next: Mode): void {
   $("dance-tools").hidden = mode !== "dance";
   codeSection.hidden = mode !== "view" || !showCode();
   document.body.classList.toggle("with-code", !codeSection.hidden);
+  blocksSection.hidden = mode !== "view" || !showBlocks();
+  document.body.classList.toggle("with-blocks", !blocksSection.hidden);
+  if (!blocksSection.hidden) blocks.revealed();
   canvas.hidden = mode === "breed" || mode === "patterns";
   grid.hidden = mode !== "breed";
   patternsSection.hidden = mode !== "patterns";
@@ -398,6 +418,18 @@ $("code-toggle").addEventListener("click", () => {
   setMode(mode);
 });
 $("code-toggle").setAttribute("aria-pressed", String(showCode()));
+
+$("blocks-toggle").addEventListener("click", () => {
+  const on = !showBlocks();
+  try {
+    localStorage.setItem("genocode.blocks", on ? "shown" : "hidden");
+  } catch {
+    // Not remembered, then.
+  }
+  $("blocks-toggle").setAttribute("aria-pressed", String(on));
+  setMode(mode);
+});
+$("blocks-toggle").setAttribute("aria-pressed", String(showBlocks()));
 
 $("mutate").addEventListener("click", () => {
   breeder.mutateSelection(strength(), keepParents());
