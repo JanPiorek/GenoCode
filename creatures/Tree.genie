@@ -1,6 +1,6 @@
 creature Tree
 // A tree that forks again and again, each limb shorter than the one it grows from, with a leaf at
-// the end of every twig.
+// the end of every twig. It has a calm dance of its own.
 // Inspired by Tree, a Fantastic Avian Creatures design.
 
 gene depth = 5 in 2..6 step 1  // how many times the limbs fork
@@ -41,4 +41,18 @@ part limb(level, size) {
       }
     }
   }
+}
+
+// The Tree's own dance, calm like a tree in the wind: the music slowly grows it through its kin,
+// the bass makes it breathe nearer, and the kicks are gusts that swing it gently round to a new
+// way. It never spins flat: a tree is best seen in the round.
+dance {
+  gene growth = 0.3 in 0.1..1   // how many trees a second the music grows it through
+  gene sway   = 40  in 10..120  // how fast it turns at its loudest, in degrees a second
+
+  morph   follows music.level  speed growth  settle 4
+  zoom    follows music.bass  amount 0.3  settle 4
+  spin    follows music.level  from 8 to sway  smooth 3
+  turn    on music.bass_hit rises  by 0.6
+  reverse on music.high drops  by 0.5  on 8 off 8
 }
