@@ -12,6 +12,7 @@ import {
   backgroundLines,
   cross,
   definitionLines,
+  patternInFile,
   vary,
   withBackground,
   withDefinition,
@@ -50,6 +51,22 @@ describe("recipes as code", () => {
   it("puts it before the creature's variants", () => {
     const text = withBackground(`${CREATURE}\nvariant Big { }\n`, backgroundLines(recipe))!;
     expect(text.indexOf("background {")).toBeLessThan(text.indexOf("variant Big"));
+  });
+});
+
+describe("patterns from files", () => {
+  it("reads the pattern of a background file or a creature's background", () => {
+    expect(patternInFile(backgroundFile(mixed)).pattern).toEqual(mixed);
+    const creature = withBackground(CREATURE, backgroundLines(recipe))!;
+    expect(formatValue(patternInFile(creature).pattern!)).toBe(formatValue(recipe));
+  });
+
+  it("says why when there's no pattern", () => {
+    expect(patternInFile(CREATURE).problem).toContain("has no background");
+    expect(patternInFile("background Plain\n\nfill red\n").problem).toContain("not a pattern");
+    expect(
+      patternInFile("dance Calm\n\nmorph follows music.level  speed 1  settle 2\n").problem,
+    ).toContain("dance style");
   });
 });
 

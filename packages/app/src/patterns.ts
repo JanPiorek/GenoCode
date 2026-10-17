@@ -5,6 +5,7 @@
 // file or a picture.
 
 import {
+  buildBackground,
   check,
   FINISHES,
   formatText,
@@ -16,6 +17,7 @@ import {
   type MixWayName,
   type Pattern,
   type PatternKindName,
+  valuesOf,
 } from "@genocode/core";
 import { pixelsWhenReady } from "@genocode/render";
 
@@ -27,12 +29,15 @@ const VARIATIONS = 12;
 /** How big an exported picture is. */
 const EXPORT_SIZE = 1024;
 
+/** The recipe the designer starts from, when the creature has no pattern of its own. */
 export const DEFAULT_RECIPE: Pattern = {
   ...NO_PATTERN,
-  kind: "aurora",
-  hue: 200,
-  seed: 7,
-  scheme: "dusk",
+  kind: "kaleidoscope",
+  hue: 47,
+  seed: 35,
+  scheme: "jewel",
+  finish: "pearl",
+  mix: { way: "blend", kind: "lightning", amount: 0.5 },
 };
 
 export interface PatternActions {
@@ -117,6 +122,24 @@ export function backgroundLines(p: Pattern): string[] {
     fill = `mixed(${fill}, mixing, other, amount)`;
   }
   return [...lines, "", `fill ${fill}`];
+}
+
+/**
+ * The pattern a file's background shows: a background file's, or a creature's background block's,
+ * with its genes as written. When there's none, `problem` says why.
+ */
+export function patternInFile(text: string): { pattern?: Pattern; problem?: string } {
+  const program = check(text);
+  const name = program.file.name || "That file";
+  if (!program.ok) return { problem: `${name} has mistakes in it, so it can't be read.` };
+  if (program.file.kind === "dance")
+    return { problem: `${name} is a dance style, not a background.` };
+  if (program.background === undefined) return { problem: `${name} has no background.` };
+  const fill = buildBackground(program, { genes: valuesOf(program.genes) }).fill;
+  if (typeof fill !== "object" || fill.type !== "pattern" || fill.kind === null) {
+    return { problem: `${name}'s background is a colour or gradient, not a pattern.` };
+  }
+  return { pattern: fill };
 }
 
 /** A name for a recipe, such as Dusk_Aurora. */
@@ -238,6 +261,7 @@ export class PatternDesigner {
   private readonly gridHint = element("span", { className: "hint" });
   private readonly code = element("code");
   private readonly hint = element("span", { className: "hint" });
+  private readonly fileInput = element("input", { type: "file", accept: ".genie", hidden: true });
 
   private readonly kind = choice(PATTERN_KINDS);
   private readonly hue = slider(0, 359, 1);
@@ -289,10 +313,21 @@ export class PatternDesigner {
       button("Use as background", "Put this recipe behind the creature, with genes", () =>
         this.actions.useAsBackground(backgroundLines(this.recipe)),
       ),
+      button(
+        "Open .genie…",
+        "Load the pattern of a background file, or a creature's background",
+        () => this.fileInput.click(),
+      ),
       button("Export .genie", "Save the recipe as a background file", () => void this.exportFile()),
       button("Export PNG", "Save the pattern as a picture", () => void this.exportPicture()),
       this.hint,
     );
+    this.fileInput.addEventListener("change", () => {
+      const file = this.fileInput.files?.[0];
+      this.fileInput.value = "";
+      if (file) void file.text().then((text) => this.openFile(text));
+    });
+    root.append(this.fileInput);
     this.mutateButton.title = "Variations of the chosen recipes, or of the one above";
     this.breedButton.title = "Children of the chosen recipes";
     this.mutateButton.addEventListener("click", () => this.mutate());
@@ -327,6 +362,19 @@ export class PatternDesigner {
   }
 
   /** Starts designing from a recipe, such as the creature's background. */
+  /** Starts designing from the pattern in a file, with new variations of it. */
+  openFile(text: string): void {
+    const { pattern, problem } = patternInFile(text);
+    if (!pattern) {
+      this.hint.textContent = problem ?? "";
+      return;
+    }
+    this.recipe = pattern;
+    this.toControls();
+    this.draw(PREVIEW_SIZE);
+    this.mutate();
+  }
+
   show(start?: Pattern): void {
     if (start && start.kind !== null) this.recipe = start;
     this.toControls();
