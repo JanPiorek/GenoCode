@@ -1,5 +1,6 @@
-// Plays music in the browser and listens to it: from a file, a web address or the microphone. The
-// sound passes through a small audio worklet that hands every sample to a MusicAnalyser.
+// Plays music in the browser and listens to it: from a file, a web address, the microphone or
+// another browser tab. The sound passes through a small audio worklet that hands every sample to a
+// MusicAnalyser.
 
 import { silence, type MusicInputs } from "@genocode/core";
 import { MusicAnalyser } from "./analyser.js";
@@ -23,7 +24,7 @@ class Listen extends AudioWorkletProcessor {
 registerProcessor("genocode-listen", Listen);
 `;
 
-export type MusicSource = "file" | "url" | "microphone";
+export type MusicSource = "file" | "url" | "microphone" | "tab";
 
 export class MusicPlayer {
   /** The music being listened to, or undefined when there's none. */
@@ -35,9 +36,11 @@ export class MusicPlayer {
   private microphone: MediaStreamAudioSourceNode | undefined;
   private stream: MediaStream | undefined;
   readonly audio = new Audio();
-  /** What's playing: the file's name, the address, or "Microphone". */
+  /** What's playing: the file's name, the address, "Microphone" or "Another tab". */
   name = "";
   source: MusicSource | undefined;
+  /** Called when the music stops by itself, as when the user stops sharing a tab. */
+  onEnd: (() => void) | undefined;
 
   constructor() {
     this.audio.crossOrigin = "anonymous";
@@ -57,26 +60,42 @@ export class MusicPlayer {
   /** Listens to the microphone (the browser asks the user first). */
   async listen(): Promise<void> {
     this.stop();
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-    });
-    const ctx = await this.connect();
-    this.stream = stream;
-    this.microphone = ctx.createMediaStreamSource(stream);
-    this.microphone.connect(this.node!);
-    // The microphone isn't played back, which would howl; the worklet still runs.
-    this.node!.disconnect();
-    this.node!.connect(silentOutput(ctx));
-    this.begin("Microphone", "microphone");
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: RAW_SOUND });
+    await this.listenTo(stream, "Microphone", "microphone");
+  }
+
+  /**
+   * Listens to another browser tab, such as a video site playing a song. The browser asks which
+   * tab to share; its sound is only heard if the user leaves "share tab audio" ticked.
+   */
+  async listenToTab(): Promise<void> {
+    this.stop();
+    // Browsers only share a tab with its picture, so the picture is asked for and left unused.
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: RAW_SOUND,
+      selfBrowserSurface: "exclude",
+      preferCurrentTab: false,
+    } as DisplayMediaStreamOptions);
+    if (stream.getAudioTracks().length === 0) {
+      stream.getTracks().forEach((t) => t.stop());
+      throw new Error('the tab was shared without its sound; tick "Also share tab audio"');
+    }
+    await this.listenTo(stream, "Another tab", "tab");
+  }
+
+  /** Whether the music is live, from the microphone or a tab, so it can't be paused. */
+  get live(): boolean {
+    return this.source === "microphone" || this.source === "tab";
   }
 
   get paused(): boolean {
-    return this.source !== "microphone" && this.audio.paused;
+    return !this.live && this.audio.paused;
   }
 
-  /** Pauses or carries on playing. The microphone can't be paused, only stopped. */
+  /** Pauses or carries on playing. Live music can't be paused, only stopped. */
   async togglePause(): Promise<void> {
-    if (this.source === "microphone" || this.source === undefined) return;
+    if (this.live || this.source === undefined) return;
     if (this.audio.paused) {
       await this.context?.resume();
       await this.audio.play();
@@ -129,6 +148,26 @@ export class MusicPlayer {
     await this.audio.play();
   }
 
+  private async listenTo(stream: MediaStream, name: string, source: MusicSource): Promise<void> {
+    const ctx = await this.connect();
+    this.stream = stream;
+    this.microphone = ctx.createMediaStreamSource(stream);
+    this.microphone.connect(this.node!);
+    // Live sound isn't played back: the microphone would howl, and the tab plays its own. The
+    // worklet still runs.
+    this.node!.disconnect();
+    this.node!.connect(silentOutput(ctx));
+    this.begin(name, source);
+    // Stopping the sharing (from the browser's own bar) ends the tracks.
+    for (const t of stream.getAudioTracks()) {
+      t.addEventListener("ended", () => {
+        if (this.stream !== stream) return;
+        this.stop();
+        this.onEnd?.();
+      });
+    }
+  }
+
   private begin(name: string, source: MusicSource): void {
     this.analyser = new MusicAnalyser(this.context!.sampleRate);
     this.name = name;
@@ -157,6 +196,9 @@ export class MusicPlayer {
     return this.context;
   }
 }
+
+/** The sound as it is: the browser's call clean-up would take the music for noise or echo. */
+const RAW_SOUND = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
 
 /** A way out of the graph that makes no sound, so a node is still run. */
 function silentOutput(ctx: AudioContext): AudioNode {

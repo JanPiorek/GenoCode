@@ -519,9 +519,8 @@ function showDanceHint(styleOk = true): void {
     : "Pick some music to dance to";
   $("dance-hint").textContent = styleOk ? music : `${music} · the style has a problem`;
   const play = $<HTMLButtonElement>("music-play");
-  play.disabled = !player.active || player.source === "microphone";
-  play.textContent =
-    player.source === "microphone" ? "Listening" : player.paused ? "Play" : "Pause";
+  play.disabled = !player.active || player.live;
+  play.textContent = player.live ? "Listening" : player.paused ? "Play" : "Pause";
 }
 
 /** Starts some music, reporting what went wrong if it can't. */
@@ -546,6 +545,19 @@ $("music-url").addEventListener("click", () => {
   if (url) void playMusic(() => player.playUrl(url));
 });
 $("music-mic").addEventListener("click", () => void playMusic(() => player.listen()));
+$("music-tab").addEventListener(
+  "click",
+  () =>
+    void playMusic(async () => {
+      try {
+        await player.listenToTab();
+      } catch (e) {
+        // Closing the browser's tab picker isn't a problem worth an alert.
+        if (!(e instanceof DOMException && e.name === "NotAllowedError")) throw e;
+      }
+    }),
+);
+player.onEnd = () => showDanceHint();
 $("music-play").addEventListener("click", () => void playMusic(() => player.togglePause()));
 
 const isMusic = (f: File) =>
