@@ -19,7 +19,8 @@
       "default": "./dist/index.js"
     },
     "./LANGUAGE.md": "./reference/LANGUAGE.md",
-    "./creatures/*": "./reference/creatures/*"
+    "./creatures/*": "./reference/creatures/*",
+    "./dances/*": "./reference/dances/*"
   },
   "files": [
     "dist",

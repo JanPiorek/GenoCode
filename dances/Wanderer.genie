@@ -1,0 +1,10 @@
+dance Wanderer
+// The middle pushes the morph; the snares bring it nearer; the loudness sets how fast it spins
+// and the bass turns it; drops in the bass reverse it.
+// Inspired by jw, a DancerDNA music style.
+
+morph   follows music.mid  speed 1.2  settle 0.38
+zoom    follows music.mid_hit  amount 0.5  settle 50
+spin    follows music.level  from 45.8 to 229  smooth 0
+turn    on music.bass changes  by 1
+reverse on music.bass drops  by 1  on 4 off 4

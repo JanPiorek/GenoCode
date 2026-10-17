@@ -1,0 +1,9 @@
+dance Smooth
+// The middle pushes the morph; the hi-hats bring it nearer; the middle sets how fast it spins and
+// the bass turns it.
+// Inspired by smouve, a DancerDNA music style.
+
+morph follows music.mid  speed 0.864  settle 0.01
+zoom  follows music.high_hit  amount 0.5  settle 68.5
+spin  follows music.mid  from 11.5 to 80.2  smooth 2.5
+turn  on music.bass changes  by 0.49

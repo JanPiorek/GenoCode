@@ -1,0 +1,12 @@
+dance Rewind
+// The middle pushes the morph; the kicks bring it nearer; the snares set how fast it spins and
+// the kicks turn it; drops in the hi-hats reverse it; drops in the bass switch its flat spin on
+// and off.
+// Inspired by reversor, a DancerDNA music style.
+
+morph   follows music.mid  speed 0.88  settle 0.01
+zoom    follows music.bass_hit  amount 0.5  settle 9.49
+spin    follows music.mid_hit  from 390 to 57.3  smooth 0.35
+turn    on music.bass_hit changes  by 0.53
+reverse on music.high_hit drops  by 0.49  on 64 off 64
+flat    on music.bass drops  by 0.7  on 64 off 64

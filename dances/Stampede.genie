@@ -1,0 +1,12 @@
+dance Stampede
+// The bass pushes the morph; the snares bring it nearer; the highs set how fast it spins and the
+// highs turn it; drops in the middle reverse it; drops in the snares switch its flat spin on and
+// off.
+// Inspired by stampedor, a DancerDNA music style.
+
+morph   follows music.bass  speed 1.66  settle 0.09
+zoom    follows music.mid_hit  amount 0.5  settle 68.5
+spin    follows music.high  from 0 to 195  smooth 2.5
+turn    on music.high changes  by 0.26
+reverse on music.mid drops  by 0.41  on 132 off 132
+flat    on music.mid_hit drops  by 0.7  on 164 off 164

@@ -1,0 +1,12 @@
+dance Molten
+// The bass pushes the morph; the bass brings it nearer; the middle sets how fast it spins and the
+// kicks turn it; drops in the middle reverse it; drops in the bass switch its flat spin on and
+// off.
+// Inspired by mollux, a DancerDNA music style.
+
+morph   follows music.bass  speed 2.46  settle 0.02
+zoom    follows music.bass  amount 0.5  settle 1.81
+spin    follows music.mid  from 275 to 11.5  smooth 0.25
+turn    on music.bass_hit changes  by 0.53
+reverse on music.mid drops  by 0.41  on 6 off 2
+flat    on music.bass drops  by 0.7  on 64 off 64

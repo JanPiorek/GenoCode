@@ -1,12 +1,12 @@
 // Every starter creature in creatures/ checks, is in the standard layout, and builds, in each of
-// its variants.
+// its variants; every dance style in dances/ checks and works out.
 
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { check } from "./checker.js";
 import { formatText } from "./format.js";
 import { valuesOf } from "./genetics.js";
-import { build } from "./interpreter.js";
+import { build, buildDance } from "./interpreter.js";
 
 const dir = new URL("../../../creatures/", import.meta.url);
 const files = readdirSync(dir).filter((f) => f.endsWith(".genie"));
@@ -29,5 +29,21 @@ describe.each(files)("%s", (file) => {
       ).toEqual([]);
       expect(built.shapes.length, v?.name).toBeGreaterThan(0);
     }
+  });
+});
+
+const danceDir = new URL("../../../dances/", import.meta.url);
+const dances = readdirSync(danceDir).filter((f) => f.endsWith(".genie"));
+
+describe.each(dances)("dance style %s", (file) => {
+  const text = readFileSync(new URL(file, danceDir), "utf8");
+  const program = check(text);
+
+  it("checks without problems, is in the standard layout, and works out", () => {
+    expect(program.diagnostics.map((d) => d.message)).toEqual([]);
+    expect(formatText(text).text).toBe(text);
+    const r = buildDance(program, { inputs: { music: { bass: 1, mid: 1, high: 1, level: 1 } } });
+    expect(r.diagnostics.map((d) => d.message)).toEqual([]);
+    expect(r.style?.morph).toBeDefined();
   });
 });

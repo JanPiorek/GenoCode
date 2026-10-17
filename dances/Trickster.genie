@@ -1,0 +1,12 @@
+dance Trickster
+// The bass pushes the morph; the snares bring it nearer; the middle sets how fast it spins and
+// the middle turns it; drops in the bass reverse it; drops in the snares switch its flat spin on
+// and off.
+// Inspired by tricsty, a DancerDNA music style.
+
+morph   follows music.bass  speed 0.944  settle 0.05
+zoom    follows music.mid_hit  amount 0.5  settle 6.49
+spin    follows music.mid  from 57.3 to 195  smooth 0
+turn    on music.mid changes  by 0.58
+reverse on music.bass drops  by 0.41  on 132 off 132
+flat    on music.mid_hit drops  by 0.7  on 164 off 164

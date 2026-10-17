@@ -1,0 +1,12 @@
+dance Paddle
+// The middle pushes the morph; the snares bring it nearer; the highs set how fast it spins and
+// the highs turn it; drops in the middle reverse it; drops in the snares switch its flat spin on
+// and off.
+// Inspired by paddel, a DancerDNA music style.
+
+morph   follows music.mid  speed 0.864  settle 0.03
+zoom    follows music.mid_hit  amount 0.5  settle 68.5
+spin    follows music.high  from 11.5 to 80.2  smooth 2.5
+turn    on music.high changes  by 0.49
+reverse on music.mid drops  by 0.41  on 132 off 132
+flat    on music.mid_hit drops  by 0.7  on 164 off 164

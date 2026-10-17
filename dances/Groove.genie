@@ -1,0 +1,12 @@
+dance Groove
+// The bass pushes the morph; the snares bring it nearer; the kicks set how fast it spins and the
+// bass turns it; drops in the bass reverse it; drops in the snares switch its flat spin on and
+// off.
+// Inspired by default style, a DancerDNA music style.
+
+morph   follows music.bass  speed 0.88  settle 0.08
+zoom    follows music.mid_hit  amount 0.5  settle 50
+spin    follows music.bass_hit  from 45.8 to 172  smooth 0.4
+turn    on music.bass changes  by 1
+reverse on music.bass drops  by 1  on 4 off 4
+flat    on music.mid_hit drops  by 0.86  on 24 off 48
