@@ -34,6 +34,7 @@ import {
   isVec,
   member,
   negate,
+  NO_PATTERN,
   not,
   roundHalfUp,
   SHAPES,
@@ -922,7 +923,7 @@ class Run {
       case "sharpness":
         return this.state.sharpness;
       case "texture":
-        return this.state.texture ?? { type: "pattern", kind: null, hue: 0, seed: 0 };
+        return this.state.texture ?? NO_PATTERN;
     }
     throw new RuntimeError(span, `The turtle has no \`${field}\`.`);
   }

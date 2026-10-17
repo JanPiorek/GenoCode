@@ -8,7 +8,7 @@ import { NAMED_COLOURS } from "./colour.js";
 import type { GeneInfo } from "./genes.js";
 import { KEYWORDS, lex, type Token } from "./lexer.js";
 import type { Span } from "./source.js";
-import { formatValue, PATTERN_KINDS, SHAPES } from "./values.js";
+import { FINISHES, formatValue, MIX_WAYS, PATTERN_KINDS, SCHEMES, SHAPES } from "./values.js";
 
 export interface Help {
   /** How it's written, such as `clamp(x, lo, hi)`. */
@@ -133,8 +133,16 @@ export const FUNCTION_HELP: ReadonlyMap<string, Help> = new Map([
   [
     "pattern",
     h(
-      "pattern(kind, hue, seed)",
-      "A texture: a pattern kind such as `marble`, a hue that sets the palette, and a seed.",
+      "pattern(kind, hue, seed, scheme, finish)",
+      "A texture: a pattern kind such as `marble`, a hue that sets the palette, and a seed; then, if wanted, a colour scheme such as `dusk` and a finish such as `pearl`.",
+      "14",
+    ),
+  ],
+  [
+    "mixed",
+    h(
+      "mixed(pattern, way, kind, amount)",
+      "A pattern with a second pattern mixed in: `warp`, `blend`, `mask` or `carve`, a pattern kind, and how much from 0 to 1.",
       "14",
     ),
   ],
@@ -178,6 +186,31 @@ const SHAPE_TEXT: Record<string, string> = {
   donut: "A fat torus around the heading, 1 across.",
 };
 
+const SCHEME_TEXT: Record<string, string> = {
+  jewel: "deep, rich colours beside the hue, from dark to glowing.",
+  duotone: "two hues far apart, meeting in a soft neutral.",
+  split: "the hue with the two beside its opposite, such as teal with coral and gold.",
+  analogous: "close hues flowing into each other.",
+  pastel: "light and soft.",
+  dusk: "cool shadows and warm lights.",
+  electric: "near-black to a blazing colour and white, like neon.",
+};
+
+const FINISH_TEXT: Record<string, string> = {
+  matte: "plain colours.",
+  metallic: "bright bands and white highlights, like polished metal.",
+  iridescent: "the hue slides along, like oil on water or a beetle's back.",
+  pearl: "pale, with a soft pink-green-blue play of colour.",
+  satin: "a soft band of highlight.",
+};
+
+const MIX_TEXT: Record<string, string> = {
+  warp: "the second pattern pushes the first one around.",
+  blend: "the two patterns blended.",
+  mask: "the first pattern shows where the second one is bright.",
+  carve: "the second pattern is cut out of the first.",
+};
+
 /** The built-in constants: numbers, vectors, colours, shapes and pattern kinds. */
 export function constantHelp(name: string): Help | undefined {
   const text = NUMBER_CONSTANTS.get(name);
@@ -191,6 +224,15 @@ export function constantHelp(name: string): Help | undefined {
     return h(name, `A shape. ${SHAPE_TEXT[name]}`, "12");
   if ((PATTERN_KINDS as readonly string[]).includes(name))
     return h(name, "A pattern kind, for `pattern(kind, hue, seed)`.", "14");
+  const scheme = SCHEME_TEXT[name];
+  if (scheme !== undefined && (SCHEMES as readonly string[]).includes(name))
+    return h(name, `A colour scheme for \`pattern\`: ${scheme}`, "14");
+  const finish = FINISH_TEXT[name];
+  if (finish !== undefined && (FINISHES as readonly string[]).includes(name))
+    return h(name, `A finish for \`pattern\`: ${finish}`, "14");
+  const way = MIX_TEXT[name];
+  if (way !== undefined && (MIX_WAYS as readonly string[]).includes(name))
+    return h(name, `A way of mixing for \`mixed\`: ${way}`, "14");
   return undefined;
 }
 

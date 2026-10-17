@@ -187,16 +187,19 @@ GenoCode is dynamically typed: values have types, and variables don't. Using a v
 type is an error, reported with its line and column, either when the file is checked or when the
 creature is built.
 
-| Type         | Written as                                             | Notes                                                                                |
-| ------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| number       | `3`, `0.25`, `1.5e3`                                   | 64-bit floating point. There's no separate integer type                              |
-| bool         | `true`, `false`                                        |                                                                                      |
-| vector       | `(1, 0, 0.5)`                                          | three numbers: a position, direction or size per axis. `(a)` is just `a` in brackets |
-| colour       | `red`, `hsv(200, 0.8, 1)`, `rgb(1, 0.5, 0)`, `#ff8000` | [section 13](#13-colour-and-material)                                                |
-| gradient     | `gradient(red, yellow at 0.3, blue)`                   | a colour that varies from 0 to 1 ([section 13.3](#133-gradients))                    |
-| shape        | `ball`, `cube`, `cone`, `tube`, `ring`, `donut`        | [section 12](#12-shapes)                                                             |
-| pattern      | `pattern(marble, 200, 7)`, `none`                      | a generated texture ([section 14](#14-textures))                                     |
-| pattern kind | `marble`, `cells`, …                                   | the first argument of `pattern`                                                      |
+| Type          | Written as                                             | Notes                                                                                |
+| ------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| number        | `3`, `0.25`, `1.5e3`                                   | 64-bit floating point. There's no separate integer type                              |
+| bool          | `true`, `false`                                        |                                                                                      |
+| vector        | `(1, 0, 0.5)`                                          | three numbers: a position, direction or size per axis. `(a)` is just `a` in brackets |
+| colour        | `red`, `hsv(200, 0.8, 1)`, `rgb(1, 0.5, 0)`, `#ff8000` | [section 13](#13-colour-and-material)                                                |
+| gradient      | `gradient(red, yellow at 0.3, blue)`                   | a colour that varies from 0 to 1 ([section 13.3](#133-gradients))                    |
+| shape         | `ball`, `cube`, `cone`, `tube`, `ring`, `donut`        | [section 12](#12-shapes)                                                             |
+| pattern       | `pattern(marble, 200, 7)`, `none`                      | a generated texture ([section 14](#14-textures))                                     |
+| pattern kind  | `marble`, `cells`, …                                   | the first argument of `pattern`                                                      |
+| scheme        | `jewel`, `dusk`, …                                     | a pattern's colour scheme                                                            |
+| finish        | `matte`, `pearl`, …                                    | a pattern's finish                                                                   |
+| way of mixing | `warp`, `blend`, `mask`, `carve`                       | how `mixed` adds a second pattern                                                    |
 
 **Whole numbers.** Where a whole number is needed (a `repeat` count, a shape number), the value is
 rounded to the nearest whole number, with halves rounded up (`2.5` → `3`, `-2.5` → `-2`). Nothing
@@ -236,7 +239,7 @@ gene limb    = leg from [leg, fin, wing]                      // part choice
 | vector         | `= v in min..max`        | each axis separately: `min ≤ v ≤ max` on every axis. An axis whose min and max are equal stays fixed. `log` is allowed if every axis's range is above zero |
 | colour         | `= c in min..max`        | each channel separately, as for vectors, with hue on a circle ([section 6.4](#64-colour-genes))                                                            |
 | bool           | `= true` or `= false`    | no range                                                                                                                                                   |
-| choice         | `= v from [a, b, …]`     | at least two options, all of one type: numbers, vectors, colours, shapes or pattern kinds. `v` must be one of them                                         |
+| choice         | `= v from [a, b, …]`     | at least two options, all of one type: numbers, vectors, colours, shapes, pattern kinds, schemes, finishes or ways of mixing. `v` must be one of them      |
 | part choice    | `= p from [p1, p2, …]`   | options are names of parts that all take the same number of parameters ([section 6.5](#65-part-genes))                                                     |
 
 Values, bounds and options must be **constant expressions**: literals, built-in constants, colour
@@ -368,18 +371,18 @@ size *= 0.9           // the same. Also += -= /=
 
 From lowest to highest precedence:
 
-| Operators                | Meaning                                                             | Operands                                                                             |
-| ------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `or`                     | true if either side is                                              | bools                                                                                |
-| `and`                    | true if both sides are                                              | bools                                                                                |
-| `not` (prefix)           | the opposite                                                        | bool                                                                                 |
-| `==` `!=`                | equal, not equal                                                    | two values of the same type: numbers, bools, vectors, colours, shapes, pattern kinds |
-| `<` `<=` `>` `>=`        | comparisons                                                         | numbers                                                                              |
-| `+` `-`                  | add, subtract                                                       | numbers, or two vectors                                                              |
-| `*` `/` `%`              | multiply, divide, remainder                                         | numbers; vector with number; two vectors ([8.2](#82-vector-arithmetic))              |
-| `-` (prefix)             | negate                                                              | number or vector                                                                     |
-| `^`                      | power                                                               | numbers                                                                              |
-| `.name` `f(…)` `skin(t)` | part of a value, call, sampling a gradient ([13.3](#133-gradients)) |                                                                                      |
+| Operators                | Meaning                                                             | Operands                                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `or`                     | true if either side is                                              | bools                                                                                                                                   |
+| `and`                    | true if both sides are                                              | bools                                                                                                                                   |
+| `not` (prefix)           | the opposite                                                        | bool                                                                                                                                    |
+| `==` `!=`                | equal, not equal                                                    | two values of the same type: numbers, bools, vectors, colours, shapes, and the pattern words (kinds, schemes, finishes, ways of mixing) |
+| `<` `<=` `>` `>=`        | comparisons                                                         | numbers                                                                                                                                 |
+| `+` `-`                  | add, subtract                                                       | numbers, or two vectors                                                                                                                 |
+| `*` `/` `%`              | multiply, divide, remainder                                         | numbers; vector with number; two vectors ([8.2](#82-vector-arithmetic))                                                                 |
+| `-` (prefix)             | negate                                                              | number or vector                                                                                                                        |
+| `^`                      | power                                                               | numbers                                                                                                                                 |
+| `.name` `f(…)` `skin(t)` | part of a value, call, sampling a gradient ([13.3](#133-gradients)) |                                                                                                                                         |
 
 - `and` and `or` only evaluate their right side when needed.
 - Comparisons don't chain: `a < b < c` is an error.
@@ -666,25 +669,66 @@ Textures are generated from a recipe of a few values, so they can be genes and e
 creature.
 
 ```
-gene skin_kind = marble from [marble, cells, aurora, plasma]
-gene skin_hue  = 200 in 0..360
-gene skin_seed = 7 in 0..99 step 1
+gene skin_kind   = marble from [marble, cells, aurora, plasma]
+gene skin_hue    = 200 in 0..360
+gene skin_seed   = 7 in 0..99 step 1
+gene skin_scheme = dusk from [jewel, duotone, split, analogous, pastel, dusk, electric]
+gene skin_finish = pearl from [matte, metallic, iridescent, pearl, satin]
 
-texture pattern(skin_kind, skin_hue, skin_seed)
+texture pattern(skin_kind, skin_hue, skin_seed, skin_scheme, skin_finish)
+lay
+texture mixed(pattern(cells, 40, 3), warp, vortex, 0.6)
 lay
 texture none
 ```
 
 - `pattern(kind, hue, seed)` makes a texture. The **kind** is one of `sunburst`, `vortex`,
   `plasma`, `cells`, `kaleidoscope`, `interference`, `starburst`, `marble`, `lightning`,
-  `aurora` and `bloom`. The **hue** (degrees) sets the palette. The **seed** (rounded to a whole
-  number) picks the layout and the pattern's own details.
+  `aurora` and `bloom`. The **hue** (degrees, as in `hsv`) is the colour the palette is built
+  round. The **seed** (rounded to a whole number) picks the layout and the pattern's own details.
+- Two more arguments may follow: the **colour scheme** and the **finish**.
+
+| Scheme      | Colours                                                                    |
+| ----------- | -------------------------------------------------------------------------- |
+| `jewel`     | deep, rich colours beside the hue, from dark to glowing (the default)      |
+| `duotone`   | two hues far apart, meeting in a soft neutral                              |
+| `split`     | the hue with the two beside its opposite, such as teal with coral and gold |
+| `analogous` | close hues flowing into each other                                         |
+| `pastel`    | light and soft                                                             |
+| `dusk`      | cool shadows and warm lights                                               |
+| `electric`  | near-black to a blazing colour and white, like neon                        |
+
+| Finish       | Surface                                                    |
+| ------------ | ---------------------------------------------------------- |
+| `matte`      | plain colours (the default)                                |
+| `metallic`   | bright bands and white highlights, like polished metal     |
+| `iridescent` | the hue slides along, like oil on water or a beetle's back |
+| `pearl`      | pale, with a soft pink-green-blue play of colour           |
+| `satin`      | a soft band of highlight                                   |
+
+- `mixed(p, way, kind, amount)` mixes a second pattern of the given kind into the pattern `p`.
+  The **amount** runs from 0 to 1 (values outside are clamped). The second pattern takes its own
+  layout from `p`'s seed, and the colours are always `p`'s.
+
+| Way     | Mixing                                             |
+| ------- | -------------------------------------------------- |
+| `warp`  | the second pattern pushes the first one around     |
+| `blend` | the two patterns blended                           |
+| `mask`  | the first pattern shows where the second is bright |
+| `carve` | the second pattern is cut out of the first         |
+
+- A pattern holds at most one second pattern: mixing a mixed pattern replaces its second pattern.
+  Mixing `none` gives `none`.
+- Kinds, schemes, finishes and ways of mixing are values, so genes can choose between them
+  (`from [ … ]`) and they breed like shapes.
 - `none` means no texture.
+- The same recipe always gives the same picture.
 - The texture's colours are multiplied by the shape's colour, so `colour white` shows the texture
   unchanged.
 - How a texture is wrapped onto each shape is decided by the renderer.
-- **Provisional:** `pattern` will take further optional arguments for the colour scheme, the finish
-  (such as metallic or pearl) and a second pattern mixed into the first.
+- **Changing a texture.** The hue, scheme and finish only recolour a pattern, so they can follow
+  `time` and `music` smoothly. A new kind, seed or second pattern draws a new pattern, which takes
+  a moment; the app may show the old one until the new one is ready.
 
 ## 15. Backgrounds
 
@@ -1152,7 +1196,6 @@ constant expressions ([6.1](#61-declaring-genes)) and where strings are allowed
 
 ## 23. Not yet settled
 
-- **Pattern arguments** ([section 14](#14-textures)): scheme, finish and a second pattern.
 - **More inputs** ([section 16](#16-time-and-music)): such as tempo, or the viewer interacting with
   the creature.
 - **Gene bias:** a possible `bias b` modifier on number genes, making mutation favour one part of

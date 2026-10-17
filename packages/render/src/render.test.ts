@@ -139,3 +139,24 @@ describe("software renderer", () => {
     expect(pixel(img, 0, 0)).toEqual([0, 0, 255, 255]);
   });
 });
+
+describe("textures in the software renderer", () => {
+  it("draws textured shapes and pattern backgrounds", () => {
+    const plain = rasterize(shapes("shape ball\nlay"), { width: 40, height: 30 });
+    const textured = rasterize(
+      shapes("texture pattern(cells, 40, 3, electric, metallic)\nshape ball\nlay"),
+      { width: 40, height: 30 },
+    );
+    expect(textured.data).not.toEqual(plain.data);
+    const r = check("creature T\nlay\nbackground {\n  fill pattern(aurora, 160, 12)\n}\n");
+    const background = buildBackground(r).fill;
+    const patterned = rasterize(build(r).shapes, { width: 40, height: 30, background });
+    // A pattern isn't a ramp: its rows aren't each one colour.
+    let mixedRows = 0;
+    for (let y = 0; y < 30; y++) {
+      const row = Array.from({ length: 40 }, (_, x) => patterned.data[(y * 40 + x) * 4]);
+      if (new Set(row).size > 1) mixedRows++;
+    }
+    expect(mixedRows).toBeGreaterThan(5);
+  });
+});

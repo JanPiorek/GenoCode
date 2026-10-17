@@ -123,6 +123,11 @@ describe("checker: genes", () => {
     rejects("gene s = cube from [ball, cone]", "one of its options");
     rejects("gene s = ball from [ball, 1]", "must be a shape");
     rejects("gene s = ball", "needs its options");
+    expect(errors("gene k = dusk from [jewel, dusk, electric]")).toEqual([]);
+    expect(errors("gene f = pearl from [matte, pearl]")).toEqual([]);
+    expect(errors("gene w = warp from [warp, blend, mask, carve]")).toEqual([]);
+    rejects("gene w = warp from [warp, dusk]", "must be a way of mixing");
+    rejects("gene k = dusk in jewel..electric", "needs options");
   });
 
   it("checks part genes", () => {

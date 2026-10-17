@@ -46,7 +46,7 @@ sharpness 1
 symmetric x {
   snake(side)
 }
-pearl
+pearl_ring
 
 part snake(side) {
   let total_y = 0
@@ -78,7 +78,7 @@ part snake(side) {
   }
 }
 
-part pearl {
+part pearl_ring {
   move (0, middle_y, middle_z)
   shape ball
   colour pearl_colour

@@ -5,8 +5,12 @@ import { fbm3, noise3 } from "./noise.js";
 import {
   isColour,
   isVec,
+  FINISHES,
+  MIX_WAYS,
+  NO_PATTERN,
   PATTERN_KINDS,
   roundHalfUp,
+  SCHEMES,
   SHAPES,
   typeLabel,
   typeOf,
@@ -43,6 +47,25 @@ function num(args: Value[], i: number, fn: string): number {
     );
   }
   return v;
+}
+
+type Word = Extract<Value, { type: "patternKind" | "scheme" | "finish" | "mixWay" }>;
+
+/** An argument that must be one of a set of words, such as a pattern kind or a colour scheme. */
+function word<T extends Word["type"]>(
+  args: Value[],
+  i: number,
+  fn: string,
+  type: T,
+  example: string,
+): Extract<Word, { type: T }> {
+  const v = args[i]!;
+  if (typeof v !== "object" || v.type !== type) {
+    throw new ValueError(
+      `\`${fn}\` needs ${typeLabel(type)} for argument ${i + 1}, such as \`${example}\`, not ${typeLabel(typeOf(v))}.`,
+    );
+  }
+  return v as Extract<Word, { type: T }>;
 }
 
 function vecArg(args: Value[], i: number, fn: string): Vec {
@@ -198,21 +221,34 @@ const FUNCTIONS: BuiltinFunction[] = [
   ),
   fn(
     "pattern",
-    3,
+    [3, 5],
+    "pattern",
+    (a) => ({
+      type: "pattern",
+      kind: word(a, 0, "pattern", "patternKind", "marble").name,
+      hue: num(a, 1, "pattern"),
+      seed: roundHalfUp(num(a, 2, "pattern")),
+      scheme: a.length > 3 ? word(a, 3, "pattern", "scheme", "dusk").name : "jewel",
+      finish: a.length > 4 ? word(a, 4, "pattern", "finish", "pearl").name : "matte",
+    }),
+    false,
+  ),
+  fn(
+    "mixed",
+    4,
     "pattern",
     (a) => {
-      const kind = a[0]!;
-      if (typeof kind !== "object" || kind.type !== "patternKind") {
+      const p = a[0]!;
+      if (typeof p !== "object" || p.type !== "pattern") {
         throw new ValueError(
-          `\`pattern\` needs a pattern kind first, such as \`marble\`, not ${typeLabel(typeOf(kind))}.`,
+          `\`mixed\` needs a pattern first, such as \`pattern(marble, 200, 7)\`, not ${typeLabel(typeOf(p))}.`,
         );
       }
-      return {
-        type: "pattern",
-        kind: kind.name,
-        hue: num(a, 1, "pattern"),
-        seed: roundHalfUp(num(a, 2, "pattern")),
-      };
+      const way = word(a, 1, "mixed", "mixWay", "warp").name;
+      const kind = word(a, 2, "mixed", "patternKind", "vortex").name;
+      const amount = Math.min(1, Math.max(0, num(a, 3, "mixed")));
+      // Nothing mixed with something is still nothing; mixing again replaces the second pattern.
+      return p.kind === null ? p : { ...p, mix: { way, kind, amount } };
     },
     false,
   ),
@@ -233,11 +269,14 @@ function buildConstants(): Map<string, Value> {
     ["x_axis", vec(1, 0, 0)],
     ["y_axis", vec(0, 1, 0)],
     ["z_axis", vec(0, 0, 1)],
-    ["none", { type: "pattern", kind: null, hue: 0, seed: 0 }],
+    ["none", NO_PATTERN],
   ]);
   for (const [name, colour] of NAMED_COLOURS) c.set(name, colour);
   for (const name of SHAPES) c.set(name, { type: "shape", name });
   for (const name of PATTERN_KINDS) c.set(name, { type: "patternKind", name });
+  for (const name of SCHEMES) c.set(name, { type: "scheme", name });
+  for (const name of FINISHES) c.set(name, { type: "finish", name });
+  for (const name of MIX_WAYS) c.set(name, { type: "mixWay", name });
   return c;
 }
 

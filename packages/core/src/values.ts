@@ -58,13 +58,68 @@ export interface PatternKindValue {
   name: PatternKindName;
 }
 
+/** The colour schemes a pattern can be coloured in (docs/LANGUAGE.md section 14). */
+export const SCHEMES = [
+  "jewel",
+  "duotone",
+  "split",
+  "analogous",
+  "pastel",
+  "dusk",
+  "electric",
+] as const;
+export type SchemeName = (typeof SCHEMES)[number];
+
+/** How a pattern's surface looks. */
+export const FINISHES = ["matte", "metallic", "iridescent", "pearl", "satin"] as const;
+export type FinishName = (typeof FINISHES)[number];
+
+/** The ways a second pattern can be mixed into a first. */
+export const MIX_WAYS = ["warp", "blend", "mask", "carve"] as const;
+export type MixWayName = (typeof MIX_WAYS)[number];
+
+export interface SchemeValue {
+  type: "scheme";
+  name: SchemeName;
+}
+
+export interface FinishValue {
+  type: "finish";
+  name: FinishName;
+}
+
+export interface MixWayValue {
+  type: "mixWay";
+  name: MixWayName;
+}
+
+/** A second pattern mixed into a first: how, which kind, and how much (0 to 1). */
+export interface PatternMix {
+  way: MixWayName;
+  kind: PatternKindName;
+  amount: number;
+}
+
 /** A texture recipe. `kind` is null for `none`. */
 export interface Pattern {
   type: "pattern";
   kind: PatternKindName | null;
   hue: number;
   seed: number;
+  scheme: SchemeName;
+  finish: FinishName;
+  mix?: PatternMix | undefined;
 }
+
+/** No texture. */
+export const NO_PATTERN: Pattern = {
+  type: "pattern",
+  kind: null,
+  hue: 0,
+  seed: 0,
+  scheme: "jewel",
+  finish: "matte",
+};
 
 /** The value of a part choice gene. Not a value the program can store or pass around. */
 export interface PartRef {
@@ -81,6 +136,9 @@ export type Value =
   | Gradient
   | ShapeValue
   | PatternKindValue
+  | SchemeValue
+  | FinishValue
+  | MixWayValue
   | Pattern
   | PartRef;
 
@@ -93,6 +151,9 @@ export type TypeName =
   | "gradient"
   | "shape"
   | "patternKind"
+  | "scheme"
+  | "finish"
+  | "mixWay"
   | "pattern"
   | "part";
 
@@ -121,6 +182,9 @@ const LABELS: Record<TypeName, string> = {
   gradient: "a gradient",
   shape: "a shape",
   patternKind: "a pattern kind",
+  scheme: "a colour scheme",
+  finish: "a finish",
+  mixWay: "a way of mixing",
   pattern: "a pattern",
   part: "a part",
 };
@@ -150,10 +214,23 @@ export function valuesEqual(a: Value, b: Value): boolean {
       return b.type === "colour" && a.h === b.h && a.s === b.s && a.v === b.v && a.a === b.a;
     case "shape":
     case "patternKind":
+    case "scheme":
+    case "finish":
+    case "mixWay":
     case "part":
       return b.type === a.type && a.name === b.name;
     case "pattern":
-      return b.type === "pattern" && a.kind === b.kind && a.hue === b.hue && a.seed === b.seed;
+      return (
+        b.type === "pattern" &&
+        a.kind === b.kind &&
+        a.hue === b.hue &&
+        a.seed === b.seed &&
+        a.scheme === b.scheme &&
+        a.finish === b.finish &&
+        a.mix?.way === b.mix?.way &&
+        a.mix?.kind === b.mix?.kind &&
+        a.mix?.amount === b.mix?.amount
+      );
     case "gradient":
       return false;
   }
@@ -178,10 +255,25 @@ export function formatValue(v: Value): string {
       return `${v.straight ? "spectrum" : "gradient"}(${v.stops.map((s) => `${formatValue(s.colour)} at ${formatNumber(s.pos)}`).join(", ")})`;
     case "shape":
     case "patternKind":
+    case "scheme":
+    case "finish":
+    case "mixWay":
     case "part":
       return v.name;
-    case "pattern":
-      return v.kind === null ? "none" : `pattern(${v.kind}, ${formatNumber(v.hue)}, ${v.seed})`;
+    case "pattern": {
+      if (v.kind === null) return "none";
+      // The scheme and finish are left out when they're the defaults, as they'd be written.
+      const extra =
+        v.finish !== "matte"
+          ? `, ${v.scheme}, ${v.finish}`
+          : v.scheme !== "jewel"
+            ? `, ${v.scheme}`
+            : "";
+      const p = `pattern(${v.kind}, ${formatNumber(v.hue)}, ${v.seed}${extra})`;
+      return v.mix === undefined
+        ? p
+        : `mixed(${p}, ${v.mix.way}, ${v.mix.kind}, ${formatNumber(v.mix.amount)})`;
+    }
   }
 }
 

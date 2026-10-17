@@ -1,9 +1,13 @@
 // A small software renderer: draws a creature into an RGBA image without a browser, for
 // `genie render`, thumbnails and tests. It uses the same shapes, camera and lights as the WebGL view.
 
-import { toRgb, type LaidShape, type Value } from "@genocode/core";
+import { toRgb, type LaidShape, type Pattern, type Value } from "@genocode/core";
 import { creatureBounds, shapeGeometry } from "./geometry.js";
 import { backgroundRamp, FIELD_OF_VIEW, frameCamera, LIGHTS, shininess, type Rgb } from "./look.js";
+import { patternPixels, patternSheen, TEXTURE_SIZE } from "./texture.js";
+
+/** How big a pattern background is drawn, in pixels along each side. */
+const BACKGROUND_SIZE = 512;
 
 export interface RasterOptions {
   width: number;
@@ -62,6 +66,27 @@ function normalMatrix(m: readonly number[]): number[] | undefined {
   ];
 }
 
+/** A texture's colours, 0 to 1, rows from the top. */
+function texturePixels(p: Pattern): Float32Array {
+  const px = patternPixels(p, TEXTURE_SIZE);
+  const out = new Float32Array(TEXTURE_SIZE * TEXTURE_SIZE * 3);
+  for (let i = 0; i < TEXTURE_SIZE * TEXTURE_SIZE; i++) {
+    out[i * 3] = px[i * 4]! / 255;
+    out[i * 3 + 1] = px[i * 4 + 1]! / 255;
+    out[i * 3 + 2] = px[i * 4 + 2]! / 255;
+  }
+  return out;
+}
+
+/** A texture's colour at u, v (0 to 1 across, and up from the bottom), repeating outside. */
+function texelAt(texture: Float32Array, u: number, v: number): Rgb {
+  const n = TEXTURE_SIZE;
+  const col = ((Math.floor(u * n) % n) + n) % n;
+  const row = ((Math.floor((1 - v) * n) % n) + n) % n;
+  const k = (row * n + col) * 3;
+  return [texture[k]!, texture[k + 1]!, texture[k + 2]!];
+}
+
 export function rasterize(shapes: readonly LaidShape[], options: RasterOptions): Image {
   const ss = Math.max(1, Math.round(options.supersample ?? 2));
   const W = options.width * ss;
@@ -69,10 +94,25 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
   const colour = new Float32Array(W * H * 3);
   const depth = new Float32Array(W * H); // 1 / distance; bigger is nearer, 0 is empty
 
-  const ramp = backgroundRamp(options.background, H);
-  for (let y = 0; y < H; y++) {
-    const c = ramp[H - 1 - y]!;
-    for (let x = 0; x < W; x++) colour.set(c, (y * W + x) * 3);
+  const bg = options.background;
+  if (typeof bg === "object" && bg.type === "pattern" && bg.kind !== null) {
+    // The square pattern covers the picture, cut off where it's longer than the picture.
+    const px = patternPixels(bg, BACKGROUND_SIZE);
+    const side = Math.max(W, H);
+    for (let y = 0; y < H; y++) {
+      const row = Math.floor(((y + (side - H) / 2) / side) * BACKGROUND_SIZE);
+      for (let x = 0; x < W; x++) {
+        const col = Math.floor(((x + (side - W) / 2) / side) * BACKGROUND_SIZE);
+        const k = (row * BACKGROUND_SIZE + col) * 4;
+        colour.set([px[k]! / 255, px[k + 1]! / 255, px[k + 2]! / 255], (y * W + x) * 3);
+      }
+    }
+  } else {
+    const ramp = backgroundRamp(bg, H);
+    for (let y = 0; y < H; y++) {
+      const c = ramp[H - 1 - y]!;
+      for (let x = 0; x < W; x++) colour.set(c, (y * W + x) * 3);
+    }
   }
 
   const cam = frameCamera(creatureBounds(shapes), options.width / options.height);
@@ -97,17 +137,22 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
     const geometry = shapeGeometry(shape.shape, false, "low");
     const pos = geometry.getAttribute("position").array;
     const nor = geometry.getAttribute("normal").array;
+    const uv = geometry.getAttribute("uv").array;
+    const texture = shape.texture ? texturePixels(shape.texture) : undefined;
+    const sheen = shape.texture ? patternSheen(shape.texture) : 0;
     const index = geometry.getIndex()?.array;
     const count = pos.length / 3;
     const base: Rgb = toRgb(shape.colour);
     const alpha = shape.colour.a;
     const exponent = shininess(shape.sharpness);
 
-    // Per corner: screen x, screen y, 1/distance, and lit colour.
+    // Per corner: screen x, screen y, 1/distance, how much light falls on it (which the colour
+    // and texture multiply), and the light it gives off whatever its colour (highlights and sheen).
     const sx = new Float32Array(count);
     const sy = new Float32Array(count);
     const iz = new Float32Array(count);
-    const lit = new Float32Array(count * 3);
+    const shade = new Float32Array(count);
+    const glint = new Float32Array(count);
     for (let v = 0; v < count; v++) {
       const px = pos[v * 3]!;
       const py = pos[v * 3 + 1]!;
@@ -144,7 +189,9 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
           specular += l.strength * shape.shine * Math.pow(Math.max(0, dot(n, half)), exponent);
         }
       }
-      for (let k = 0; k < 3; k++) lit[v * 3 + k] = base[k]! * diffuse + specular;
+      if (sheen > 0) specular += sheen * 0.5 * Math.pow(1 - Math.abs(dot(n, toEye)), 3);
+      shade[v] = diffuse;
+      glint[v] = specular;
     }
 
     const triangles = index ? index.length / 3 : count / 3;
@@ -173,8 +220,17 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
           const ka = (wa * iz[a]!) / z;
           const kb = (wb * iz[b]!) / z;
           const kc = (wc * iz[c]!) / z;
+          const light = ka * shade[a]! + kb * shade[b]! + kc * shade[c]!;
+          const extra = ka * glint[a]! + kb * glint[b]! + kc * glint[c]!;
+          let surface = base;
+          if (texture) {
+            const u = ka * uv[a * 2]! + kb * uv[b * 2]! + kc * uv[c * 2]!;
+            const w = ka * uv[a * 2 + 1]! + kb * uv[b * 2 + 1]! + kc * uv[c * 2 + 1]!;
+            const t = texelAt(texture, u, w);
+            surface = [base[0] * t[0], base[1] * t[1], base[2] * t[2]];
+          }
           for (let k = 0; k < 3; k++) {
-            const value = ka * lit[a * 3 + k]! + kb * lit[b * 3 + k]! + kc * lit[c * 3 + k]!;
+            const value = surface[k]! * light + extra;
             colour[at * 3 + k] =
               alpha >= 0.999 ? value : colour[at * 3 + k]! * (1 - alpha) + value * alpha;
           }

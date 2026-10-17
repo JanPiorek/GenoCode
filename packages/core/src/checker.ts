@@ -155,6 +155,14 @@ const TURTLE_FIELDS: ReadonlyMap<string, TypeName> = new Map<string, TypeName>([
   ["texture", "pattern"],
 ]);
 
+/** Values that are one of a set of words, so their genes choose from options. */
+const WORD_TYPES: ReadonlySet<TypeName> = new Set<TypeName>([
+  "shape",
+  "patternKind",
+  "scheme",
+  "finish",
+  "mixWay",
+]);
 const MUSIC_NAMES: ReadonlySet<string> = new Set(MUSIC_FIELDS);
 const VECTOR_FIELDS = new Set(["x", "y", "z"]);
 const COLOUR_FIELDS = new Set(["hue", "sat", "val", "alpha"]);
@@ -703,19 +711,14 @@ class Checker {
           );
         return { ...base, kind: "bool", value };
       }
-      if (
-        type !== "number" &&
-        type !== "vector" &&
-        type !== "colour" &&
-        type !== "shape" &&
-        type !== "patternKind"
-      ) {
+      const wordType = WORD_TYPES.has(type);
+      if (type !== "number" && type !== "vector" && type !== "colour" && !wordType) {
         throw new ConstError(decl.value.span, `${typeLabel(type)} can't be a gene.`);
       }
       if (range === undefined) {
         throw new ConstError(
           decl.nameSpan,
-          type === "shape" || type === "patternKind"
+          wordType
             ? `This gene needs its options: \`from [a, b, …]\`.`
             : "This gene needs a range: `in <lowest>..<highest>`.",
         );
@@ -739,7 +742,7 @@ class Checker {
         return { ...base, kind: "choice", value, options };
       }
 
-      if (type === "shape" || type === "patternKind") {
+      if (wordType) {
         throw new ConstError(
           decl.nameSpan,
           `${typeLabel(type)} gene needs options, \`from [a, b, …]\`, not a range.`,

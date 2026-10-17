@@ -80,6 +80,41 @@ describe("turtle", () => {
     expect(r.shapes[1]!.texture).toBeNull();
   });
 
+  it("makes patterns with a scheme, a finish and a second pattern mixed in", () => {
+    expect(value("pattern(marble, 200, 7)")).toBe("pattern(marble, 200, 7)");
+    expect(value("pattern(marble, 200, 7, dusk)")).toBe("pattern(marble, 200, 7, dusk)");
+    expect(value("pattern(marble, 200, 7, jewel, pearl)")).toBe(
+      "pattern(marble, 200, 7, jewel, pearl)",
+    );
+    expect(value("mixed(pattern(cells, 40, 3, electric), warp, vortex, 1.5)")).toBe(
+      "mixed(pattern(cells, 40, 3, electric), warp, vortex, 1)",
+    );
+    // Mixing again replaces the second pattern; nothing mixed is still nothing.
+    expect(value("mixed(mixed(pattern(cells, 40, 3), warp, vortex, 0.5), carve, bloom, 0.2)")).toBe(
+      "mixed(pattern(cells, 40, 3), carve, bloom, 0.2)",
+    );
+    expect(value("mixed(none, blend, cells, 0.5)")).toBe("none");
+    const r = run("texture mixed(pattern(aurora, 120, 4, pastel, satin), mask, cells, 0.25)\nlay");
+    expect(r.shapes[0]!.texture).toEqual({
+      type: "pattern",
+      kind: "aurora",
+      hue: 120,
+      seed: 4,
+      scheme: "pastel",
+      finish: "satin",
+      mix: { way: "mask", kind: "cells", amount: 0.25 },
+    });
+  });
+
+  it("says what a pattern's words should be", () => {
+    expect(run("print(pattern(marble, 200, 7, pearl))").diagnostics[0]!.message).toContain(
+      "a colour scheme for argument 4",
+    );
+    expect(
+      run("print(mixed(pattern(marble, 200, 7), cells, warp, 1))").diagnostics[0]!.message,
+    ).toContain("a way of mixing for argument 2");
+  });
+
   it("reads the turtle back", () => {
     expect(value("turtle.heading")).toBe("(0, 0, 1)");
     expect(run("yaw 90\nforward 2\nprint(turtle.position)").printed[0]).toBe("(2, 0, 1.22465e-16)");

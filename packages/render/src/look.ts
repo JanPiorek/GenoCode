@@ -76,8 +76,8 @@ export function colourRgb(c: Colour): Rgb {
 
 /**
  * Turns a background's fill into a vertical ramp of colours, sampled at `rows` points from the
- * bottom (0) to the top (1). Patterns aren't drawn yet (roadmap phase 7), so they fall back to the
- * default background tinted with their hue.
+ * bottom (0) to the top (1). The renderers draw patterns themselves; here a pattern stands in as
+ * the default background tinted with its hue.
  */
 export function backgroundRamp(fill: Value | undefined, rows: number): Rgb[] {
   const out: Rgb[] = [];

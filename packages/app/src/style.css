@@ -524,3 +524,75 @@ input[type="color"].gene-control {
 .meter.hit > div {
   background: #40cfff;
 }
+
+/* Patterns: a big preview with its controls beside it, then the variations to pick from. */
+.patterns {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pattern-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.pattern-preview {
+  width: min(100%, 420px);
+  aspect-ratio: 1;
+  border-radius: 8px;
+}
+
+.pattern-controls {
+  display: grid;
+  gap: 8px;
+  min-width: 240px;
+}
+
+.pattern-controls .field {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+}
+
+.pattern-controls input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.pattern-variations {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px;
+}
+
+.pattern-variation {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.pattern-variation:hover {
+  border-color: var(--accent);
+}
+
+.pattern-code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.92em;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.pattern-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

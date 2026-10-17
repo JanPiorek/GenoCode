@@ -10,6 +10,8 @@ inspired by DancerDNA's are rewritten from scratch in GenoCode, and each one nam
 was inspired by.
 
 GenoCode also grows out of **Fantastic Avian Creatures**, an earlier project by GenoCode's author.
+Its texture generator (the pattern kinds, colour schemes, finishes and mixes) is ported in
+`packages/render`.
 
 ## Other influences
 

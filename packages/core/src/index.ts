@@ -62,12 +62,25 @@ export {
   type BuiltinFunction,
 } from "./builtins.js";
 export { hsv, rgb, hexColour, toRgb, mixColour, sampleGradient, NAMED_COLOURS } from "./colour.js";
-export { formatValue, typeOf, SHAPES, PATTERN_KINDS } from "./values.js";
+export {
+  formatValue,
+  typeOf,
+  SHAPES,
+  PATTERN_KINDS,
+  SCHEMES,
+  FINISHES,
+  MIX_WAYS,
+  NO_PATTERN,
+} from "./values.js";
 export type {
   Colour,
   Gradient,
+  FinishName,
+  MixWayName,
   Pattern,
   PatternKindName,
+  PatternMix,
+  SchemeName,
   ShapeName,
   TypeName,
   Value,

@@ -1,16 +1,19 @@
 // The GenoCode app. View: write a creature's code and see it beside the code, rebuilt as you type,
 // with a control for each gene and sliders for time and music. Breed: a grid of variations to
 // mutate and breed. Morph: a loop blending creatures into one another. Dance: music moves the
-// creature along that loop, turns it and brings it nearer, by a dance style. Creatures come from the
+// creature along that loop, turns it and brings it nearer, by a dance style. Patterns: design
+// texture and background recipes. Creatures come from the
 // examples, from files (watched for changes where the browser allows it), or from those saved in
 // this browser.
 
 import {
   check,
+  formatText,
   geneEdits,
   MUSIC_FIELDS,
   type CheckResult,
   type Diagnostic,
+  type Pattern,
   type Value,
 } from "@genocode/core";
 import { MusicPlayer } from "@genocode/music";
@@ -30,6 +33,7 @@ import { CodeEditor } from "./editor.js";
 import { InputControls } from "./inputs.js";
 import { deleteCreature, saveCreature, savedNames, savedText } from "./library.js";
 import { Morpher } from "./morph.js";
+import { PatternDesigner } from "./patterns.js";
 import { showGenes, showInfo, showProblems, showStatus } from "./panel.js";
 
 // The starter creatures in the repository's creatures/ folder.
@@ -66,7 +70,7 @@ const creatureSelect = $<HTMLSelectElement>("creatures");
 const fileInput = $<HTMLInputElement>("file-input");
 const watching = $("watching");
 
-type Mode = "view" | "breed" | "morph" | "dance";
+type Mode = "view" | "breed" | "morph" | "dance" | "patterns";
 let mode: Mode = "view";
 
 /** Where the code came from: an example, a creature saved in this browser, or elsewhere. */
@@ -313,9 +317,10 @@ function setMode(next: Mode): void {
   $("dance-tools").hidden = mode !== "dance";
   codeSection.hidden = mode !== "view" || !showCode();
   document.body.classList.toggle("with-code", !codeSection.hidden);
-  canvas.hidden = mode === "breed";
+  canvas.hidden = mode === "breed" || mode === "patterns";
   grid.hidden = mode !== "breed";
-  $("views").hidden = mode === "breed";
+  patternsSection.hidden = mode !== "patterns";
+  $("views").hidden = mode === "breed" || mode === "patterns";
   cancelAnimationFrame(liveFrame);
   morpher.stop();
   floor.stop();
@@ -328,6 +333,7 @@ function setMode(next: Mode): void {
   }
   if (mode === "morph") startMorph();
   if (mode === "dance") startDance();
+  if (mode === "patterns") designer.show(creaturePattern());
   enableTools();
 }
 
@@ -410,6 +416,53 @@ $("play").addEventListener("click", () => {
 $<HTMLInputElement>("speed").addEventListener("input", (e) => {
   morpher.secondsEach = Number((e.target as HTMLInputElement).value);
 });
+
+// ---------- patterns ----------
+
+const patternsSection = $("patterns");
+const designer = new PatternDesigner(patternsSection, {
+  useAsBackground(lines) {
+    const text = withBackground(editor.text, lines);
+    if (text === undefined) return;
+    editor.setText(text);
+    show(text, true);
+    setMode("view");
+  },
+});
+
+/** The creature's background, when it's a pattern, to start designing from. */
+function creaturePattern(): Pattern | undefined {
+  if (!current) return undefined;
+  const { background } = buildCreature(current);
+  return typeof background === "object" && background.type === "pattern" ? background : undefined;
+}
+
+/**
+ * The code with its background replaced by one holding these lines: the creature's background
+ * block (added before its dance block or variants if it has none), or a background file's
+ * contents. Undefined when the code has errors that hide where the background goes.
+ */
+function withBackground(text: string, lines: string[]): string | undefined {
+  const p = checkText(text);
+  const file = p.file;
+  let out: string;
+  if (file.kind === "background") {
+    const first = file.items[0];
+    if (!first) return undefined;
+    out = text.slice(0, first.span.start) + lines.join("\n") + "\n";
+  } else if (file.kind === "creature") {
+    const block = ["background {", ...lines.map((l) => (l ? `  ${l}` : "")), "}"].join("\n");
+    const old = file.items.find((i) => i.kind === "Background");
+    const before = file.items.find((i) => i.kind === "Dance" || i.kind === "Variant");
+    if (old) out = text.slice(0, old.span.start) + block + text.slice(old.span.end);
+    else if (before)
+      out = `${text.slice(0, before.span.start)}${block}\n\n${text.slice(before.span.start)}`;
+    else out = `${text.trimEnd()}\n\n${block}\n`;
+  } else {
+    return undefined;
+  }
+  return formatText(out).text ?? out;
+}
 
 // ---------- dancing ----------
 
@@ -759,7 +812,7 @@ window.addEventListener("keydown", (e) => {
     e.target instanceof HTMLElement &&
     (e.target.isContentEditable || ["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName));
   if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
-  if ((e.key === "f" || e.key === "F") && mode !== "breed") {
+  if ((e.key === "f" || e.key === "F") && mode !== "breed" && mode !== "patterns") {
     e.preventDefault();
     toggleFullscreen();
   }

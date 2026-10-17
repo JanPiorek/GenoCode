@@ -1,22 +1,27 @@
-// Shows creatures in the browser with three.js: one instanced mesh per kind of shape, with each
-// shape's colour, alpha, shine and sharpness carried per instance. `CreatureView` is the full,
+// Shows creatures in the browser with three.js: one instanced mesh per kind of shape and texture,
+// with each shape's colour, alpha, shine, sharpness and sheen carried per instance. `CreatureView` is the full,
 // interactive view; `Thumbnails` draws many small pictures with one renderer.
 
-import { toRgb, type LaidShape, type ShapeName, type Value } from "@genocode/core";
+import { toRgb, type LaidShape, type Pattern, type ShapeName, type Value } from "@genocode/core";
 import {
   AmbientLight,
   CanvasTexture,
   Color,
+  DataTexture,
   DirectionalLight,
   Group,
   InstancedBufferAttribute,
   InstancedMesh,
+  LinearMipmapLinearFilter,
   Matrix4,
   MeshPhongMaterial,
   PerspectiveCamera,
   Quaternion,
+  RepeatWrapping,
+  RGBAFormat,
   Scene,
   SRGBColorSpace,
+  type Texture,
   Vector3,
   WebGLRenderer,
   type WebGLProgramParametersWithUniforms,
@@ -31,18 +36,33 @@ import {
   type CameraPlacement,
   type Side,
 } from "./look.js";
+import { fieldKey, patternPixels, patternSheen, textureKey } from "./texture.js";
 
-/** Adds per-instance shine (x), sharpness (y) and alpha (z) to the Phong material. */
+/** How big a pattern background is, in pixels along each side. */
+const BACKGROUND_SIZE = 512;
+
+/**
+ * Adds per-instance shine (x), sharpness (y), alpha (z) and sheen (w) to the Phong material. The
+ * sheen is a texture finish's white glow at the edges, where the surface turns away from the eye.
+ */
 function addInstanceLook(shader: WebGLProgramParametersWithUniforms): void {
   shader.vertexShader = shader.vertexShader
     .replace(
       "#include <common>",
-      "#include <common>\nattribute vec3 instanceLook;\nvarying vec3 vLook;",
+      "#include <common>\nattribute vec4 instanceLook;\nvarying vec4 vLook;",
     )
     .replace("#include <begin_vertex>", "#include <begin_vertex>\nvLook = instanceLook;");
   shader.fragmentShader = shader.fragmentShader
-    .replace("#include <common>", "#include <common>\nvarying vec3 vLook;")
+    .replace("#include <common>", "#include <common>\nvarying vec4 vLook;")
     .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.a *= vLook.z;")
+    .replace(
+      "#include <opaque_fragment>",
+      [
+        "float edge = 1.0 - abs( dot( normal, normalize( vViewPosition ) ) );",
+        "outgoingLight += vec3( vLook.w * 0.5 * pow( edge, 3.0 ) );",
+        "#include <opaque_fragment>",
+      ].join("\n"),
+    )
     .replace(
       "#include <lights_phong_fragment>",
       [
@@ -55,16 +75,42 @@ function addInstanceLook(shader: WebGLProgramParametersWithUniforms): void {
     );
 }
 
-function makeMaterial(transparent: boolean): MeshPhongMaterial {
+function makeMaterial(transparent: boolean, map?: Texture): MeshPhongMaterial {
   const material = new MeshPhongMaterial({
     color: 0xffffff,
     transparent,
     depthWrite: !transparent,
+    map: map ?? null,
   });
   material.onBeforeCompile = addInstanceLook;
   // Keeps three from sharing the compiled program with plain Phong materials.
   material.customProgramCacheKey = () => "genocode-instance-look";
   return material;
+}
+
+/** A texture made from a pattern's picture, which can be recoloured in place. */
+function patternTexture(p: Pattern, size: number): DataTexture {
+  const texture = new DataTexture(patternPixels(p, size), size, size, RGBAFormat);
+  texture.colorSpace = SRGBColorSpace;
+  texture.wrapS = texture.wrapT = RepeatWrapping;
+  texture.minFilter = LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
+  texture.flipY = true;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/** Gives `texture` the look of `p`, which has the same picture. */
+function recolour(texture: DataTexture, p: Pattern, size: number): void {
+  (texture.image.data as Uint8ClampedArray).set(patternPixels(p, size));
+  texture.needsUpdate = true;
+}
+
+/** A material for shapes wearing one texture, and the look it has now. */
+interface Textured {
+  material: MeshPhongMaterial;
+  texture: DataTexture;
+  field: string;
 }
 
 /** How much of the way to the camera a dance's zoom can bring the creature. */
@@ -79,6 +125,11 @@ class CreatureScene {
   private readonly creature = new Group();
   private readonly opaque = makeMaterial(false);
   private readonly seeThrough = makeMaterial(true);
+  /** The textured materials in use, by texture and whether they're see-through. */
+  private textured = new Map<string, Textured>();
+  /** The pattern background, kept so a new hue only recolours it. */
+  private backgroundPattern: { texture: DataTexture; field: string; look: string } | undefined;
+  private aspect = 1;
   shapes: readonly LaidShape[] = [];
   private readonly lights: { light: DirectionalLight; direction: Vector3 }[] = [];
 
@@ -118,38 +169,89 @@ class CreatureScene {
     const groups = new Map<string, LaidShape[]>();
     for (const s of shapes) {
       if (s.colour.a <= 0) continue;
-      const key = `${s.shape}/${s.mirrored}/${s.colour.a < 0.999}`;
+      const key = `${s.shape}|${s.mirrored}|${s.colour.a < 0.999}|${s.texture ? textureKey(s.texture) : ""}`;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(s);
     }
+    const old = this.textured;
+    this.textured = new Map();
     const matrix = new Matrix4();
     const colour = new Color();
     for (const [key, members] of groups) {
-      const [shape, mirrored, transparent] = key.split("/");
+      const [shape, mirrored, transparent] = key.split("|");
+      const seeThrough = transparent === "true";
+      const pattern = members[0]!.texture;
+      const material = pattern
+        ? this.texturedMaterial(pattern, seeThrough, old)
+        : seeThrough
+          ? this.seeThrough
+          : this.opaque;
+      const sheen = pattern ? patternSheen(pattern) : 0;
       const mesh = new InstancedMesh(
         shapeGeometry(shape as ShapeName, mirrored === "true", detail),
-        transparent === "true" ? this.seeThrough : this.opaque,
+        material,
         members.length,
       );
-      const look = new Float32Array(members.length * 3);
+      const look = new Float32Array(members.length * 4);
       members.forEach((s, i) => {
         matrix.fromArray(s.matrix);
         mesh.setMatrixAt(i, matrix);
         const [r, g, b] = toRgb(s.colour);
         mesh.setColorAt(i, colour.setRGB(r, g, b, SRGBColorSpace));
-        look[i * 3] = s.shine;
-        look[i * 3 + 1] = s.sharpness;
-        look[i * 3 + 2] = s.colour.a;
+        look[i * 4] = s.shine;
+        look[i * 4 + 1] = s.sharpness;
+        look[i * 4 + 2] = s.colour.a;
+        look[i * 4 + 3] = sheen;
       });
       mesh.geometry = mesh.geometry.clone();
-      mesh.geometry.setAttribute("instanceLook", new InstancedBufferAttribute(look, 3));
+      mesh.geometry.setAttribute("instanceLook", new InstancedBufferAttribute(look, 4));
       mesh.computeBoundingSphere();
       this.creature.add(mesh);
     }
+    for (const t of old.values()) {
+      t.material.dispose();
+      t.texture.dispose();
+    }
   }
 
-  /** A background's fill: a colour, a gradient, or (until patterns exist) a tinted default. */
+  /**
+   * The material for shapes wearing `p`: the one already in use, or one left over from the last
+   * creature with the same picture, recoloured (so a hue that follows the music costs little), or
+   * a new one. What's taken from `old` is removed from it.
+   */
+  private texturedMaterial(
+    p: Pattern,
+    seeThrough: boolean,
+    old: Map<string, Textured>,
+  ): MeshPhongMaterial {
+    const key = `${textureKey(p)}|${seeThrough}`;
+    const field = `${fieldKey(p)}|${seeThrough}`;
+    let t = this.textured.get(key) ?? old.get(key);
+    old.delete(key);
+    if (t === undefined) {
+      for (const [k, candidate] of old) {
+        if (candidate.field !== field) continue;
+        old.delete(k);
+        recolour(candidate.texture, p, candidate.texture.image.width);
+        t = candidate;
+        break;
+      }
+    }
+    if (t === undefined) {
+      const texture = patternTexture(p, 256);
+      t = { material: makeMaterial(seeThrough, texture), texture, field };
+    }
+    this.textured.set(key, t);
+    return t.material;
+  }
+
+  /** A background's fill: a colour, a gradient or a pattern. */
   setBackground(fill: Value | undefined): void {
+    if (typeof fill === "object" && fill.type === "pattern" && fill.kind !== null) {
+      this.setPatternBackground(fill);
+      return;
+    }
+    this.backgroundPattern = undefined;
     const rows = 256;
     const ramp = backgroundRamp(fill, rows);
     const canvas = document.createElement("canvas");
@@ -169,8 +271,45 @@ class CreatureScene {
     if (old && "dispose" in old) old.dispose();
   }
 
+  /** Shows a pattern behind the creature, recolouring the one on show if it's the same picture. */
+  private setPatternBackground(p: Pattern): void {
+    const field = fieldKey(p, BACKGROUND_SIZE);
+    const look = textureKey(p, BACKGROUND_SIZE);
+    const shown = this.backgroundPattern;
+    if (shown && shown.field === field && this.scene.background === shown.texture) {
+      if (shown.look !== look) recolour(shown.texture, p, BACKGROUND_SIZE);
+      shown.look = look;
+      return;
+    }
+    const texture = patternTexture(p, BACKGROUND_SIZE);
+    texture.generateMipmaps = false;
+    texture.minFilter = texture.magFilter;
+    const old = this.scene.background;
+    this.scene.background = texture;
+    if (old && "dispose" in old) old.dispose();
+    this.backgroundPattern = { texture, field, look };
+    this.coverBackground();
+  }
+
+  /** The view's width over its height, so a pattern background covers it without stretching. */
+  setAspect(aspect: number): void {
+    this.aspect = aspect;
+    this.coverBackground();
+  }
+
+  /** Fits a square pattern background to cover the view, cutting off what's left over. */
+  private coverBackground(): void {
+    const texture = this.backgroundPattern?.texture;
+    if (!texture) return;
+    const a = this.aspect;
+    texture.repeat.set(a > 1 ? 1 : a, a > 1 ? 1 / a : 1);
+    texture.offset.set((1 - texture.repeat.x) / 2, (1 - texture.repeat.y) / 2);
+  }
+
   /** Points the camera at the whole creature, from the front and a little above. */
   frame(camera: PerspectiveCamera, aspect: number, side?: Side): CameraPlacement {
+    this.aspect = aspect;
+    this.coverBackground();
     const placement = frameCamera(creatureBounds(this.shapes), aspect, side);
     camera.position.set(...placement.position);
     camera.near = placement.near / 4;
@@ -183,6 +322,8 @@ class CreatureScene {
 
   dispose(): void {
     this.setCreature([], "low");
+    const background = this.scene.background;
+    if (background && "dispose" in background) background.dispose();
     this.opaque.dispose();
     this.seeThrough.dispose();
   }
@@ -216,7 +357,7 @@ export class CreatureView {
     this.requestFrame();
   }
 
-  /** Shows a background's fill: a colour, a gradient, or (until patterns exist) a tinted default. */
+  /** Shows a background's fill: a colour, a gradient or a pattern. */
   setBackground(fill: Value | undefined): void {
     this.look.setBackground(fill);
     this.requestFrame();
@@ -268,6 +409,7 @@ export class CreatureView {
     if (w === 0 || h === 0) return;
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
+    this.look.setAspect(w / h);
     this.camera.updateProjectionMatrix();
     this.requestFrame();
   }
