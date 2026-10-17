@@ -48,21 +48,25 @@ export interface PatternActions {
 const pick = <T>(options: readonly T[]): T => options[Math.floor(Math.random() * options.length)]!;
 const wrapHue = (h: number) => Math.round(((h % 360) + 360) % 360);
 
-/** A variation on a recipe: each part may change, the hue only a little. */
-export function vary(p: Pattern): Pattern {
-  const chance = (c: number) => Math.random() < c;
+/**
+ * A variation on a recipe: each part may change, the hue only a little. A smaller `strength` makes
+ * smaller, rarer changes.
+ */
+export function vary(p: Pattern, strength = 1): Pattern {
+  const chance = (c: number) => Math.random() < c * strength;
   let mix = p.mix;
   if (chance(0.25)) {
     mix = chance(0.3)
       ? undefined
       : { way: pick(MIX_WAYS), kind: pick(PATTERN_KINDS), amount: round2(Math.random()) };
   } else if (mix && chance(0.5)) {
-    mix = { ...mix, amount: round2(Math.min(1, Math.max(0, mix.amount + Math.random() - 0.5))) };
+    const nudge = (Math.random() - 0.5) * strength;
+    mix = { ...mix, amount: round2(Math.min(1, Math.max(0, mix.amount + nudge))) };
   }
   return {
     ...p,
     kind: chance(0.25) ? pick(PATTERN_KINDS) : p.kind,
-    hue: wrapHue(p.hue + (Math.random() * 2 - 1) * 60),
+    hue: wrapHue(p.hue + (Math.random() * 2 - 1) * 60 * strength),
     seed: chance(0.5) ? Math.floor(Math.random() * 100) : p.seed,
     scheme: chance(0.3) ? pick(SCHEMES) : p.scheme,
     finish: chance(0.3) ? pick(FINISHES) : p.finish,
@@ -328,8 +332,8 @@ export class PatternDesigner {
       if (file) void file.text().then((text) => this.openFile(text));
     });
     root.append(this.fileInput);
-    this.mutateButton.title = "Variations of the chosen recipes, or of the one above";
-    this.breedButton.title = "Children of the chosen recipes";
+    this.mutateButton.title = "Variations of the recipe above and the chosen ones";
+    this.breedButton.title = "Children of the recipe above and the chosen ones";
     this.mutateButton.addEventListener("click", () => this.mutate());
     this.breedButton.addEventListener("click", () => this.breed());
     root.append(
@@ -428,24 +432,27 @@ export class PatternDesigner {
     this.hint.textContent = "";
   }
 
+  /** The parents: the recipe above, which is always one, and the chosen recipes. */
   private parents(): Pattern[] {
-    return [...this.chosen].map((i) => this.tiles[i]!.p);
+    return [this.recipe, ...[...this.chosen].map((i) => this.tiles[i]!.p)];
   }
 
-  /** Fills the grid with variations of the chosen recipes, or of the one above. */
+  /** Fills the grid with variations of the parents. */
   private mutate(): void {
-    const parents = this.chosen.size > 0 ? this.parents() : [this.recipe];
+    const parents = this.parents();
     this.fill(() => vary(pick(parents)));
   }
 
-  /** Fills the grid with children of two of the chosen recipes at a time. */
+  /** Fills the grid with children of two of the parents at a time. */
   private breed(): void {
     const parents = this.parents();
     if (parents.length < 2) return;
     this.fill(() => {
       const a = pick(parents);
       const b = pick(parents.filter((p) => p !== a));
-      return cross(a, b);
+      // A little mutation too, as in breeding creatures: parents that share most of their parts
+      // would otherwise have children that are all much the same.
+      return vary(cross(a, b), 0.6);
     });
   }
 
@@ -455,8 +462,16 @@ export class PatternDesigner {
    */
   private fill(make: () => Pattern): void {
     this.chosen.clear();
+    // No two the same: a recipe already in the grid is made again, a few times at most.
+    const seen = new Set<string>();
+    const fresh = () => {
+      let p = make();
+      for (let tries = 0; tries < 20 && seen.has(formatValue(p)); tries++) p = make();
+      seen.add(formatValue(p));
+      return p;
+    };
     this.tiles = Array.from({ length: VARIATIONS }, (_, i) => {
-      const p = make();
+      const p = fresh();
       const el = element("canvas", { className: "pattern-variation", title: formatValue(p) });
       void drawInto(el, p, VARIATION_SIZE);
       el.addEventListener("click", () => {
@@ -477,11 +492,11 @@ export class PatternDesigner {
   private showChosen(): void {
     this.tiles.forEach((t, i) => t.el.classList.toggle("selected", this.chosen.has(i)));
     const n = this.chosen.size;
-    this.breedButton.disabled = n < 2;
+    this.breedButton.disabled = n < 1;
     this.gridHint.textContent =
       n === 0
-        ? "Click recipes to choose parents · double-click one to work on it"
-        : `${n} parent${n === 1 ? "" : "s"} chosen`;
+        ? "The recipe above is a parent: click others to choose more · double-click one to work on it"
+        : `${n + 1} parents: the recipe above and ${n} chosen`;
   }
 
   private async copy(): Promise<void> {
