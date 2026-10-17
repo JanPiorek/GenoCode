@@ -981,7 +981,8 @@ window.addEventListener("keydown", (e) => {
 const params = new URL(location.href).searchParams;
 const mine = params.get("mine");
 const example = params.get("example");
+// Without one asked for in the address, the app opens with Geno, the logo come to life.
 if (!(mine && openListed("mine", mine)) && !(example && openListed("example", example))) {
-  openListed("example", exampleNames[0] ?? "");
+  if (!openListed("example", "Geno")) openListed("example", exampleNames[0] ?? "");
 }
 setMode("view");
