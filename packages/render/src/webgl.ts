@@ -52,15 +52,30 @@ import {
 /** How big a pattern background is, in pixels along each side. */
 const BACKGROUND_SIZE = 512;
 
+/** How long, in seconds, a shape's old picture takes to fade into its new one. */
+const FADE_TIME = 1.5;
+
+/** How far a worn texture leans towards the shape's own colour (docs/LANGUAGE.md section 14). */
+const HINT = 0.2;
+
 /**
- * Adds per-instance shine (x), sharpness (y), alpha (z) and sheen (w) to the Phong material. The
- * sheen is a texture finish's white glow at the edges, where the surface turns away from the eye.
+ * Adds per-instance shine (x), sharpness (y), alpha (z) and sheen (w) to the Phong material, and
+ * how much of its texture each shape wears. The sheen is a texture finish's white glow at the
+ * edges, where the surface turns away from the eye. A worn texture shows its own colours with a
+ * hint of the shape's, blended with the plain colour by the wear; while its picture changes, the
+ * old one fades into the new.
  */
 function addInstanceLook(shader: WebGLProgramParametersWithUniforms): void {
   shader.vertexShader = shader.vertexShader
     .replace(
       "#include <common>",
-      "#include <common>\nattribute vec4 instanceLook;\nvarying vec4 vLook;",
+      [
+        "#include <common>",
+        "attribute vec4 instanceLook;",
+        "attribute float instanceWear;",
+        "varying vec4 vLook;",
+        "varying float vWear;",
+      ].join("\n"),
     )
     .replace(
       "#include <common>",
@@ -71,6 +86,7 @@ function addInstanceLook(shader: WebGLProgramParametersWithUniforms): void {
       [
         "#include <begin_vertex>",
         "vLook = instanceLook;",
+        "vWear = instanceWear;",
         "vShapePosition = position;",
         "vShapeNormal = normal;",
       ].join("\n"),
@@ -81,24 +97,41 @@ function addInstanceLook(shader: WebGLProgramParametersWithUniforms): void {
       [
         "#include <common>",
         "varying vec4 vLook;",
+        "varying float vWear;",
         "varying vec3 vShapePosition;",
         "varying vec3 vShapeNormal;",
-      ].join("\n"),
-    )
-    .replace(
-      "#include <map_fragment>",
-      [
         "#ifdef USE_MAP",
+        "uniform sampler2D previousMap;",
+        "uniform float previousOn;",
+        "uniform float fade;",
         // The shape fits a 1×1×1 box about its middle, so each projection covers it once.
-        "vec3 facing = pow( abs( normalize( vShapeNormal ) ), vec3( 4.0 ) );",
-        "facing /= facing.x + facing.y + facing.z;",
-        "vec3 p = vShapePosition + 0.5;",
-        "diffuseColor *= texture2D( map, p.yz ) * facing.x + texture2D( map, p.xz ) * facing.y",
-        "  + texture2D( map, p.xy ) * facing.z;",
+        "vec3 triplanar( sampler2D picture ) {",
+        "  vec3 facing = pow( abs( normalize( vShapeNormal ) ), vec3( 4.0 ) );",
+        "  facing /= facing.x + facing.y + facing.z;",
+        "  vec3 p = vShapePosition + 0.5;",
+        "  return texture2D( picture, p.yz ).rgb * facing.x + texture2D( picture, p.xz ).rgb * facing.y",
+        "    + texture2D( picture, p.xy ).rgb * facing.z;",
+        "}",
         "#endif",
       ].join("\n"),
     )
-    .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.a *= vLook.z;")
+    .replace("#include <map_fragment>", "")
+    .replace(
+      "#include <color_fragment>",
+      [
+        "#include <color_fragment>",
+        "#ifdef USE_MAP",
+        "vec3 plain = diffuseColor.rgb;",
+        "vec3 hint = mix( vec3( 1.0 ), plain / max( max( plain.r, max( plain.g, plain.b ) ), 0.05 ), " +
+          HINT.toFixed(2) +
+          " );",
+        "vec3 worn = triplanar( map ) * hint;",
+        "if ( previousOn > 0.5 ) worn = mix( triplanar( previousMap ) * hint, worn, smoothstep( 0.0, 1.0, fade ) );",
+        "diffuseColor.rgb = mix( plain, worn, vWear );",
+        "#endif",
+        "diffuseColor.a *= vLook.z;",
+      ].join("\n"),
+    )
     .replace(
       "#include <opaque_fragment>",
       [
@@ -119,6 +152,22 @@ function addInstanceLook(shader: WebGLProgramParametersWithUniforms): void {
     );
 }
 
+/** A shape's texture, unless it wears none of it. */
+function wornTexture(s: LaidShape): Pattern | null {
+  return s.wear > 0 ? s.texture : null;
+}
+
+/** A picture for a fade's empty side. */
+const NOTHING = new DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, RGBAFormat);
+NOTHING.needsUpdate = true;
+
+/** A material's fade from an old picture into its own: each material has its own. */
+interface Fade {
+  previousMap: { value: Texture };
+  previousOn: { value: number };
+  fade: { value: number };
+}
+
 function makeMaterial(transparent: boolean, map?: Texture): MeshPhongMaterial {
   const material = new MeshPhongMaterial({
     color: 0xffffff,
@@ -126,7 +175,17 @@ function makeMaterial(transparent: boolean, map?: Texture): MeshPhongMaterial {
     depthWrite: !transparent,
     map: map ?? null,
   });
-  material.onBeforeCompile = addInstanceLook;
+  const fade: Fade = {
+    previousMap: { value: NOTHING },
+    previousOn: { value: 0 },
+    fade: { value: 1 },
+  };
+  material.userData["fade"] = fade;
+  // three runs this once for each material, so each keeps its own fade while sharing the program.
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, fade);
+    addInstanceLook(shader);
+  };
   // Keeps three from sharing the compiled program with plain Phong materials.
   material.customProgramCacheKey = () => "genocode-instance-look";
   return material;
@@ -152,12 +211,14 @@ function standInTexture(p: Pattern): DataTexture {
 
 /**
  * A material for shapes wearing one texture, and the picture it shows: `field` is undefined for
- * a stand-in, which is never recoloured.
+ * a stand-in, which is never recoloured. While it fades in, `previous` is the picture it fades
+ * from and when the fade began.
  */
 interface Textured {
   material: MeshPhongMaterial;
   texture: DataTexture;
   field: string | undefined;
+  previous?: { texture: DataTexture; since: number } | undefined;
 }
 
 /** How much of the way to the camera a dance's zoom can bring the creature. */
@@ -172,6 +233,8 @@ const LIGHT_SCALE = Math.PI;
 /** The scene both views draw: lights, the creature's shapes and the background. */
 class CreatureScene {
   readonly scene = new Scene();
+  /** Whether a shape's new picture fades in; small pictures, such as thumbnails, just switch. */
+  fades = true;
   private readonly creature = new Group();
   private readonly opaque = makeMaterial(false);
   private readonly seeThrough = makeMaterial(true);
@@ -227,7 +290,8 @@ class CreatureScene {
     const groups = new Map<string, LaidShape[]>();
     for (const s of shapes) {
       if (s.colour.a <= 0) continue;
-      const key = `${s.shape}|${s.mirrored}|${s.colour.a < 0.999}|${s.texture ? textureKey(s.texture) : ""}`;
+      const t = wornTexture(s);
+      const key = `${s.shape}|${s.mirrored}|${s.colour.a < 0.999}|${t ? textureKey(t) : ""}`;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(s);
     }
@@ -241,7 +305,7 @@ class CreatureScene {
     for (const [key, members] of groups) {
       const [shape, mirrored, transparent] = key.split("|");
       const seeThrough = transparent === "true";
-      const pattern = members[0]!.texture;
+      const pattern = wornTexture(members[0]!);
       let material = seeThrough ? this.seeThrough : this.opaque;
       if (pattern) {
         const kind = `${shape}|${mirrored}|${transparent}`;
@@ -253,6 +317,7 @@ class CreatureScene {
         material = t.material;
       }
       const sheen = pattern ? patternSheen(pattern) : 0;
+      const wear = new Float32Array(members.map((s) => s.wear));
       const mesh = new InstancedMesh(
         shapeGeometry(shape as ShapeName, mirrored === "true", detail),
         material,
@@ -267,10 +332,12 @@ class CreatureScene {
         look[i * 4] = s.shine;
         look[i * 4 + 1] = s.sharpness;
         look[i * 4 + 2] = s.colour.a;
-        look[i * 4 + 3] = sheen;
+        // The finish's sheen comes and goes with the texture.
+        look[i * 4 + 3] = sheen * s.wear;
       });
       mesh.geometry = mesh.geometry.clone();
       mesh.geometry.setAttribute("instanceLook", new InstancedBufferAttribute(look, 4));
+      mesh.geometry.setAttribute("instanceWear", new InstancedBufferAttribute(wear, 1));
       mesh.computeBoundingSphere();
       this.creature.add(mesh);
     }
@@ -278,8 +345,42 @@ class CreatureScene {
     for (const t of old.values()) {
       if (kept.has(t)) continue;
       t.material.dispose();
-      t.texture.dispose();
+      if (!this.showing(t.texture)) t.texture.dispose();
+      if (t.previous && !this.showing(t.previous.texture)) t.previous.texture.dispose();
     }
+    this.stepFades();
+  }
+
+  /** Whether a picture is on show, in a material or as the one a material fades from. */
+  private showing(texture: DataTexture): boolean {
+    for (const t of this.textured.values()) {
+      if (t.texture === texture || t.previous?.texture === texture) return true;
+    }
+    return false;
+  }
+
+  /** Moves every fade on to now. Says whether any is still going. */
+  stepFades(now = performance.now()): boolean {
+    let going = false;
+    for (const t of new Set(this.textured.values())) {
+      const fade = t.material.userData["fade"] as Fade;
+      const p = t.previous;
+      if (p === undefined) continue;
+      const f = (now - p.since) / 1000 / FADE_TIME;
+      if (f >= 1) {
+        t.previous = undefined;
+        if (!this.showing(p.texture)) p.texture.dispose();
+        fade.previousMap.value = NOTHING;
+        fade.previousOn.value = 0;
+        fade.fade.value = 1;
+      } else {
+        fade.previousMap.value = p.texture;
+        fade.previousOn.value = 1;
+        fade.fade.value = f;
+        going = true;
+      }
+    }
+    return going;
   }
 
   /**
@@ -317,6 +418,10 @@ class CreatureScene {
       } else {
         const texture = patternTexture(pixels, Math.sqrt(pixels.length / 4));
         t = { material: makeMaterial(seeThrough, texture), texture, field };
+        // A new picture for these shapes: the one they wore fades into it.
+        if (this.fades && worn && worn.texture !== texture) {
+          t.previous = { texture: worn.texture, since: performance.now() };
+        }
       }
     }
     this.textured.set(key, t);
@@ -559,8 +664,10 @@ export class CreatureView {
     this.frameRequested = true;
     requestAnimationFrame(() => {
       this.frameRequested = false;
-      // Damping keeps the view moving for a moment after the mouse lets go.
+      // Damping keeps the view moving for a moment after the mouse lets go, and a fading picture
+      // keeps it drawing until the fade is done.
       if (this.controls.update()) this.requestFrame();
+      if (this.look.stepFades()) this.requestFrame();
       this.look.turnLights(
         this.camera.quaternion.clone().multiply(this.frontTurn.clone().invert()),
       );
@@ -588,6 +695,7 @@ export class Thumbnails {
   private readonly look = new CreatureScene();
 
   constructor() {
+    this.look.fades = false;
     this.renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   }
 

@@ -141,6 +141,28 @@ describe("software renderer", () => {
 });
 
 describe("textures in the software renderer", () => {
+  it("blends a texture with the plain colour by how much of it is worn", () => {
+    const at = (wear: number) =>
+      rasterize(
+        shapes(`colour hsv(200, 0.8, 0.9)\ntexture pattern(cells, 40, 3)\nwear ${wear}\nlay`),
+        { width: 24, height: 24, supersample: 1 },
+      ).data;
+    const plain = rasterize(shapes("colour hsv(200, 0.8, 0.9)\nlay"), {
+      width: 24,
+      height: 24,
+      supersample: 1,
+    }).data;
+    expect(at(0)).toEqual(plain);
+    const full = at(1);
+    const half = at(0.5);
+    expect(full).not.toEqual(plain);
+    // Half way, every pixel lies between the plain and the fully textured one.
+    for (let i = 0; i < plain.length; i++) {
+      expect(half[i]!).toBeGreaterThanOrEqual(Math.min(plain[i]!, full[i]!) - 1);
+      expect(half[i]!).toBeLessThanOrEqual(Math.max(plain[i]!, full[i]!) + 1);
+    }
+  });
+
   it("draws textured shapes and pattern backgrounds", () => {
     const plain = rasterize(shapes("shape ball\nlay"), { width: 40, height: 30 });
     const textured = rasterize(

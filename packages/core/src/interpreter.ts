@@ -98,6 +98,8 @@ export interface LaidShape {
   sharpness: number;
   /** Null for no texture. */
   texture: Pattern | null;
+  /** How much of its texture the shape wears: 0 its plain colour, 1 all texture. */
+  wear: number;
   /** The placement reverses handedness (the shape is drawn mirrored). */
   mirrored: boolean;
 }
@@ -302,6 +304,7 @@ interface DrawState {
   shine: number;
   sharpness: number;
   texture: Pattern | null;
+  wear: number;
 }
 
 function cloneState(s: DrawState): DrawState {
@@ -336,6 +339,7 @@ class Run {
     shine: 0,
     sharpness: 0,
     texture: null,
+    wear: 1,
   };
 
   constructor(
@@ -666,6 +670,7 @@ class Run {
         return;
       case "shine":
       case "sharpness":
+      case "wear":
         if (typeof v !== "number") return wrong("a number");
         this.state[s.property] = Math.min(1, Math.max(0, v));
         return;
@@ -706,6 +711,7 @@ class Run {
       shine: st.shine,
       sharpness: st.sharpness,
       texture: st.texture,
+      wear: st.wear,
       mirrored: st.turtle.mirrored !== st.shapeFrame.mirrored,
     });
   }
@@ -924,6 +930,8 @@ class Run {
         return this.state.sharpness;
       case "texture":
         return this.state.texture ?? NO_PATTERN;
+      case "wear":
+        return this.state.wear;
     }
     throw new RuntimeError(span, `The turtle has no \`${field}\`.`);
   }

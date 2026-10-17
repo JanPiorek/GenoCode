@@ -44,7 +44,15 @@ class ParseError extends Error {}
 type Context = "normal" | "dance" | "variant";
 
 const COMMANDS = new Set<string>(["forward", "back", "move", "pitch", "yaw", "roll", "grow"]);
-const MATERIALS = new Set<string>(["shape", "colour", "color", "shine", "sharpness", "texture"]);
+const MATERIALS = new Set<string>([
+  "shape",
+  "colour",
+  "color",
+  "shine",
+  "sharpness",
+  "texture",
+  "wear",
+]);
 const ASSIGN_OPS = new Set<string>(["=", "+=", "-=", "*=", "/="]);
 const COMPARE_OPS = new Set<string>(["==", "!=", "<", "<=", ">", ">="]);
 

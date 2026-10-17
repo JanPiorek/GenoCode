@@ -28,6 +28,7 @@ export const KEYWORDS: ReadonlySet<string> = new Set([
   "color",
   "shine",
   "sharpness",
+  "wear",
   "texture",
   "background",
   "fill",

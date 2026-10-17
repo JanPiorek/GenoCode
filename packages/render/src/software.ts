@@ -78,6 +78,21 @@ function texturePixels(p: Pattern): Float32Array {
   return out;
 }
 
+/** How far a worn texture leans towards the shape's own colour (docs/LANGUAGE.md section 14). */
+const HINT = 0.2;
+
+/**
+ * A shape's surface wearing a texture: the texture's own colours with a hint of the shape's,
+ * blended with the plain colour by how much of its texture the shape wears.
+ */
+function worn(plain: Rgb, texel: Rgb, wear: number): Rgb {
+  const brightest = Math.max(plain[0], plain[1], plain[2], 0.05);
+  return plain.map((c, k) => {
+    const textured = texel[k]! * (1 - HINT + (HINT * c) / brightest);
+    return c + (textured - c) * wear;
+  }) as Rgb;
+}
+
 /**
  * A texture wrapped onto a shape from three sides, as the WebGL view does: the picture projected
  * along each axis of the shape's 1×1×1 box, blended by which way the surface faces.
@@ -151,8 +166,10 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
     const geometry = shapeGeometry(shape.shape, false, "low");
     const pos = geometry.getAttribute("position").array;
     const nor = geometry.getAttribute("normal").array;
-    const texture = shape.texture ? texturePixels(shape.texture) : undefined;
-    const sheen = shape.texture ? patternSheen(shape.texture) : 0;
+    // A shape that wears none of its texture is drawn as if it had none.
+    const pattern = shape.wear > 0 ? shape.texture : null;
+    const texture = pattern ? texturePixels(pattern) : undefined;
+    const sheen = pattern ? patternSheen(pattern) * shape.wear : 0;
     const index = geometry.getIndex()?.array;
     const count = pos.length / 3;
     const base: Rgb = toRgb(shape.colour);
@@ -245,7 +262,7 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
               [at3(pos, 0), at3(pos, 1), at3(pos, 2)],
               [at3(nor, 0), at3(nor, 1), at3(nor, 2)],
             );
-            surface = [base[0] * t[0], base[1] * t[1], base[2] * t[2]];
+            surface = worn(base, t, shape.wear);
           }
           for (let k = 0; k < 3; k++) {
             const value = surface[k]! * light + extra;

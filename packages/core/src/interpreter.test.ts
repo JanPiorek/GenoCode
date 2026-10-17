@@ -80,6 +80,12 @@ describe("turtle", () => {
     expect(r.shapes[1]!.texture).toBeNull();
   });
 
+  it("records how much of its texture each shape wears", () => {
+    const r = run("lay\nwear 0.25\nlay\nwear 3\nlay\nwear -1\nprint(turtle.wear)\nlay");
+    expect(r.shapes.map((s) => s.wear)).toEqual([1, 0.25, 1, 0]);
+    expect(r.printed).toEqual(["0"]);
+  });
+
   it("makes patterns with a scheme, a finish and a second pattern mixed in", () => {
     expect(value("pattern(marble, 200, 7)")).toBe("pattern(marble, 200, 7)");
     expect(value("pattern(marble, 200, 7, dusk)")).toBe("pattern(marble, 200, 7, dusk)");

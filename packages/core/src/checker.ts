@@ -153,6 +153,7 @@ const TURTLE_FIELDS: ReadonlyMap<string, TypeName> = new Map<string, TypeName>([
   ["shine", "number"],
   ["sharpness", "number"],
   ["texture", "pattern"],
+  ["wear", "number"],
 ]);
 
 /** Values that are one of a set of words, so their genes choose from options. */
@@ -1221,6 +1222,7 @@ class Checker {
           shine: ["number"],
           sharpness: ["number"],
           texture: ["pattern"],
+          wear: ["number"],
         };
         const w = wanted[stmt.property]!;
         if (stmt.property === "colour" && t === "gradient") {

@@ -25,7 +25,7 @@ part limb(level, size, first, width) {
 
   grow size
   shape tube
-  colour white
+  colour bark
   texture pattern(cells, bark.hue, 12, analogous, satin)
   branch {
     forward reach / 2

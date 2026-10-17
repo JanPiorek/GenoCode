@@ -165,8 +165,8 @@ allowed as arguments to `print`.
 
 ```
 creature  gene  part  function  return  let  if  else  repeat  as  for  from  to  by  while
-branch  lay  reshape  symmetric  shape  colour  color  shine  sharpness  texture  background
-fill  dance  forward  back  move  pitch  yaw  roll  rotate  around  grow  mirror  in  step  log
+branch  lay  reshape  symmetric  shape  colour  color  shine  sharpness  texture  wear
+background  fill  dance  forward  back  move  pitch  yaw  roll  rotate  around  grow  mirror  in  step  log
 at  and  or  not  true  false  print  turtle  time  beat  music  variant
 ```
 
@@ -481,6 +481,7 @@ has:
 | colour                                  | `white`                     | `colour`                                                                 |
 | shine, sharpness                        | 0, 0                        | `shine`, `sharpness`                                                     |
 | texture                                 | `none`                      | `texture`                                                                |
+| wear                                    | 1                           | `wear`                                                                   |
 
 The turtle faces along its **heading**. Its **size** is kept per axis: the x size belongs to the
 side axis, the y size to the up axis and the z size to the heading, and each stays with its axis
@@ -576,7 +577,7 @@ and then applying the turtle (its size, its axes and its position, in that order
 | `lay`       | lay the current shape                                                                                                                                                        |
 | `lay { … }` | lay it with extra shape transform commands ([11.7](#117-the-shape-transform))                                                                                                |
 
-Each laid shape records its placement, shape, colour, shine, sharpness and texture at the moment
+Each laid shape records its placement, shape, colour, shine, sharpness, texture and wear at the moment
 it's laid.
 
 **Geometry.** Every shape fits in a 1×1×1 box centred on the turtle. Its length axis, where it has
@@ -624,12 +625,13 @@ The named colours are:
 
 ### 13.2 Material
 
-| Command       | Effect                                                                                    |
-| ------------- | ----------------------------------------------------------------------------------------- |
-| `colour c`    | colour for later shapes. `c` is a colour (to use a gradient, sample it: `colour skin(t)`) |
-| `shine x`     | strength of highlights, 0–1 (clamped)                                                     |
-| `sharpness x` | how tight the highlights are, 0–1 (clamped)                                               |
-| `texture p`   | texture for later shapes: a pattern, or `none` ([section 14](#14-textures))               |
+| Command       | Effect                                                                                        |
+| ------------- | --------------------------------------------------------------------------------------------- |
+| `colour c`    | colour for later shapes. `c` is a colour (to use a gradient, sample it: `colour skin(t)`)     |
+| `shine x`     | strength of highlights, 0–1 (clamped)                                                         |
+| `sharpness x` | how tight the highlights are, 0–1 (clamped)                                                   |
+| `texture p`   | texture for later shapes: a pattern, or `none` ([section 14](#14-textures))                   |
+| `wear x`      | how much of their texture later shapes wear, 0–1 (clamped): 0 the plain colour, 1 all texture |
 
 ### 13.3 Gradients
 
@@ -675,7 +677,10 @@ gene skin_seed   = 7 in 0..99 step 1
 gene skin_scheme = dusk from [jewel, duotone, split, analogous, pastel, dusk, electric]
 gene skin_finish = pearl from [matte, metallic, iridescent, pearl, satin]
 
+gene skin        = 1 in 0..1   // how much of its texture it wears
+
 texture pattern(skin_kind, skin_hue, skin_seed, skin_scheme, skin_finish)
+wear skin
 lay
 texture mixed(pattern(cells, 40, 3), warp, vortex, 0.6)
 lay
@@ -723,12 +728,15 @@ texture none
   (`from [ … ]`) and they breed like shapes.
 - `none` means no texture.
 - The same recipe always gives the same picture.
-- The texture's colours are multiplied by the shape's colour, so `colour white` shows the texture
-  unchanged.
+- **Wearing a texture.** A shape shows its texture's own colours with a hint of the shape's colour
+  (a fifth of the way towards it), so each part keeps a little of its identity. `wear x` blends
+  between the two: at 0 the shape shows just its colour, at 1 just the textured look. A gene for
+  `wear` lets a creature fade its texture in and out as it morphs, dances and breeds.
 - How a texture is wrapped onto each shape is decided by the renderer.
-- **Changing a texture.** The hue, scheme and finish only recolour a pattern, so they can follow
-  `time` and `music` smoothly. A new kind, seed or second pattern draws a new pattern, which takes
-  a moment; the app may show the old one until the new one is ready.
+- **Changing a texture.** The hue, scheme, finish and wear only recolour a pattern, so they can
+  follow `time` and `music` smoothly. A new kind, seed or second pattern draws a new pattern, which
+  takes a moment; the app may show the old one until the new one is ready, and fade from one to
+  the other.
 
 ## 15. Backgrounds
 
@@ -941,6 +949,7 @@ All angles are in degrees.
 | `turtle.shape`                     | shape   | current shape                                |
 | `turtle.colour`                    | colour  | current colour                               |
 | `turtle.shine`, `turtle.sharpness` | number  | current material                             |
+| `turtle.wear`                      | number  | how much of its texture a shape wears        |
 | `turtle.texture`                   | pattern | current texture                              |
 
 These describe the turtle, not the shape transform.
@@ -1060,7 +1069,7 @@ creature that uses `random` starts again from seed 0.
      after the call starts where the part ended; a `branch` around the call stops that.
 2. **Building.** The top-level statements run once, from the top, with the creature's gene values
    and the current time and music inputs. Every `lay` adds one shape. The result is a list of
-   shapes, each with its placement, shape, colour, shine, sharpness and texture.
+   shapes, each with its placement, shape, colour, shine, sharpness, texture and wear.
 3. **Showing.** The app draws the shapes, with the background and dance effects.
    - A **static** creature (one that doesn't read `time`, `beat` or `music`) is built once for each
      set of gene values. Morph frames can be built in advance.
@@ -1081,16 +1090,16 @@ The block editor shows the same program as the text. Both are built from one syn
 parsed into the tree and shown as blocks, and blocks are turned back into the tree and printed as
 text by the standard formatter.
 
-| Construct                                                                                                                    | Block                                                                                                                                     |
-| ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `creature Name` and the top-level statements                                                                                 | the creature's main block, with the statements stacked below it                                                                           |
-| `part`, `function`                                                                                                           | a "define" block with the parameters. Parts then appear as stacking blocks in the palette, and functions as value blocks                  |
-| `gene`                                                                                                                       | a gene block with a slider (numbers), colour pickers (colours), range handles, a switch (bools) or a dropdown (choices) and a description |
-| `background { }`                                                                                                             | a background block holding its genes and one fill block, with a live preview and an export button                                         |
-| `dance { }`                                                                                                                  | a dance block holding its genes and one block per effect, with an export button                                                           |
-| `let`, assignment, turtle commands, `shape`, `colour`, `shine`, `sharpness`, `texture`, `lay`, part calls, `return`, `print` | stacking blocks with slots for values. Labels can be friendlier than the keywords, such as "turn left/right" for `yaw`                    |
-| `if`, `repeat`, `for`, `while`, `branch`, `symmetric`, `lay { }`, `reshape { }`                                              | blocks that wrap around other blocks                                                                                                      |
-| expressions                                                                                                                  | value blocks that plug into slots: round for numbers, pointed for bools, swatches for colours                                             |
+| Construct                                                                                                                            | Block                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `creature Name` and the top-level statements                                                                                         | the creature's main block, with the statements stacked below it                                                                           |
+| `part`, `function`                                                                                                                   | a "define" block with the parameters. Parts then appear as stacking blocks in the palette, and functions as value blocks                  |
+| `gene`                                                                                                                               | a gene block with a slider (numbers), colour pickers (colours), range handles, a switch (bools) or a dropdown (choices) and a description |
+| `background { }`                                                                                                                     | a background block holding its genes and one fill block, with a live preview and an export button                                         |
+| `dance { }`                                                                                                                          | a dance block holding its genes and one block per effect, with an export button                                                           |
+| `let`, assignment, turtle commands, `shape`, `colour`, `shine`, `sharpness`, `texture`, `wear`, `lay`, part calls, `return`, `print` | stacking blocks with slots for values. Labels can be friendlier than the keywords, such as "turn left/right" for `yaw`                    |
+| `if`, `repeat`, `for`, `while`, `branch`, `symmetric`, `lay { }`, `reshape { }`                                                      | blocks that wrap around other blocks                                                                                                      |
+| expressions                                                                                                                          | value blocks that plug into slots: round for numbers, pointed for bools, swatches for colours                                             |
 
 **Keeping the two in step:**
 
@@ -1153,7 +1162,7 @@ assign_op     = "=" | "+=" | "-=" | "*=" | "/=" ;
 turtle_cmd    = ( "forward" | "back" | "move" | "pitch" | "yaw" | "roll" | "grow" ) expr
               | "rotate" expr "around" expr
               | "mirror" axis ;
-material_cmd  = ( "shape" | "colour" | "color" | "shine" | "sharpness" | "texture" ) expr ;
+material_cmd  = ( "shape" | "colour" | "color" | "shine" | "sharpness" | "texture" | "wear" ) expr ;
 axis          = "x" | "y" | "z" ;
 
 bg_body       = { gene | bg_stmt } "fill" expr NL ;

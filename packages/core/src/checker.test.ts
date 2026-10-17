@@ -118,6 +118,11 @@ describe("checker: genes", () => {
     expect(g.hue?.whole).toBe(true);
   });
 
+  it("wants a number for wear", () => {
+    expect(errors("wear 0.5")).toEqual([]);
+    expect(errors("wear red").length).toBe(1);
+  });
+
   it("checks choices", () => {
     expect(errors("gene s = cone from [ball, cone, tube]")).toEqual([]);
     rejects("gene s = cube from [ball, cone]", "one of its options");

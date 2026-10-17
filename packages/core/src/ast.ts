@@ -376,7 +376,7 @@ export interface Mirror extends StmtBase {
   axis: Axis;
 }
 
-export type MaterialProperty = "shape" | "colour" | "shine" | "sharpness" | "texture";
+export type MaterialProperty = "shape" | "colour" | "shine" | "sharpness" | "texture" | "wear";
 
 export interface Material extends StmtBase {
   kind: "Material";

@@ -311,6 +311,14 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
   ["sharpness", h("sharpness x", "How tight the highlights are, 0–1.", "13.2")],
   ["texture", h("texture p", "The texture for later shapes: a `pattern(…)`, or `none`.", "13.2")],
   [
+    "wear",
+    h(
+      "wear x",
+      "How much of their texture later shapes wear, 0–1: 0 their plain colour, 1 all texture.",
+      "13.2",
+    ),
+  ],
+  [
     "background",
     h("background { … fill p }", "The background the creature is shown against.", "15"),
   ],
@@ -428,6 +436,7 @@ export const MEMBER_HELP: ReadonlyMap<string, ReadonlyMap<string, Help>> = new M
       ["shine", h("turtle.shine", "The current shine.", "18.4")],
       ["sharpness", h("turtle.sharpness", "The current sharpness.", "18.4")],
       ["texture", h("turtle.texture", "The current texture.", "18.4")],
+      ["wear", h("turtle.wear", "How much of its texture the turtle's shapes wear.", "18.4")],
     ]),
   ],
 ]);
