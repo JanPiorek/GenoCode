@@ -1,14 +1,15 @@
 creature Geno
 // The GenoCode logo come to life: the G's chain of balls, each a little smaller than the last and a
 // little further round the colour wheel. Its form genes bend the chain into other shapes: a sea
-// turtle, whose shell the chain spirals over as head, flippers and tail grow out, and a double
-// helix with rungs in four colours. Morph it through its variants, or breed it for hybrids.
+// turtle, whose shell, head, eyes, flippers and tail are each one of the G's balls, swelling and
+// stretching into place as the rest spiral over the shell, and a double helix with rungs in four
+// colours. Morph it through its variants, or breed it for hybrids.
 
 gene logo       = 1 in 0..1  // how much the chain keeps the shape of the G
 gene sea_turtle = 0 in 0..1  // how much it curls into a turtle
 gene helix      = 0 in 0..1  // how much it twists into a double helix
 
-gene beads   = 18   in 8..40 step 1                               // how many balls are in the chain
+gene beads   = 18   in 12..40 step 1                              // how many balls are in the chain
 gene big     = 1.35 in 0.5..2.5                                   // the first ball's radius
 gene shrink  = 0.41 in 0.2..1                                     // the last ball's radius compared with the first's
 gene start   = hsv(195, 0.75, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)  // the first ball's colour
@@ -38,26 +39,31 @@ let wh = helix / total
 
 shine gloss
 sharpness focus
-if wt > 0 {
-  branch {
-    turtle_body(wt)
-  }
-}
 chain
 
-// The balls, each where the forms put it, mixed by how much of each form the creature is.
+// The balls, each where the forms put it, mixed by how much of each form the creature is. Nine of
+// them become the turtle's shell, head, eyes, flippers and tail; the rest spiral over its shell.
 part chain {
   let n = round(beads)
   let scale = 18 / n
   repeat n as k {
     let u = k / max(n - 1, 1)
-    let p = wl * on_g(u) + wt * on_shell(u) + wh * on_helix(u)
+    let role = role_of(k, n)
+    let v = (k - parts_before(k, n)) / max(n - 10, 1)
+    let p = wl * on_g(u) + wt * on_turtle(role, v) + wh * on_helix(u)
     let swell = 1 + breathe * (wave(time / 3 - u) - wave(-u)) + pulse * music.bass
-    let r = scale * big * swell * (wl * shrink ^ u + wt * 0.55 * shrink ^ (0.3 * u) + wh * 0.6)
-    colour hsv(start.hue + turn * u, start.sat, start.val)
+    let r = scale * big * swell * (wl * shrink ^ u + wh * 0.6)
+    let r_turtle = scale * big * swell * 0.7 * shrink ^ (0.4 * v)
+    let own = hsv(start.hue + turn * u, start.sat, start.val)
+    colour mix(own, turtle_colour(role, own), wt)
     branch {
       move p
-      lay { grow 2 * r }
+      if role == 6 {
+        pitch 90 * wt
+      } else if role >= 4 {
+        turn_flipper(role)
+      }
+      lay { grow mix(vec(2 * r, 2 * r, 2 * r), turtle_size(role, r_turtle), wt) }
     }
     if wh > 0 {
       branch {
@@ -88,11 +94,154 @@ function on_g(u) {
   return (radius - (s - arc), 0, 0)
 }
 
-// A spiral over the turtle's shell, winding out from the crown the way the G winds.
-function on_shell(u) {
-  let lat = 6 + 74 * u
-  let lon = 45 + 420 * u
+// The ball nearest the point `a` degrees round the G (on_g backwards).
+function ball_at(a, n) {
+  let radius = 3.9
+  let arc = radius * radians(315)
+  let span = arc + 2.7
+  let s = arc * (a - 45) / 315
+  let u = s / span
+  if shrink < 0.99 {
+    u = ln(1 - s * (1 - shrink) / span) / ln(shrink)
+  }
+  return clamp(round(u * (n - 1)), 0, n - 1)
+}
+
+// Which ball becomes turtle part `i`, the parts in order along the G: 0 the shell (the first,
+// biggest ball), 1 the right eye, 2 the head (the top of the G), 3 the left eye, 4 the front left
+// flipper, 5 the back left flipper, 6 the tail (the bottom of the G), 7 the back right flipper and
+// 8 the front right flipper. Each takes the ball nearest its place, or the next one free.
+function part_ball(i, n) {
+  if i == 0 {
+    return 0
+  }
+  let target = ball_at(360, n)
+  if i <= 3 {
+    target = ball_at(100, n) + i - 2
+  } else if i == 4 {
+    target = ball_at(155, n)
+  } else if i == 5 {
+    target = ball_at(215, n)
+  } else if i == 6 {
+    target = ball_at(270, n)
+  } else if i == 7 {
+    target = ball_at(325, n)
+  }
+  return max(target, part_ball(i - 1, n) + 1)
+}
+
+// The turtle part ball `k` becomes, or -1 for a ball of the shell's spiral.
+function role_of(k, n) {
+  let role = -1
+  repeat 9 as i {
+    if part_ball(i, n) == k {
+      role = i
+    }
+  }
+  return role
+}
+
+// How many of the balls before ball `k` become turtle parts.
+function parts_before(k, n) {
+  let count = 0
+  repeat 9 as i {
+    if part_ball(i, n) < k {
+      count += 1
+    }
+  }
+  return count
+}
+
+// Where each part of the turtle is. `v` runs along the shell's balls: one on the crown, the rest
+// in a ring that spirals out round it the way the G winds.
+function on_turtle(role, v) {
+  let sway = 0.3 * wave(time * pace / 2)
+  if role == 0 {
+    return (0, 0, -0.1)
+  } else if role == 2 {
+    return (sway, 5.3, 0)
+  } else if role == 1 or role == 3 {
+    return (sway + 0.5 * (2 - role), 5.8, 0.55)
+  } else if role == 6 {
+    return (0, -5.2, -0.2)
+  } else if role >= 4 {
+    let a = flipper_angle(role)
+    let side = 1
+    if role < 6 {
+      side = -1
+    }
+    let anchor = (2.9 * side, 2.6, -0.2)
+    let reach = 1.6
+    if role == 5 or role == 7 {
+      anchor = (2.4 * side, -3.3, -0.2)
+      reach = 1
+    }
+    return anchor + reach * vec(cos(a), sin(a), 0)
+  }
+  let lat = 0
+  if v > 0 {
+    lat = 38 + 30 * v
+  }
+  let lon = 90 + 320 * v
   return (3.75 * sin(lat) * cos(lon), 4.5 * sin(lat) * sin(lon), 1.9 * cos(lat))
+}
+
+// Turns a flipper out of the ball it grows from: to the right, or to the left for the left
+// flippers, then round to its angle.
+part turn_flipper(role) {
+  let a = flipper_angle(role)
+  if role < 6 {
+    yaw -90 * wt
+    a = 180 - a
+  } else {
+    yaw 90 * wt
+  }
+  pitch -a * wt
+}
+
+// Which way a flipper or the tail points, in degrees round from the right.
+function flipper_angle(role) {
+  let fore = 40 + paddle * wave(time * pace)
+  let hind = -35 - 0.5 * paddle * wave(time * pace + 0.25)
+  if role == 4 {
+    return 180 - fore
+  } else if role == 5 {
+    return 180 - hind
+  } else if role == 7 {
+    return hind
+  } else if role == 8 {
+    return fore
+  }
+  return -90
+}
+
+// The size of each part of the turtle, across, up and along the way it points.
+function turtle_size(role, r) {
+  if role == 0 {
+    return (7.5, 9, 3.8)
+  } else if role == 2 {
+    return (1.9, 2.4, 1.5)
+  } else if role == 1 or role == 3 {
+    return (0.4, 0.4, 0.4)
+  } else if role == 4 or role == 8 {
+    return (0.35, 1.1, 3.8)
+  } else if role == 5 or role == 7 {
+    return (0.3, 0.9, 2.3)
+  } else if role == 6 {
+    return (0.35, 0.6, 1.6)
+  }
+  return vec(2 * r, 2 * r, 2 * r)
+}
+
+function turtle_colour(role, own) {
+  if role == 0 {
+    return shell
+  } else if role == 1 or role == 3 {
+    return black
+  } else if role >= 2 {
+    return skin
+  }
+  return own
 }
 
 // One strand of the helix, lying along x. The other strand is this one turned half way round.
@@ -126,52 +275,6 @@ part rung(k, p, thick) {
   colour far
   back reach / 2
   lay { grow (thick, thick, reach) }
-}
-
-// The shell, head, flippers and tail, which grow out of the middle as `w` rises.
-part turtle_body(w) {
-  grow w
-  colour shell
-  branch {
-    move (0, 0, -0.1)
-    lay { grow (7.5, 9, 3.8) }
-  }
-
-  colour skin
-  branch {
-    move (0.3 * wave(time * pace / 2), 5.3, 0)
-    lay { grow (1.9, 2.4, 1.5) }
-    symmetric x {
-      colour black
-      move (0.5, 0.5, 0.55)
-      lay { grow 0.4 }
-    }
-  }
-
-  symmetric x {
-    branch {
-      move (2.9, 2.6, -0.2)
-      yaw 90
-      pitch -40 - paddle * wave(time * pace)
-      forward 1.6
-      lay { grow (0.35, 1.1, 3.8) }
-    }
-    branch {
-      move (2.4, -3.3, -0.2)
-      yaw 90
-      pitch 35 + 0.5 * paddle * wave(time * pace + 0.25)
-      forward 1
-      lay { grow (0.3, 0.9, 2.3) }
-    }
-  }
-
-  branch {
-    move (0, -4.5, -0.2)
-    pitch 90
-    forward 0.5
-    shape cone
-    lay { grow (0.7, 0.4, 1.4) }
-  }
 }
 
 background {
