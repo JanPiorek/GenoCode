@@ -31,7 +31,7 @@ import {
   type WebGLProgramParametersWithUniforms,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { creatureBounds, shapeGeometry, type Detail } from "./geometry.js";
+import { creatureBounds, mainBounds, shapeGeometry, type Detail } from "./geometry.js";
 import {
   backgroundRamp,
   FIELD_OF_VIEW,
@@ -537,7 +537,7 @@ export class CreatureView {
    * The framing the camera is easing towards while it follows a creature: the creature's middle
    * and the distance that fits it in, each eased, and when it was last moved on.
    */
-  private following: { centre: Vector3; distance: number; at: number } | undefined;
+  private following: { centre: Vector3; distance: number; at: number; start: number } | undefined;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -576,15 +576,21 @@ export class CreatureView {
    */
   private follow(): void {
     const aspect = this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight);
-    const want = frameCamera(creatureBounds(this.look.shapes), aspect);
+    // Most of the creature: one shape grown huge mustn't take the camera away from the rest.
+    const want = frameCamera(mainBounds(this.look.shapes), aspect);
     const centre = new Vector3(...want.target);
-    const distance = centre.distanceTo(new Vector3(...want.position));
     const now = performance.now();
     const f = this.following;
     if (f === undefined) {
-      this.following = { centre, distance, at: now };
+      const start = centre.distanceTo(new Vector3(...want.position));
+      this.following = { centre, distance: start, at: now, start };
       return;
     }
+    // Never more than three times nearer or further than where the dance began.
+    const distance = Math.min(
+      f.start * 3,
+      Math.max(f.start / 3, centre.distanceTo(new Vector3(...want.position))),
+    );
     const dt = Math.min((now - f.at) / 1000, 0.1);
     const k = 1 - Math.exp(-dt / FOLLOW_TIME);
     const step = centre.sub(f.centre).multiplyScalar(k);
@@ -592,11 +598,16 @@ export class CreatureView {
     f.centre.add(step);
     f.distance *= scale;
     f.at = now;
+    // Where the camera is from what it looks at, before either moves: both then move with the
+    // creature's middle, so the view keeps its direction.
+    const offset = this.camera.position.clone().sub(this.controls.target).multiplyScalar(scale);
     const target = this.controls.target.add(step);
-    const offset = this.camera.position.clone().sub(target).multiplyScalar(scale);
     this.camera.position.copy(target).add(offset);
-    this.camera.near = (want.near / 4) * (f.distance / distance);
-    this.camera.far = want.far * 4 * (f.distance / distance);
+    // Near enough to see the creature close up, and far enough not to cut off what's left out.
+    const all = creatureBounds(this.look.shapes);
+    const away = this.camera.position.distanceTo(new Vector3(...all.centre));
+    this.camera.near = Math.max(f.distance / 1000, (want.near / 4) * (f.distance / distance));
+    this.camera.far = Math.max(f.distance * 8, away + all.radius * 2);
     this.camera.updateProjectionMatrix();
     this.controls.maxDistance *= scale;
   }
