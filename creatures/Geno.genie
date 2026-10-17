@@ -3,7 +3,7 @@ creature Geno
 // little further round the colour wheel. Its form genes bend the chain into other shapes: a sea
 // turtle, whose shell, head, eyes, flippers and tail are each one of the G's balls, swelling and
 // stretching into place as the rest spiral over the shell, and a double helix with rungs in four
-// colours. Morph it through its variants, or breed it for hybrids.
+// colours. Morph it through its variants, or breed it for hybrids. It has a dance of its own.
 
 gene logo       = 1 in 0..1  // how much the chain keeps the shape of the G
 gene sea_turtle = 0 in 0..1  // how much it curls into a turtle
@@ -282,6 +282,21 @@ background {
   gene bottom = hsv(290, 0.45, 0.36) in hsv(0, 0, 0)..hsv(360, 1, 1)
 
   fill gradient(bottom, top)
+}
+
+// Geno's own dance: the music carries it slowly round its forms, so the G, the turtle and the
+// helix each get seen; the kicks pull it nearer and turn it; drops in the highs send it back the
+// way it came; and now and then the snares turn it face-on, to spin flat like the logo.
+dance {
+  gene drive = 0.5 in 0.1..2   // how many forms a second the music carries it through
+  gene whirl = 120 in 30..360  // how fast it spins at its loudest, in degrees a second
+
+  morph   follows music.level  speed drive  settle 3
+  zoom    follows music.bass_hit  amount 0.4  settle 8
+  spin    follows music.bass  from 20 to whirl  smooth 1
+  turn    on music.bass_hit rises  by 0.5
+  reverse on music.high drops  by 0.6  on 16 off 16
+  flat    on music.mid_hit drops  by 0.7  on 16 off 48
 }
 
 variant Turtle { logo = 0; sea_turtle = 1; start = hsv(170, 0.7, 0.95); turn = 120 }
