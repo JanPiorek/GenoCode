@@ -17,6 +17,6 @@
     "dist"
   ],
   "dependencies": {
-    "@genocode/core": "^0.5.0"
+    "@genocode/core": "^0.6.0"
   }
 }
