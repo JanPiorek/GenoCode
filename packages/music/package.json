@@ -15,5 +15,8 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "dependencies": {
+    "@genocode/core": "^0.5.0"
+  }
 }
