@@ -158,6 +158,26 @@ describe("checker: statements and types", () => {
     rejects("dance {\n  lay\n}", "dance block can only hold");
   });
 
+  it("checks dance effect lines", () => {
+    rejects("dance {\n  morph on music.mid\n}", "starts with `follows`");
+    rejects("dance {\n  morph follows music.mid by 1\n}", "has no setting `by`");
+    rejects("dance {\n  zoom follows music.level settle 1 settle 2\n}", "set twice");
+    rejects("dance {\n  spin follows music.bass drops\n}", "for effects that trigger");
+    rejects("dance {\n  turn on music.mid drops rises\n}", "only one of");
+    rejects("dance {\n  reverse on music.bass on 4\n}", "need both counts");
+    rejects("dance {\n  morph follows red\n}", "must be a number");
+    rejects(
+      "dance {\n  morph follows music.mid\n  morph follows music.bass\n}",
+      "only one `morph`",
+    );
+    rejects("dance {\n  morph follows music.mid speed\n}", "Expected a value after `speed`");
+    expect(
+      errors(
+        "dance {\n  gene drive = 1 in 0..3\n  morph follows music.mid speed drive settle 2\n}",
+      ),
+    ).toEqual([]);
+  });
+
   it("keeps backgrounds self-contained", () => {
     rejects("gene hue = 10 in 0..360\nbackground {\n  fill hsv(hue, 1, 1)\n}", "self-contained");
     rejects("background {\n  fill turtle.colour\n}", "can't read the turtle");

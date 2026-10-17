@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { check } from "./checker.js";
-import { build, buildBackground } from "./interpreter.js";
+import { build, buildBackground, buildDance } from "./interpreter.js";
 import { mulberry32 } from "./noise.js";
 import { centre, checked, errors, near, run } from "./test-helpers.js";
 import { formatValue } from "./values.js";
@@ -265,6 +265,41 @@ describe("genes, randomness and inputs", () => {
     expect(formatValue(buildBackground(file).fill!)).toBe(
       "gradient(hsv(240, 1, 1, 1) at 0, hsv(0, 0, 1, 1) at 1)",
     );
+  });
+});
+
+describe("dance styles", () => {
+  it("runs the dance block with the music of the moment, filling in defaults", () => {
+    const program = checked(`creature T
+lay
+dance {
+  gene drive = 2 in 0..3
+  morph follows clamp(music.mid * 2, 0, 1) speed drive
+  spin follows music.bass_hit from 10 to 20
+  turn on music.mid drops by 1
+  flat on music.level
+}
+`);
+    const quiet = buildDance(program).style!;
+    expect(quiet.morph).toEqual({ input: 0, speed: 2, settle: 2 });
+    expect(quiet.spin).toEqual({ input: 0, from: 10, to: 20, smooth: 0.4 });
+    expect(quiet.turn).toEqual({ input: 0, when: "drops", by: 1, bursts: undefined });
+    expect(quiet.flat).toEqual({ input: 0, when: "changes", by: 0.5, bursts: { on: 24, off: 48 } });
+    expect(quiet.zoom).toBeUndefined();
+    const loud = buildDance(program, { inputs: { music: { mid: 0.3, bass_hit: 1.5 } } }).style!;
+    expect(loud.morph!.input).toBeCloseTo(0.6);
+    expect(loud.spin!.input).toBe(1);
+  });
+
+  it("reads bursts, and dance files", () => {
+    const file = checked("dance Pulse\nreverse on music.bass rises by 0.3 on 2 off 6\n");
+    expect(buildDance(file).style!.reverse).toEqual({
+      input: 0,
+      when: "rises",
+      by: 0.3,
+      bursts: { on: 2, off: 6 },
+    });
+    expect(buildDance(checked("creature T\nlay\n")).style).toBeUndefined();
   });
 });
 

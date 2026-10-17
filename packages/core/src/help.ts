@@ -324,7 +324,11 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
   ["beat", h("beat", "Position within the current beat: 0 on the beat, rising towards 1.", "16")],
   [
     "music",
-    h("music.bass", "The music: `bass`, `mid`, `high`, `level` and `hit`, each 0–1.", "16"),
+    h(
+      "music.bass",
+      "The music: `bass`, `mid`, `high`, `level`, `hit`, `bass_hit`, `mid_hit` and `high_hit`, each 0–1.",
+      "16",
+    ),
   ],
 ]);
 
@@ -338,6 +342,30 @@ export const MEMBER_HELP: ReadonlyMap<string, ReadonlyMap<string, Help>> = new M
       ["high", h("music.high", "Level of the high frequencies, 0–1.", "16")],
       ["level", h("music.level", "Overall loudness, 0–1.", "16")],
       ["hit", h("music.hit", "Jumps up on each drum hit or note, then falls back, 0–1.", "16")],
+      [
+        "bass_hit",
+        h(
+          "music.bass_hit",
+          "Jumps up on each low hit, such as a kick drum, then falls back, 0–1.",
+          "16",
+        ),
+      ],
+      [
+        "mid_hit",
+        h(
+          "music.mid_hit",
+          "Jumps up on each hit in the middle, such as a snare, then falls back, 0–1.",
+          "16",
+        ),
+      ],
+      [
+        "high_hit",
+        h(
+          "music.high_hit",
+          "Jumps up on each high hit, such as a hi-hat, then falls back, 0–1.",
+          "16",
+        ),
+      ],
     ]),
   ],
   [

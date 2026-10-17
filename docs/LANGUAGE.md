@@ -733,15 +733,18 @@ a background file into a creature replaces the creature's background block. Its 
 
 A creature can react to time and music through these read-only values:
 
-| Name          | Range     | Meaning                                                                                |
-| ------------- | --------- | -------------------------------------------------------------------------------------- |
-| `time`        | 0 upwards | seconds since the creature started being shown                                         |
-| `beat`        | 0 → 1     | position within the current beat: 0 on the beat, rising towards 1 just before the next |
-| `music.bass`  | 0–1       | level of the low frequencies                                                           |
-| `music.mid`   | 0–1       | level of the middle frequencies                                                        |
-| `music.high`  | 0–1       | level of the high frequencies                                                          |
-| `music.level` | 0–1       | overall loudness                                                                       |
-| `music.hit`   | 0–1       | jumps up on each onset (a drum hit, a note starting) and falls back                    |
+| Name             | Range     | Meaning                                                                                |
+| ---------------- | --------- | -------------------------------------------------------------------------------------- |
+| `time`           | 0 upwards | seconds since the creature started being shown                                         |
+| `beat`           | 0 → 1     | position within the current beat: 0 on the beat, rising towards 1 just before the next |
+| `music.bass`     | 0–1       | level of the low frequencies                                                           |
+| `music.mid`      | 0–1       | level of the middle frequencies                                                        |
+| `music.high`     | 0–1       | level of the high frequencies                                                          |
+| `music.level`    | 0–1       | overall loudness                                                                       |
+| `music.hit`      | 0–1       | jumps up on each onset (a drum hit, a note starting) and falls back                    |
+| `music.bass_hit` | 0–1       | jumps up on each low onset (a kick drum, a bass note) and falls back                   |
+| `music.mid_hit`  | 0–1       | jumps up on each onset in the middle (a snare, a voice) and falls back                 |
+| `music.high_hit` | 0–1       | jumps up on each high onset (a hi-hat, a cymbal) and falls back                        |
 
 ```
 gene flap = 30 in 0..70       // how hard the wings beat with the bass
@@ -786,28 +789,54 @@ A creature can carry its dance style in a `dance` block:
 
 ```
 dance {
-  gene drive = 1.1 in 0.3..3       // how fast the music pushes the morph
+  gene drive = 1.1 in 0.3..3  // how fast the music pushes the morph, in creatures a second
 
-  morph   follows music.mid   speed drive  settle 0.7
-  zoom    follows music.hit   amount 0.3
-  spin    follows music.bass  from 0.04 to 0.15  smooth 8
-  turn    on music.bass changes
-  reverse on music.level drops  every 4
-  flat    on music.hit drops    on 24 off 48
+  morph   follows music.mid  speed drive  settle 2
+  zoom    follows music.level  amount 0.5  settle 15
+  spin    follows music.bass_hit  from 45 to 170  smooth 0.4
+  turn    on music.mid changes  by 1
+  reverse on music.bass drops  by 1  on 4 off 4
+  flat    on music.level drops  by 0.86  on 24 off 48
 }
 ```
 
-- The block holds genes, `let`s and one line per effect. An effect without a line is off.
-- Settings can be expressions of the block's genes and variables. Like a background, a dance block
-  is self-contained: it can't read the creature's genes or variables.
+- The block holds genes, `let`s and at most one line per effect. An effect without a line is off.
+- **The block runs again at every moment of the dance**, with the current `time`, `beat` and
+  `music` values ([section 16](#16-time-and-music)). So an effect's input can be any expression:
+  `morph follows clamp(music.mid * 1.5 - 0.2, 0, 1)` makes the morph more sensitive and ignore
+  quiet passages. Settings can be expressions too, of the block's genes, variables and the inputs.
+- Like a background, a dance block is self-contained: it can't read the creature's genes or
+  variables.
 - Its genes have full names starting with `dance.`.
+
+**Effect lines.** Each line is the effect's name, then words, each followed by a value, except
+`changes`, `drops` and `rises`, which stand alone. The words can come in any order after the
+first. Values are numbers. Settings left out take the default shown.
+
+| Effect    | Line                                       | Settings                                                                                                                                                                                                                                                 |
+| --------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `morph`   | `morph follows x speed 1 settle 2`         | `speed`: creatures a second at full input. `settle`: seconds to coast to a stop from full speed once the input falls; it speeds up ten times faster                                                                                                      |
+| `zoom`    | `zoom follows x amount 0.5 settle 15`      | `amount`: how much nearer the creature comes at full input, from 0 (not at all) to 1 (as near as it can). `settle`: seconds to drift all the way back; it comes in fifty times faster                                                                    |
+| `spin`    | `spin follows x from 45 to 170 smooth 0.4` | the spin speed in degrees a second, from `from` (input 0) to `to` (input 1). The input is read each time the spin axis turns, or all the time if there's no `turn` line. `smooth`: seconds to swing smoothly to a new axis and speed; 0 switches at once |
+| `turn`    | `turn on x changes by 0.5`                 | gives the spin a new, random axis each time the input triggers                                                                                                                                                                                           |
+| `reverse` | `reverse on x drops by 0.5 on 4 off 4`     | reverses the morph each time the input triggers                                                                                                                                                                                                          |
+| `flat`    | `flat on x drops by 0.5 on 24 off 48`      | while on, the creature turns face-on and spins flat; each trigger reverses the flat spin                                                                                                                                                                 |
+
+`x` is the effect's input, a number from 0 to 1 (values outside are clamped).
+
+**Triggers.** `turn`, `reverse` and `flat` act when their input **triggers**: when it has moved by
+at least `by` since the last trigger. After `on x`, one word says which moves count: `changes`
+(either way), `drops` (only down) or `rises` (only up); `changes` is the default. While `flat` is
+on, `turn` only counts drops, whatever its line says.
+
+**Bursts.** `on n off m` makes an effect work in bursts: it works for `n` triggers, then rests for
+`m`, and so on, starting at work. For `flat`, working means being flat. Without `on … off …`,
+`reverse` always works, and `flat` uses `on 24 off 48`.
+
 - A creature's dance block is its default style. The app may switch to another style while the
   creature dances, and uses its selected style for creatures without a dance block.
 - **Dance files** start with `dance <Name>` and hold the contents of a dance block. They convert to
   and from dance blocks in the same way as background files.
-- **Provisional:** the effect lines' words and settings (`follows`, `speed`, `settle`, `amount`,
-  `from … to …`, `smooth`, `on … changes`, `on … drops`, `every`, `on … off …`) show the intended
-  structure and will be fixed when the dance engine is built.
 
 ## 18. Library
 
@@ -1089,8 +1118,10 @@ bg_stmt       = "let" NAME "=" expr NL
 bg_block      = "{" { bg_stmt } "}" ;
 
 dance_body    = { gene | "let" NAME "=" expr NL | effect NL } ;
-effect        = effect_name { NAME | expr } ;                 (* provisional *)
+effect        = effect_name { setting } ;
+setting       = "changes" | "drops" | "rises" | word expr ;
 effect_name   = "morph" | "zoom" | "spin" | "turn" | "reverse" | "flat" ;
+word          = NAME | "from" | "to" | "by" ;
 
 expr          = or_expr ;
 or_expr       = and_expr { "or" and_expr } ;
@@ -1120,7 +1151,6 @@ constant expressions ([6.1](#61-declaring-genes)) and where strings are allowed
 
 ## 23. Not yet settled
 
-- **Dance effect lines** ([section 17](#17-dance-styles)): the exact words and settings.
 - **Pattern arguments** ([section 14](#14-textures)): scheme, finish and a second pattern.
 - **More inputs** ([section 16](#16-time-and-music)): such as tempo, or the viewer interacting with
   the creature.

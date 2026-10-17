@@ -1,19 +1,12 @@
 // Sliders standing in for `time`, `beat` and the `music` values (docs/LANGUAGE.md section 16), so a
 // creature's reactions can be tried before there's music to play.
 
-import type { BuildOptions, MusicInputs } from "@genocode/core";
+import { MUSIC_FIELDS, silence, type BuildOptions, type MusicInputs } from "@genocode/core";
 
-const MUSIC: readonly (keyof MusicInputs)[] = ["bass", "mid", "high", "level", "hit"];
 const MAX_TIME = 60;
 
 export class InputControls {
-  private readonly music: Record<keyof MusicInputs, number> = {
-    bass: 0,
-    mid: 0,
-    high: 0,
-    level: 0,
-    hit: 0,
-  };
+  private readonly music: MusicInputs = silence();
   private beat = 0;
   /** While time runs: when it was 0. While it's held: the time it's held at. */
   private started = performance.now();
@@ -60,7 +53,7 @@ export class InputControls {
       this.onChange();
     });
     list.append(this.row("beat", beat));
-    for (const name of MUSIC) {
+    for (const name of MUSIC_FIELDS) {
       const s = this.range(0, 1, 0.01, 0);
       s.addEventListener("input", () => {
         this.music[name] = Number(s.value);

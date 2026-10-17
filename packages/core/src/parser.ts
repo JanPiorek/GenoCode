@@ -2,7 +2,9 @@
 // a statement that can't be read becomes an ErrorStmt, and parsing carries on with the next one.
 
 import {
+  EFFECT_KEYWORD_WORDS,
   EFFECT_NAMES,
+  TRIGGER_KINDS,
   type AssignOp,
   type Axis,
   type BinaryOp,
@@ -45,32 +47,6 @@ const COMMANDS = new Set<string>(["forward", "back", "move", "pitch", "yaw", "ro
 const MATERIALS = new Set<string>(["shape", "colour", "color", "shine", "sharpness", "texture"]);
 const ASSIGN_OPS = new Set<string>(["=", "+=", "-=", "*=", "/="]);
 const COMPARE_OPS = new Set<string>(["==", "!=", "<", "<=", ">", ">="]);
-const EXPRESSION_KEYWORDS = new Set<string>([
-  "true",
-  "false",
-  "turtle",
-  "time",
-  "beat",
-  "music",
-  "not",
-]);
-/** After a word in an effect line, these mean the word starts a value instead. */
-const VALUE_FOLLOWERS = new Set<string>([
-  ".",
-  "(",
-  "+",
-  "-",
-  "*",
-  "/",
-  "%",
-  "^",
-  "==",
-  "!=",
-  "<",
-  "<=",
-  ">",
-  ">=",
-]);
 
 class Parser {
   private pos = 0;
@@ -724,21 +700,24 @@ class Parser {
     });
   }
 
+  /** An effect line: words, each followed by a value unless it stands alone (section 17). */
   private parseEffect(): Stmt {
     const t = this.next();
     const args: EffectArg[] = [];
     while (!this.atStatementEnd()) {
-      const a = this.peek();
-      const after = this.peek(1);
-      const isWord =
-        (a.kind === "name" || (a.kind === "keyword" && !EXPRESSION_KEYWORDS.has(a.text))) &&
-        !(after.kind === "op" && VALUE_FOLLOWERS.has(after.text));
-      if (isWord) {
-        this.next();
-        args.push({ kind: "Word", text: a.text, span: a.span });
-      } else {
-        args.push({ kind: "Value", expr: this.parseExpr() });
+      const w = this.peek();
+      if (!(w.kind === "name" || (w.kind === "keyword" && EFFECT_KEYWORD_WORDS.has(w.text)))) {
+        this.fail(
+          w.span,
+          `Expected a word such as \`follows\` or \`speed\`, but found ${this.describe(w)}.`,
+        );
       }
+      this.next();
+      args.push({ kind: "Word", text: w.text, span: w.span });
+      if (TRIGGER_KINDS.has(w.text)) continue;
+      if (this.atStatementEnd())
+        this.fail(this.peek().span, `Expected a value after \`${w.text}\`.`);
+      args.push({ kind: "Value", expr: this.parseExpr() });
     }
     return this.endSimple({ kind: "Effect", ...this.base(t.span.start), name: t.text, args });
   }

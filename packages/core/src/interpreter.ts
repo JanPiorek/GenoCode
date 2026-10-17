@@ -1,7 +1,14 @@
 // Builds a creature: runs the checked program with a set of gene values and inputs, and collects
 // the shapes it lays (docs/LANGUAGE.md section 20).
 
-import type { Block, Expr, FunctionDecl, PartDecl, Stmt } from "./ast.js";
+import {
+  TRIGGER_KINDS,
+  type Block,
+  type Expr,
+  type FunctionDecl,
+  type PartDecl,
+  type Stmt,
+} from "./ast.js";
 import { BUILTIN_CONSTANTS, BUILTIN_FUNCTIONS } from "./builtins.js";
 import type { CheckResult } from "./checker.js";
 import { hexColour, makeGradient, sampleGradient } from "./colour.js";
@@ -40,13 +47,19 @@ import {
   type Value,
 } from "./values.js";
 
-export interface MusicInputs {
-  bass: number;
-  mid: number;
-  high: number;
-  level: number;
-  hit: number;
-}
+/** The parts of `music` (section 16). */
+export const MUSIC_FIELDS = [
+  "bass",
+  "mid",
+  "high",
+  "level",
+  "hit",
+  "bass_hit",
+  "mid_hit",
+  "high_hit",
+] as const;
+
+export type MusicInputs = Record<(typeof MUSIC_FIELDS)[number], number>;
 
 /** Time and music (section 16). Everything left out is 0: the rest pose. */
 export interface Inputs {
@@ -59,6 +72,11 @@ export interface Limits {
   shapes: number;
   steps: number;
   depth: number;
+}
+
+/** Every `music` value at 0, as when no music is playing. */
+export function silence(): MusicInputs {
+  return Object.fromEntries(MUSIC_FIELDS.map((f) => [f, 0])) as MusicInputs;
 }
 
 export const DEFAULT_LIMITS: Readonly<Limits> = { shapes: 50_000, steps: 10_000_000, depth: 200 };
@@ -120,6 +138,102 @@ export function build(program: CheckResult, options: BuildOptions = {}): BuildRe
   }
   run.guarded(() => run.runCreature());
   return { shapes: run.shapes, diagnostics: run.finish(), printed: run.printed, ok: !run.failed };
+}
+
+/** Which moves of an input trigger an effect (section 17). */
+export type TriggerKind = "changes" | "drops" | "rises";
+
+/** A trigger effect's settings: its input, what triggers it, and its bursts (on/off counts). */
+export interface Trigger {
+  input: number;
+  when: TriggerKind;
+  by: number;
+  /** Triggers it works for, then rests for, or undefined to always work. */
+  bursts: { on: number; off: number } | undefined;
+}
+
+/** A dance style at one moment: each effect's input (0–1) and settings, or undefined if it's off. */
+export interface DanceStyle {
+  morph?: { input: number; speed: number; settle: number };
+  zoom?: { input: number; amount: number; settle: number };
+  spin?: { input: number; from: number; to: number; smooth: number };
+  turn?: Trigger;
+  reverse?: Trigger;
+  flat?: Trigger;
+}
+
+export interface DanceResult {
+  /** Undefined if there's no dance block or it failed. */
+  style: DanceStyle | undefined;
+  diagnostics: Diagnostic[];
+  printed: string[];
+}
+
+/**
+ * Works out a creature's or dance file's dance style at one moment (section 17). The block runs
+ * with the inputs given, so the app runs it again at every moment of the dance.
+ */
+export function buildDance(program: CheckResult, options: BuildOptions = {}): DanceResult {
+  const run = new Run(program, options);
+  if (!program.ok || program.dance === undefined) {
+    return { style: undefined, diagnostics: [], printed: [] };
+  }
+  run.guarded(() => run.runSection(program.dance!, "dance"));
+  return {
+    style: run.failed ? undefined : danceStyle(run.effects),
+    diagnostics: run.finish(),
+    printed: run.printed,
+  };
+}
+
+interface EffectValues {
+  name: string;
+  settings: Map<string, number>;
+  when: TriggerKind | undefined;
+}
+
+/** The effect lines as a style, with the defaults of section 17 for settings left out. */
+function danceStyle(effects: EffectValues[]): DanceStyle {
+  const style: DanceStyle = {};
+  const clamp01 = (x: number) => Math.min(Math.max(x, 0), 1);
+  for (const e of effects) {
+    const get = (name: string, fallback: number) => e.settings.get(name) ?? fallback;
+    const input = clamp01(get("input", 0));
+    const trigger = (defaultBursts: Trigger["bursts"]): Trigger => ({
+      input,
+      when: e.when ?? "changes",
+      by: get("by", 0.5),
+      bursts: e.settings.has("off")
+        ? { on: Math.max(1, Math.round(get("on", 1))), off: Math.max(1, Math.round(get("off", 1))) }
+        : defaultBursts,
+    });
+    switch (e.name) {
+      case "morph":
+        style.morph = { input, speed: get("speed", 1), settle: get("settle", 2) };
+        break;
+      case "zoom":
+        style.zoom = { input, amount: clamp01(get("amount", 0.5)), settle: get("settle", 15) };
+        break;
+      case "spin":
+        style.spin = {
+          input,
+          from: get("from", 45),
+          to: get("to", 170),
+          smooth: get("smooth", 0.4),
+        };
+        break;
+      case "turn":
+        style.turn = trigger(undefined);
+        break;
+      case "reverse":
+        style.reverse = trigger(undefined);
+        break;
+      case "flat":
+        style.flat = trigger({ on: 24, off: 48 });
+        break;
+    }
+  }
+  return style;
 }
 
 /** Works out a creature's or background file's background (section 15). */
@@ -200,6 +314,7 @@ class Run {
   printed: string[] = [];
   failed = false;
   fill: Value | undefined;
+  readonly effects: EffectValues[] = [];
   private readonly diagnostics: Diagnostic[] = [];
   private readonly limits: Limits;
   private readonly inputs: Inputs;
@@ -231,7 +346,7 @@ class Run {
     this.inputs = {
       time: i.time ?? 0,
       beat: i.beat ?? 0,
-      music: { bass: 0, mid: 0, high: 0, level: 0, hit: 0, ...i.music },
+      music: { ...silence(), ...i.music },
     };
     for (const g of program.genes) {
       const key = g.section === "creature" ? g.owner : g.section;
@@ -342,8 +457,10 @@ class Run {
       case "Dance":
       case "Variant":
       case "GeneSetting":
-      case "Effect":
       case "ErrorStmt":
+        return;
+      case "Effect":
+        this.effect(s, env);
         return;
       case "Let":
         env.vars.set(s.name, { value: this.eval(s.value, env), mutable: true });
@@ -510,6 +627,22 @@ class Run {
         this.fill = this.eval(s.value, env);
         return;
     }
+  }
+
+  /** An effect line's values, each under the word before it; the lead word's under `input`. */
+  private effect(s: Extract<Stmt, { kind: "Effect" }>, env: Env): void {
+    const settings = new Map<string, number>();
+    let when: TriggerKind | undefined;
+    s.args.forEach((a, i) => {
+      if (a.kind === "Word") {
+        if (TRIGGER_KINDS.has(a.text)) when = a.text as TriggerKind;
+        return;
+      }
+      const word = s.args[i - 1]!;
+      const name = word.kind === "Word" ? word.text : "";
+      settings.set(i === 1 ? "input" : name, this.num(a.expr, env, `\`${name}\``));
+    });
+    this.effects.push({ name: s.name, settings, when });
   }
 
   private material(s: Extract<Stmt, { kind: "Material" }>, env: Env): void {

@@ -175,6 +175,25 @@ dance {
     ]);
   });
 
+  it("reads effect lines as words, each with the value after it", () => {
+    const r = items("dance {\n  reverse on music.bass drops by drive on 4 off 4\n}");
+    const dance = r[0]!;
+    if (dance.kind !== "Dance") throw new Error();
+    const effect = dance.body.items[0]!;
+    if (effect.kind !== "Effect") throw new Error();
+    expect(effect.args.map((a) => (a.kind === "Word" ? a.text : "·"))).toEqual([
+      "on",
+      "·",
+      "drops",
+      "by",
+      "·",
+      "on",
+      "·",
+      "off",
+      "·",
+    ]);
+  });
+
   it("attaches comments to statements and blocks", () => {
     const [, a, b] = items(
       "lay\n// above\nlay // after\nbranch { // open\n  lay\n  // end\n} // close",

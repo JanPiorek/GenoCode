@@ -1,21 +1,25 @@
 // Checks a parsed file against the rules of docs/LANGUAGE.md: names, genes, where each statement
 // may appear, what functions may do, and types wherever they're known without running the program.
 
-import type {
-  Block,
-  Comment,
-  Expr,
-  FunctionDecl,
-  GeneDecl,
-  Param,
-  PartDecl,
-  SourceFile,
-  Stmt,
-  VariantDecl,
+import {
+  EFFECT_LINES,
+  TRIGGER_KINDS,
+  type Block,
+  type Comment,
+  type Effect,
+  type Expr,
+  type FunctionDecl,
+  type GeneDecl,
+  type Param,
+  type PartDecl,
+  type SourceFile,
+  type Stmt,
+  type VariantDecl,
 } from "./ast.js";
 import { BUILTIN_CONSTANTS, BUILTIN_FUNCTIONS, isBuiltinName } from "./builtins.js";
 import { hexColour } from "./colour.js";
 import { hueArc, inHueArc, seedGene, type GeneInfo, type GeneSection } from "./genes.js";
+import { MUSIC_FIELDS } from "./interpreter.js";
 import { parse } from "./parser.js";
 import type { Diagnostic, LineMap, Span } from "./source.js";
 import {
@@ -151,7 +155,7 @@ const TURTLE_FIELDS: ReadonlyMap<string, TypeName> = new Map<string, TypeName>([
   ["texture", "pattern"],
 ]);
 
-const MUSIC_FIELDS = new Set(["bass", "mid", "high", "level", "hit"]);
+const MUSIC_NAMES: ReadonlySet<string> = new Set(MUSIC_FIELDS);
 const VECTOR_FIELDS = new Set(["x", "y", "z"]);
 const COLOUR_FIELDS = new Set(["hue", "sat", "val", "alpha"]);
 const SHAPE_STATEMENTS = new Set(["Command", "Rotate", "Mirror", "Let", "Assign", "If"]);
@@ -552,6 +556,17 @@ class Checker {
       returns: { value: false },
     };
     for (const item of items) this.checkStmt(item, ctx, true);
+
+    if (section === "dance") {
+      const seen = new Set<string>();
+      for (const item of items) {
+        if (item.kind !== "Effect") continue;
+        if (seen.has(item.name)) {
+          this.error(item.span, `A dance style has only one \`${item.name}\` line.`);
+        }
+        seen.add(item.name);
+      }
+    }
 
     if (section === "background") {
       const fills = items.filter((i) => i.kind === "Fill");
@@ -1239,12 +1254,63 @@ class Checker {
         return;
       }
       case "Effect":
-        for (const a of stmt.args) {
-          if (a.kind === "Value") this.checkExpr(a.expr, ctx);
-        }
+        this.checkEffect(stmt, ctx);
         return;
       case "ErrorStmt":
         return;
+    }
+  }
+
+  /** An effect line: its lead word, then settings it takes, each once, with number values. */
+  private checkEffect(stmt: Effect, ctx: Ctx): void {
+    const line = EFFECT_LINES.get(stmt.name)!;
+    const list = (words: readonly string[]): string =>
+      words.map((w) => `\`${w}\``).join(words.length === 2 ? " and " : ", ");
+    const seen = new Set<string>();
+    let trigger = false;
+    stmt.args.forEach((a, i) => {
+      if (a.kind === "Value") {
+        this.expect(
+          this.checkExpr(a.expr, ctx),
+          ["number"],
+          a.expr.span,
+          "A setting must be a number",
+        );
+        return;
+      }
+      if (i === 0) {
+        if (a.text !== line.lead) {
+          this.error(a.span, `\`${stmt.name}\` starts with \`${line.lead}\` and its input.`);
+        }
+        return;
+      }
+      if (TRIGGER_KINDS.has(a.text)) {
+        if (line.lead !== "on") {
+          this.error(
+            a.span,
+            `\`${a.text}\` is for effects that trigger: \`turn\`, \`reverse\` and \`flat\`.`,
+          );
+        } else if (trigger) {
+          this.error(a.span, "An effect line can say only one of `changes`, `drops` and `rises`.");
+        }
+        trigger = true;
+        return;
+      }
+      if (!line.settings.includes(a.text)) {
+        this.error(
+          a.span,
+          `\`${stmt.name}\` has no setting \`${a.text}\`. It takes ${list(line.settings)}.`,
+        );
+      } else if (seen.has(a.text)) {
+        this.error(a.span, `\`${a.text}\` is set twice.`);
+      }
+      seen.add(a.text);
+    });
+    if (stmt.args.length === 0) {
+      this.error(stmt.span, `\`${stmt.name}\` needs its input: \`${stmt.name} ${line.lead} …\`.`);
+    }
+    if ((seen.has("on") || seen.has("off")) && !(seen.has("on") && seen.has("off"))) {
+      this.error(stmt.span, "Bursts need both counts: `on n off m`.");
     }
   }
 
@@ -1298,10 +1364,10 @@ class Checker {
         this.markLive(ctx);
         return "number";
       case "Music":
-        if (!MUSIC_FIELDS.has(expr.field)) {
+        if (!MUSIC_NAMES.has(expr.field)) {
           this.error(
             expr.fieldSpan,
-            `\`music\` has no \`${expr.field}\`. It has \`bass\`, \`mid\`, \`high\`, \`level\` and \`hit\`.`,
+            `\`music\` has no \`${expr.field}\`. It has ${MUSIC_FIELDS.map((f) => `\`${f}\``).join(", ")}.`,
           );
         }
         this.markLive(ctx);

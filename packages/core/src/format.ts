@@ -1,15 +1,17 @@
 // The standard formatter (docs/LANGUAGE.md section 21). It decides spacing, line breaks and
 // brackets, and keeps names, values, structure and comments. The block editor prints code with it.
 
-import type {
-  Block,
-  Comment,
-  EffectArg,
-  Expr,
-  GeneDecl,
-  GeneSetting,
-  SourceFile,
-  Stmt,
+import {
+  TRIGGER_KINDS,
+  type Block,
+  type Comment,
+  type Effect,
+  type EffectArg,
+  type Expr,
+  type GeneDecl,
+  type GeneSetting,
+  type SourceFile,
+  type Stmt,
 } from "./ast.js";
 import { parse } from "./parser.js";
 import type { Diagnostic } from "./source.js";
@@ -116,9 +118,54 @@ function printItems(out: string[], items: Stmt[], level: number, top: boolean): 
       continue;
     }
 
+    if (item.kind === "Effect") {
+      // A dance's effect lines are lined up after their names.
+      let j = i + 1;
+      while (
+        j < items.length &&
+        items[j]!.kind === "Effect" &&
+        items[j]!.leading.length === 0 &&
+        !items[j]!.blankBefore
+      )
+        j++;
+      const effects = items.slice(i, j) as Effect[];
+      const nameWidth = Math.max(...effects.map((e) => e.name.length));
+      for (const e of effects) {
+        const line = `${e.name.padEnd(nameWidth)} ${effectSettings(e)}`;
+        out.push(pad(level) + line + (e.trailing ? `  ${e.trailing.text}` : ""));
+      }
+      i = j;
+      continue;
+    }
+
     printStmt(out, item, level);
     i++;
   }
+}
+
+/** Settings that stay with the one before them: `from 45 to 170`, `on 4 off 4`. */
+const PAIRED: ReadonlyMap<string, string> = new Map([
+  ["to", "from "],
+  ["off", "on "],
+]);
+
+/**
+ * An effect line's settings: two spaces between settings, one inside each. A trigger word stays
+ * with the input before it: `on music.bass drops  by 1  on 4 off 4`.
+ */
+function effectSettings(e: Effect): string {
+  const groups: string[] = [];
+  for (const a of e.args) {
+    const text = effectArg(a);
+    const last = groups[groups.length - 1];
+    const joins =
+      a.kind === "Value" ||
+      TRIGGER_KINDS.has(text) ||
+      (groups.length > 1 && last!.startsWith(PAIRED.get(text) ?? "\0"));
+    if (joins && last !== undefined) groups[groups.length - 1] = `${last} ${text}`;
+    else groups.push(text);
+  }
+  return groups.join("  ");
 }
 
 function printSettings(out: string[], settings: GeneSetting[], level: number): void {
@@ -194,7 +241,7 @@ function simpleText(s: Stmt): string | undefined {
     case "Fill":
       return `fill ${expr(s.value)}`;
     case "Effect":
-      return [s.name, ...s.args.map(effectArg)].join(" ");
+      return `${s.name} ${effectSettings(s)}`;
     case "Gene":
       return `gene ${s.name} = ${geneValueText(s)}${s.range ? ` ${geneRangeText(s)}` : ""}`;
     case "GeneSetting":

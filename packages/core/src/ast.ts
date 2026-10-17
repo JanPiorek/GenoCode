@@ -391,7 +391,7 @@ export interface Fill extends StmtBase {
   value: Expr;
 }
 
-/** A setting in a dance effect line: a bare word, or a value. Provisional (section 17). */
+/** A part of a dance effect line: a word, or the value after it (section 17). */
 export type EffectArg = { kind: "Word"; text: string; span: Span } | { kind: "Value"; expr: Expr };
 
 export interface Effect extends StmtBase {
@@ -430,3 +430,24 @@ export const EFFECT_NAMES: ReadonlySet<string> = new Set([
   "reverse",
   "flat",
 ]);
+
+/** How an effect's lead word reads its input, and the settings the effect takes (section 17). */
+export interface EffectLine {
+  lead: "follows" | "on";
+  settings: readonly string[];
+}
+
+export const EFFECT_LINES: ReadonlyMap<string, EffectLine> = new Map<string, EffectLine>([
+  ["morph", { lead: "follows", settings: ["speed", "settle"] }],
+  ["zoom", { lead: "follows", settings: ["amount", "settle"] }],
+  ["spin", { lead: "follows", settings: ["from", "to", "smooth"] }],
+  ["turn", { lead: "on", settings: ["by"] }],
+  ["reverse", { lead: "on", settings: ["by", "on", "off"] }],
+  ["flat", { lead: "on", settings: ["by", "on", "off"] }],
+]);
+
+/** Words in an effect line that stand alone: which moves of the input trigger it. */
+export const TRIGGER_KINDS: ReadonlySet<string> = new Set(["changes", "drops", "rises"]);
+
+/** Keywords that can be words in an effect line. */
+export const EFFECT_KEYWORD_WORDS: ReadonlySet<string> = new Set(["from", "to", "by"]);

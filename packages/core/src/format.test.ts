@@ -16,6 +16,14 @@ describe("formatter", () => {
     );
   });
 
+  it("lines up a dance's effect lines, keeping each setting together", () => {
+    const input =
+      "dance D\nmorph follows music.mid speed 2\nreverse on music.bass drops by 1 on 4 off 4\nspin follows music.hit from 45 to 170 smooth 0\n";
+    expect(fmt(input)).toBe(
+      "dance D\nmorph   follows music.mid  speed 2\nreverse on music.bass drops  by 1  on 4 off 4\nspin    follows music.hit  from 45 to 170  smooth 0\n",
+    );
+  });
+
   it("uses brackets only where they're needed", () => {
     const cases: [string, string][] = [
       ["(1 + 2) * 3", "(1 + 2) * 3"],
