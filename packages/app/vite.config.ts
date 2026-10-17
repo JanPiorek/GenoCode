@@ -9,6 +9,10 @@ export default defineConfig({
   resolve: {
     // Use the other packages' sources directly, so changes show up without rebuilding them.
     alias: {
+      // Just the pattern drawing, for the web worker, without three.js.
+      "@genocode/render/patterns": fileURLToPath(
+        new URL("../render/src/patterns.ts", import.meta.url),
+      ),
       "@genocode/core": src("core"),
       "@genocode/render": src("render"),
       "@genocode/music": src("music"),

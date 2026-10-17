@@ -17,7 +17,7 @@ import {
   type Pattern,
   type PatternKindName,
 } from "@genocode/core";
-import { patternPixels } from "@genocode/render";
+import { pixelsWhenReady } from "@genocode/render";
 
 /** How big the preview is drawn: smaller while a control is dragged, so it keeps up. */
 const PREVIEW_SIZE = 512;
@@ -127,13 +127,14 @@ export function recipeName(p: Pattern): string {
 
 /** A background file holding a recipe. */
 export function backgroundFile(p: Pattern): string {
-  return [
+  const text = [
     `background ${recipeName(p)}`,
     `// Made in the Patterns designer: ${formatValue(p)}`,
     "",
     ...backgroundLines(p),
     "",
   ].join("\n");
+  return formatText(text).text ?? text;
 }
 
 /**
@@ -163,11 +164,18 @@ export function withBackground(text: string, lines: string[]): string | undefine
   return formatText(out).text ?? out;
 }
 
-function drawInto(target: HTMLCanvasElement, p: Pattern, size: number): void {
+/** The latest picture asked of each canvas, so one that arrives late isn't drawn over it. */
+const latest = new WeakMap<HTMLCanvasElement, Pattern>();
+
+/** Draws a recipe into a canvas once its picture is ready (pictures are drawn in web workers). */
+async function drawInto(target: HTMLCanvasElement, p: Pattern, size: number): Promise<void> {
+  latest.set(target, p);
+  const pixels = await pixelsWhenReady(p, size);
+  if (latest.get(target) !== p) return;
   target.width = size;
   target.height = size;
   const ctx = target.getContext("2d")!;
-  ctx.putImageData(new ImageData(patternPixels(p, size), size, size), 0, 0);
+  ctx.putImageData(new ImageData(pixels, size, size), 0, 0);
 }
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -345,7 +353,7 @@ export class PatternDesigner {
   }
 
   private draw(size: number): void {
-    drawInto(this.preview, this.recipe, size);
+    void drawInto(this.preview, this.recipe, size);
     this.code.textContent = formatValue(this.recipe);
     this.hint.textContent = "";
   }
@@ -380,7 +388,7 @@ export class PatternDesigner {
     this.tiles = Array.from({ length: VARIATIONS }, (_, i) => {
       const p = make();
       const el = element("canvas", { className: "pattern-variation", title: formatValue(p) });
-      drawInto(el, p, VARIATION_SIZE);
+      void drawInto(el, p, VARIATION_SIZE);
       el.addEventListener("click", () => {
         if (!this.chosen.delete(i)) this.chosen.add(i);
         this.showChosen();
@@ -422,10 +430,8 @@ export class PatternDesigner {
 
   private async exportPicture(): Promise<void> {
     this.hint.textContent = "Drawing…";
-    // Let the hint show before the work starts.
-    await new Promise((r) => setTimeout(r, 20));
     const big = element("canvas");
-    drawInto(big, this.recipe, EXPORT_SIZE);
+    await drawInto(big, this.recipe, EXPORT_SIZE);
     const blob = await new Promise<Blob | null>((r) => big.toBlob(r, "image/png"));
     this.hint.textContent = "";
     if (blob) await saveBlob(blob, `${recipeName(this.recipe)}.png`, "PNG pictures", ".png");

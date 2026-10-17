@@ -14,12 +14,16 @@ export {
 } from "./look.js";
 export { rasterize, type Image, type RasterOptions } from "./software.js";
 export {
+  drawFieldsWith,
   hasField,
+  onFieldReady,
   patternField,
   patternPalette,
   patternPixels,
   patternSheen,
+  pixelsWhenReady,
   TEXTURE_SIZE,
+  type FieldDrawer,
 } from "./texture.js";
-export type { Field } from "./patterns.js";
+export { drawField, type Field } from "./patterns.js";
 export { CreatureView, Thumbnails } from "./webgl.js";

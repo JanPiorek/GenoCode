@@ -1,6 +1,10 @@
 // Shows creatures in the browser with three.js: one instanced mesh per kind of shape and texture,
-// with each shape's colour, alpha, shine, sharpness and sheen carried per instance. `CreatureView` is the full,
-// interactive view; `Thumbnails` draws many small pictures with one renderer.
+// with each shape's colour, alpha, shine, sharpness and sheen carried per instance. `CreatureView`
+// is the full, interactive view; `Thumbnails` draws many small pictures with one renderer.
+//
+// Textures are wrapped onto shapes from three sides at once (triplanar mapping): the picture is
+// projected along each axis of the shape and blended by which way the surface faces, so there are
+// no seams or pinched poles, and every shape wears its texture the same way.
 
 import { toRgb, type LaidShape, type Pattern, type ShapeName, type Value } from "@genocode/core";
 import {
@@ -36,7 +40,14 @@ import {
   type CameraPlacement,
   type Side,
 } from "./look.js";
-import { fieldKey, patternPixels, patternSheen, textureKey } from "./texture.js";
+import {
+  fieldKey,
+  onFieldReady,
+  patternMiddle,
+  patternSheen,
+  readyPixels,
+  textureKey,
+} from "./texture.js";
 
 /** How big a pattern background is, in pixels along each side. */
 const BACKGROUND_SIZE = 512;
@@ -51,9 +62,42 @@ function addInstanceLook(shader: WebGLProgramParametersWithUniforms): void {
       "#include <common>",
       "#include <common>\nattribute vec4 instanceLook;\nvarying vec4 vLook;",
     )
-    .replace("#include <begin_vertex>", "#include <begin_vertex>\nvLook = instanceLook;");
+    .replace(
+      "#include <common>",
+      "#include <common>\nvarying vec3 vShapePosition;\nvarying vec3 vShapeNormal;",
+    )
+    .replace(
+      "#include <begin_vertex>",
+      [
+        "#include <begin_vertex>",
+        "vLook = instanceLook;",
+        "vShapePosition = position;",
+        "vShapeNormal = normal;",
+      ].join("\n"),
+    );
   shader.fragmentShader = shader.fragmentShader
-    .replace("#include <common>", "#include <common>\nvarying vec4 vLook;")
+    .replace(
+      "#include <common>",
+      [
+        "#include <common>",
+        "varying vec4 vLook;",
+        "varying vec3 vShapePosition;",
+        "varying vec3 vShapeNormal;",
+      ].join("\n"),
+    )
+    .replace(
+      "#include <map_fragment>",
+      [
+        "#ifdef USE_MAP",
+        // The shape fits a 1×1×1 box about its middle, so each projection covers it once.
+        "vec3 facing = pow( abs( normalize( vShapeNormal ) ), vec3( 4.0 ) );",
+        "facing /= facing.x + facing.y + facing.z;",
+        "vec3 p = vShapePosition + 0.5;",
+        "diffuseColor *= texture2D( map, p.yz ) * facing.x + texture2D( map, p.xz ) * facing.y",
+        "  + texture2D( map, p.xy ) * facing.z;",
+        "#endif",
+      ].join("\n"),
+    )
     .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.a *= vLook.z;")
     .replace(
       "#include <opaque_fragment>",
@@ -89,8 +133,8 @@ function makeMaterial(transparent: boolean, map?: Texture): MeshPhongMaterial {
 }
 
 /** A texture made from a pattern's picture, which can be recoloured in place. */
-function patternTexture(p: Pattern, size: number): DataTexture {
-  const texture = new DataTexture(patternPixels(p, size), size, size, RGBAFormat);
+function patternTexture(pixels: Uint8ClampedArray<ArrayBuffer>, size: number): DataTexture {
+  const texture = new DataTexture(pixels, size, size, RGBAFormat);
   texture.colorSpace = SRGBColorSpace;
   texture.wrapS = texture.wrapT = RepeatWrapping;
   texture.minFilter = LinearMipmapLinearFilter;
@@ -100,17 +144,20 @@ function patternTexture(p: Pattern, size: number): DataTexture {
   return texture;
 }
 
-/** Gives `texture` the look of `p`, which has the same picture. */
-function recolour(texture: DataTexture, p: Pattern, size: number): void {
-  (texture.image.data as Uint8ClampedArray).set(patternPixels(p, size));
-  texture.needsUpdate = true;
+/** A one-pixel texture of a pattern's middle colour, worn until its picture is ready. */
+function standInTexture(p: Pattern): DataTexture {
+  const [r, g, b] = patternMiddle(p);
+  return patternTexture(new Uint8ClampedArray([r * 255, g * 255, b * 255, 255]), 1);
 }
 
-/** A material for shapes wearing one texture, and the look it has now. */
+/**
+ * A material for shapes wearing one texture, and the picture it shows: `field` is undefined for
+ * a stand-in, which is never recoloured.
+ */
 interface Textured {
   material: MeshPhongMaterial;
   texture: DataTexture;
-  field: string;
+  field: string | undefined;
 }
 
 /** How much of the way to the camera a dance's zoom can bring the creature. */
@@ -127,6 +174,14 @@ class CreatureScene {
   private readonly seeThrough = makeMaterial(true);
   /** The textured materials in use, by texture and whether they're see-through. */
   private textured = new Map<string, Textured>();
+  /**
+   * What each textured group of shapes wore last time, so while a new picture is drawn the shapes
+   * keep the one they had, as a dance or morph moves on. A group is known by its kind of shape and
+   * its place among the groups of that kind.
+   */
+  private worn = new Map<string, Textured>();
+  /** The background asked for last, to show again once its picture is ready. */
+  fill: Value | undefined;
   /** The pattern background, kept so a new hue only recolours it. */
   private backgroundPattern: { texture: DataTexture; field: string; look: string } | undefined;
   private aspect = 1;
@@ -174,18 +229,26 @@ class CreatureScene {
       groups.get(key)!.push(s);
     }
     const old = this.textured;
+    const wornBefore = this.worn;
     this.textured = new Map();
+    this.worn = new Map();
+    const places = new Map<string, number>();
     const matrix = new Matrix4();
     const colour = new Color();
     for (const [key, members] of groups) {
       const [shape, mirrored, transparent] = key.split("|");
       const seeThrough = transparent === "true";
       const pattern = members[0]!.texture;
-      const material = pattern
-        ? this.texturedMaterial(pattern, seeThrough, old)
-        : seeThrough
-          ? this.seeThrough
-          : this.opaque;
+      let material = seeThrough ? this.seeThrough : this.opaque;
+      if (pattern) {
+        const kind = `${shape}|${mirrored}|${transparent}`;
+        const place = places.get(kind) ?? 0;
+        places.set(kind, place + 1);
+        const slot = `${kind}#${place}`;
+        const t = this.texturedMaterial(pattern, seeThrough, old, wornBefore.get(slot));
+        this.worn.set(slot, t);
+        material = t.material;
+      }
       const sheen = pattern ? patternSheen(pattern) : 0;
       const mesh = new InstancedMesh(
         shapeGeometry(shape as ShapeName, mirrored === "true", detail),
@@ -208,45 +271,63 @@ class CreatureScene {
       mesh.computeBoundingSphere();
       this.creature.add(mesh);
     }
+    const kept = new Set(this.textured.values());
     for (const t of old.values()) {
+      if (kept.has(t)) continue;
       t.material.dispose();
       t.texture.dispose();
     }
   }
 
   /**
-   * The material for shapes wearing `p`: the one already in use, or one left over from the last
-   * creature with the same picture, recoloured (so a hue that follows the music costs little), or
-   * a new one. What's taken from `old` is removed from it.
+   * The material for shapes wearing `p`: the one already in use; or one left over from the last
+   * creature with the same picture, recoloured (so a hue that follows the music costs little); or
+   * a new one. While the picture is being drawn, the shapes keep what they wore (`worn`), or wear
+   * the palette's middle colour.
    */
   private texturedMaterial(
     p: Pattern,
     seeThrough: boolean,
     old: Map<string, Textured>,
-  ): MeshPhongMaterial {
+    worn: Textured | undefined,
+  ): Textured {
     const key = `${textureKey(p)}|${seeThrough}`;
     const field = `${fieldKey(p)}|${seeThrough}`;
     let t = this.textured.get(key) ?? old.get(key);
-    old.delete(key);
-    if (t === undefined) {
-      for (const [k, candidate] of old) {
-        if (candidate.field !== field) continue;
-        old.delete(k);
-        recolour(candidate.texture, p, candidate.texture.image.width);
-        t = candidate;
-        break;
+    if (t === undefined || t.field === undefined) {
+      const pixels = readyPixels(p);
+      if (pixels === undefined) {
+        if (worn) {
+          t = worn;
+        } else {
+          const texture = standInTexture(p);
+          t = { material: makeMaterial(seeThrough, texture), texture, field: undefined };
+        }
+        // Kept under its own name, so it isn't taken for the real picture later.
+        this.textured.set(`waiting|${key}|${this.textured.size}`, t);
+        return t;
+      }
+      t = [...old.values()].find((c) => c.field === field && !this.inUse(c));
+      if (t) {
+        (t.texture.image.data as Uint8ClampedArray).set(pixels);
+        t.texture.needsUpdate = true;
+      } else {
+        const texture = patternTexture(pixels, Math.sqrt(pixels.length / 4));
+        t = { material: makeMaterial(seeThrough, texture), texture, field };
       }
     }
-    if (t === undefined) {
-      const texture = patternTexture(p, 256);
-      t = { material: makeMaterial(seeThrough, texture), texture, field };
-    }
     this.textured.set(key, t);
-    return t.material;
+    return t;
+  }
+
+  private inUse(t: Textured): boolean {
+    for (const v of this.textured.values()) if (v === t) return true;
+    return false;
   }
 
   /** A background's fill: a colour, a gradient or a pattern. */
   setBackground(fill: Value | undefined): void {
+    this.fill = fill;
     if (typeof fill === "object" && fill.type === "pattern" && fill.kind !== null) {
       this.setPatternBackground(fill);
       return;
@@ -276,12 +357,17 @@ class CreatureScene {
     const field = fieldKey(p, BACKGROUND_SIZE);
     const look = textureKey(p, BACKGROUND_SIZE);
     const shown = this.backgroundPattern;
+    if (shown && shown.field === field && shown.look === look) return;
+    // While the picture is drawn, the background stays as it was.
+    const pixels = readyPixels(p, BACKGROUND_SIZE);
+    if (pixels === undefined) return;
     if (shown && shown.field === field && this.scene.background === shown.texture) {
-      if (shown.look !== look) recolour(shown.texture, p, BACKGROUND_SIZE);
+      (shown.texture.image.data as Uint8ClampedArray).set(pixels);
+      shown.texture.needsUpdate = true;
       shown.look = look;
       return;
     }
-    const texture = patternTexture(p, BACKGROUND_SIZE);
+    const texture = patternTexture(pixels, BACKGROUND_SIZE);
     texture.generateMipmaps = false;
     texture.minFilter = texture.magFilter;
     const old = this.scene.background;
@@ -338,6 +424,7 @@ export class CreatureView {
   private frameRequested = false;
   /** The camera's turn in the front view, which the lights are set for. */
   private readonly frontTurn = new Quaternion();
+  private readonly stopListening: () => void;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -348,6 +435,12 @@ export class CreatureView {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
     this.resize();
+    // A texture's picture drawn elsewhere is ready: show it.
+    this.stopListening = onFieldReady(() => {
+      this.look.setCreature(this.look.shapes, "high");
+      this.look.setBackground(this.look.fill);
+      this.requestFrame();
+    });
   }
 
   /** Replaces the creature on show. With `keepView`, the camera stays where the viewer left it. */
@@ -429,6 +522,7 @@ export class CreatureView {
   }
 
   dispose(): void {
+    this.stopListening();
     this.resizeObserver.disconnect();
     this.controls.dispose();
     this.look.dispose();

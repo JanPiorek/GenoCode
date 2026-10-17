@@ -1,4 +1,11 @@
-import { buildBackground, check, formatValue, NO_PATTERN, type Pattern } from "@genocode/core";
+import {
+  buildBackground,
+  check,
+  formatText,
+  formatValue,
+  NO_PATTERN,
+  type Pattern,
+} from "@genocode/core";
 import { describe, expect, it } from "vitest";
 import { backgroundFile, backgroundLines, cross, vary, withBackground } from "./patterns.js";
 
@@ -18,6 +25,8 @@ describe("recipes as code", () => {
       expect(r.diagnostics).toEqual([]);
       expect(formatValue(buildBackground(r).fill!)).toBe(formatValue(p));
       expect(r.genes.map((g) => g.fullName)).toContain("background.hue");
+      // In the standard layout, as the formatter writes it.
+      expect(formatText(backgroundFile(p)).text).toBe(backgroundFile(p));
     }
   });
 

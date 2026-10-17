@@ -78,6 +78,20 @@ function texturePixels(p: Pattern): Float32Array {
   return out;
 }
 
+/**
+ * A texture wrapped onto a shape from three sides, as the WebGL view does: the picture projected
+ * along each axis of the shape's 1×1×1 box, blended by which way the surface faces.
+ */
+function triplanar(texture: Float32Array, p: V3, n: V3): Rgb {
+  const f = n.map((x) => Math.abs(x) ** 4);
+  const total = f[0]! + f[1]! + f[2]! || 1;
+  const x = texelAt(texture, p[1] + 0.5, p[2] + 0.5);
+  const y = texelAt(texture, p[0] + 0.5, p[2] + 0.5);
+  const z = texelAt(texture, p[0] + 0.5, p[1] + 0.5);
+  const mix = (k: number) => (x[k]! * f[0]! + y[k]! * f[1]! + z[k]! * f[2]!) / total;
+  return [mix(0), mix(1), mix(2)];
+}
+
 /** A texture's colour at u, v (0 to 1 across, and up from the bottom), repeating outside. */
 function texelAt(texture: Float32Array, u: number, v: number): Rgb {
   const n = TEXTURE_SIZE;
@@ -137,7 +151,6 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
     const geometry = shapeGeometry(shape.shape, false, "low");
     const pos = geometry.getAttribute("position").array;
     const nor = geometry.getAttribute("normal").array;
-    const uv = geometry.getAttribute("uv").array;
     const texture = shape.texture ? texturePixels(shape.texture) : undefined;
     const sheen = shape.texture ? patternSheen(shape.texture) : 0;
     const index = geometry.getIndex()?.array;
@@ -224,9 +237,14 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
           const extra = ka * glint[a]! + kb * glint[b]! + kc * glint[c]!;
           let surface = base;
           if (texture) {
-            const u = ka * uv[a * 2]! + kb * uv[b * 2]! + kc * uv[c * 2]!;
-            const w = ka * uv[a * 2 + 1]! + kb * uv[b * 2 + 1]! + kc * uv[c * 2 + 1]!;
-            const t = texelAt(texture, u, w);
+            // Where on the shape this is, and which way it faces there, in the shape's own box.
+            const at3 = (arr: ArrayLike<number>, k: number) =>
+              ka * arr[a * 3 + k]! + kb * arr[b * 3 + k]! + kc * arr[c * 3 + k]!;
+            const t = triplanar(
+              texture,
+              [at3(pos, 0), at3(pos, 1), at3(pos, 2)],
+              [at3(nor, 0), at3(nor, 1), at3(nor, 2)],
+            );
             surface = [base[0] * t[0], base[1] * t[1], base[2] * t[2]];
           }
           for (let k = 0; k < 3; k++) {

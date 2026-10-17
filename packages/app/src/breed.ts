@@ -2,7 +2,7 @@
 // breed them into the next generation (docs/LANGUAGE.md section 19).
 
 import { breed, mutate } from "@genocode/core";
-import { Thumbnails } from "@genocode/render";
+import { onFieldReady, Thumbnails } from "@genocode/render";
 import { buildCreature, type Creature } from "./creature.js";
 import { locked } from "./panel.js";
 
@@ -26,12 +26,22 @@ export class Breeder {
   private readonly history: { generation: Creature[]; parents: Set<number> }[] = [];
   private readonly thumbnails = new Thumbnails();
   private drawing = 0;
+  /** The tiles on show, to draw again when a texture's picture is ready. */
+  private shown: { canvas: HTMLCanvasElement; creature: Creature }[] = [];
+  private repaint = 0;
 
   constructor(
     private readonly grid: HTMLElement,
     private readonly events: BreederEvents,
   ) {
     new ResizeObserver(() => this.render()).observe(grid);
+    // Pictures drawn elsewhere arrive one by one; the tiles are drawn again once they've settled.
+    onFieldReady(() => {
+      clearTimeout(this.repaint);
+      this.repaint = window.setTimeout(() => {
+        if (!this.grid.hidden) this.paint(this.shown);
+      }, 100);
+    });
   }
 
   /** The tiles, in grid order. */
@@ -149,6 +159,12 @@ export class Breeder {
     if (this.grid.hidden) return;
     const tiles = this.generation.map((c, i) => this.tile(c, i));
     this.grid.replaceChildren(...tiles.map((t) => t.element));
+    this.shown = tiles;
+    this.paint(tiles);
+  }
+
+  /** Draws the tiles a few at a time, so the page stays responsive. */
+  private paint(tiles: readonly { canvas: HTMLCanvasElement; creature: Creature }[]): void {
     const run = ++this.drawing;
     const ratio = window.devicePixelRatio || 1;
     let k = 0;

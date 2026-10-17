@@ -1,8 +1,13 @@
 // Textures from patterns (docs/LANGUAGE.md section 14): a pattern's grey picture (patterns.ts)
 // coloured by its palette (palette.ts). Pictures and palettes are kept for a while, as drawing a
 // picture is the slow part and creatures often use the same few again and again.
+//
+// Pictures can be drawn elsewhere, such as in a web worker, so the page doesn't stall: with a
+// drawer set (drawFieldsWith), the WebGL views ask for pictures with readyField, which starts one
+// drawing and says it's not ready yet, and are told when it is (onFieldReady). The original drew
+// its textures in the background the same way. Without a drawer, pictures are drawn on the spot.
 
-import type { Pattern } from "@genocode/core";
+import type { PatternKindName, PatternMix, Pattern } from "@genocode/core";
 import { paletteTable, SHEEN, TABLE_SIZE } from "./palette.js";
 import { drawField, type Field } from "./patterns.js";
 
@@ -53,6 +58,76 @@ export function hasField(p: Pattern, size = TEXTURE_SIZE): boolean {
   return fields.has(fieldKey(p, size));
 }
 
+/** Draws a pattern's grey picture somewhere else, giving its values (see drawField). */
+export type FieldDrawer = (
+  kind: PatternKindName,
+  seed: number,
+  mix: PatternMix | undefined,
+  size: number,
+) => Promise<Float32Array>;
+
+let drawer: FieldDrawer | undefined;
+const drawing = new Set<string>();
+const readyListeners = new Set<() => void>();
+
+/** Has pictures drawn by `d` from now on, such as in a web worker; undefined draws them here. */
+export function drawFieldsWith(d: FieldDrawer | undefined): void {
+  drawer = d;
+}
+
+/** Calls `listener` whenever a picture being drawn elsewhere is ready. Returns a way to stop. */
+export function onFieldReady(listener: () => void): () => void {
+  readyListeners.add(listener);
+  return () => readyListeners.delete(listener);
+}
+
+/**
+ * A pattern's grey picture if it's ready. If it isn't and there's a drawer, starts drawing it
+ * there and returns undefined; without a drawer, draws it now.
+ */
+export function readyField(p: Pattern, size = TEXTURE_SIZE): Field | undefined {
+  const key = fieldKey(p, size);
+  if (fields.has(key) || drawer === undefined) return patternField(p, size);
+  if (!drawing.has(key)) {
+    drawing.add(key);
+    drawer(p.kind!, p.seed, p.mix, size)
+      .then((v) => fields.get(key, () => ({ size, v })))
+      // If drawing elsewhere fails, it's drawn here instead.
+      .catch(() => patternField(p, size))
+      .finally(() => {
+        drawing.delete(key);
+        for (const l of readyListeners) l();
+      });
+  }
+  return undefined;
+}
+
+/** A pattern as a picture, once its grey picture is ready, wherever it's drawn. */
+export function pixelsWhenReady(
+  p: Pattern,
+  size = TEXTURE_SIZE,
+): Promise<Uint8ClampedArray<ArrayBuffer>> {
+  const now = readyPixels(p, size);
+  if (now) return Promise.resolve(now);
+  return new Promise((resolve) => {
+    const stop = onFieldReady(() => {
+      const px = readyPixels(p, size);
+      if (!px) return;
+      stop();
+      resolve(px);
+    });
+  });
+}
+
+/** A pattern as a picture if its grey picture is ready (see readyField). */
+export function readyPixels(
+  p: Pattern,
+  size = TEXTURE_SIZE,
+): Uint8ClampedArray<ArrayBuffer> | undefined {
+  const f = readyField(p, size);
+  return f && colourField(f, p);
+}
+
 /** A pattern's palette: TABLE_SIZE colours, r, g, b from 0 to 1. */
 export function patternPalette(p: Pattern): Float32Array {
   return palettes.get(`${p.hue}/${p.scheme}/${p.finish}/${p.seed}`, () =>
@@ -67,7 +142,17 @@ export function patternSheen(p: Pattern): number {
 
 /** A pattern as a picture: RGBA, 8 bits per channel, rows from the top. */
 export function patternPixels(p: Pattern, size = TEXTURE_SIZE): Uint8ClampedArray<ArrayBuffer> {
-  const { v } = patternField(p, size);
+  return colourField(patternField(p, size), p);
+}
+
+/** The middle colour of a pattern's palette, r, g, b from 0 to 1: a stand-in for its picture. */
+export function patternMiddle(p: Pattern): [number, number, number] {
+  const t = patternPalette(p);
+  const k = (TABLE_SIZE >> 1) * 3;
+  return [t[k]!, t[k + 1]!, t[k + 2]!];
+}
+
+function colourField({ size, v }: Field, p: Pattern): Uint8ClampedArray<ArrayBuffer> {
   const table = patternPalette(p);
   const out = new Uint8ClampedArray(size * size * 4);
   for (let i = 0; i < v.length; i++) {

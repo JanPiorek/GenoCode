@@ -29,6 +29,7 @@ import {
 } from "./creature.js";
 import { DanceFloor, type DanceFrame } from "./dance.js";
 import { CodeEditor } from "./editor.js";
+import { drawFieldsInWorkers } from "./fields.js";
 import { InputControls } from "./inputs.js";
 import { deleteCreature, saveCreature, savedNames, savedText } from "./library.js";
 import { Morpher } from "./morph.js";
@@ -64,6 +65,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const canvas = $<HTMLCanvasElement>("view");
 const grid = $("grid");
 const codeSection = $("code");
+drawFieldsInWorkers();
 const view = new CreatureView(canvas);
 const creatureSelect = $<HTMLSelectElement>("creatures");
 const fileInput = $<HTMLInputElement>("file-input");
