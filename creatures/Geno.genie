@@ -5,8 +5,6 @@ creature Geno
 // stretching into place as the rest spiral over the shell, and a double helix with rungs in four
 // colours. Morph it through its variants, or breed it for hybrids. It has a dance of its own.
 
-gene textured = false  // whether it wears its texture, as the Satin variant does
-
 gene logo       = 1 in 0..1  // how much the chain keeps the shape of the G
 gene sea_turtle = 0 in 0..1  // how much it curls into a turtle
 gene helix      = 0 in 0..1  // how much it twists into a double helix
@@ -57,13 +55,7 @@ part chain {
     let r = scale * big * swell * (wl * shrink ^ u + wh * 0.6)
     let r_turtle = scale * big * swell * 0.7 * shrink ^ (0.4 * v)
     let own = hsv(start.hue + turn * u, start.sat, start.val)
-    let tint = mix(own, turtle_colour(role, own), wt)
-    colour tint
-    // The texture's colours are built round the ball's own, so it's worn instead of the colour.
-    if textured {
-      colour white
-      texture pattern(plasma, tint.hue, 2, analogous, satin)
-    }
+    colour mix(own, turtle_colour(role, own), wt)
     branch {
       move p
       if role == 6 {
@@ -310,5 +302,3 @@ dance {
 variant Turtle { logo = 0; sea_turtle = 1; start = hsv(170, 0.7, 0.95); turn = 120 }
 
 variant Helix { logo = 0; helix = 1; big = 0.9 }
-
-variant Satin { textured = true }
