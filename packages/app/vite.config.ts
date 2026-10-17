@@ -11,9 +11,11 @@ export default defineConfig({
     alias: {
       "@genocode/core": src("core"),
       "@genocode/render": src("render"),
+      "@genocode/music": src("music"),
+      "@genocode/dance": src("dance"),
     },
   },
   server: { fs: { allow: [repo] } },
-  // three.js alone is about 500 kB, and CodeMirror about 400 kB.
-  build: { target: "es2022", outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 1100 },
+  // three.js alone is about 500 kB, and CodeMirror about 400 kB; the app is about 1.4 MB in all.
+  build: { target: "es2022", outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 1500 },
 });

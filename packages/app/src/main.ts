@@ -1,10 +1,19 @@
 // The GenoCode app. View: write a creature's code and see it beside the code, rebuilt as you type,
 // with a control for each gene and sliders for time and music. Breed: a grid of variations to
-// mutate and breed. Morph: a loop blending creatures into one another. Creatures come from the
+// mutate and breed. Morph: a loop blending creatures into one another. Dance: music moves the
+// creature along that loop, turns it and brings it nearer, by a dance style. Creatures come from the
 // examples, from files (watched for changes where the browser allows it), or from those saved in
 // this browser.
 
-import { geneEdits, type CheckResult, type Diagnostic, type Value } from "@genocode/core";
+import {
+  check,
+  geneEdits,
+  MUSIC_FIELDS,
+  type CheckResult,
+  type Diagnostic,
+  type Value,
+} from "@genocode/core";
+import { MusicPlayer } from "@genocode/music";
 import { CreatureView, type Side } from "@genocode/render";
 import { Breeder } from "./breed.js";
 import type { GeneEditing } from "./controls.js";
@@ -16,6 +25,7 @@ import {
   fromProgram,
   type Creature,
 } from "./creature.js";
+import { DanceFloor, type DanceFrame } from "./dance.js";
 import { CodeEditor } from "./editor.js";
 import { InputControls } from "./inputs.js";
 import { deleteCreature, saveCreature, savedNames, savedText } from "./library.js";
@@ -24,6 +34,13 @@ import { showGenes, showInfo, showProblems, showStatus } from "./panel.js";
 
 // The starter creatures in the repository's creatures/ folder.
 const examples = import.meta.glob("../../../creatures/*.genie", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
+// The dance styles in the repository's dances/ folder.
+const danceFiles = import.meta.glob("../../../dances/*.genie", {
   query: "?raw",
   import: "default",
   eager: true,
@@ -49,7 +66,7 @@ const creatureSelect = $<HTMLSelectElement>("creatures");
 const fileInput = $<HTMLInputElement>("file-input");
 const watching = $("watching");
 
-type Mode = "view" | "breed" | "morph";
+type Mode = "view" | "breed" | "morph" | "dance";
 let mode: Mode = "view";
 
 /** Where the code came from: an example, a creature saved in this browser, or elsewhere. */
@@ -91,6 +108,7 @@ function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Val
   enableTools();
   if (mode === "breed" && current) breeder.start(familyOf(current), strength());
   if (mode === "morph" && current) startMorph();
+  if (mode === "dance" && current) startDance();
   if (mode === "view") showCurrent(keepView);
 }
 
@@ -292,6 +310,7 @@ function setMode(next: Mode): void {
   $("view-tools").hidden = mode !== "view";
   $("breed-tools").hidden = mode !== "breed";
   $("morph-tools").hidden = mode !== "morph";
+  $("dance-tools").hidden = mode !== "dance";
   codeSection.hidden = mode !== "view" || !showCode();
   document.body.classList.toggle("with-code", !codeSection.hidden);
   canvas.hidden = mode === "breed";
@@ -299,6 +318,7 @@ function setMode(next: Mode): void {
   $("views").hidden = mode === "breed";
   cancelAnimationFrame(liveFrame);
   morpher.stop();
+  floor.stop();
   inputs.show(false);
   if (mode === "view") showCurrent(false);
   if (mode === "breed" && current) {
@@ -307,16 +327,16 @@ function setMode(next: Mode): void {
     showGenes(current.program.genes, current.values);
   }
   if (mode === "morph") startMorph();
+  if (mode === "dance") startDance();
   enableTools();
 }
 
 /**
- * Morphs through the creatures chosen in the grid, or else the creature's family (itself and its
- * variants), or else the whole grid, or else variations of the creature. The grid only counts
- * while it holds the current creature: one opened since breeding starts afresh.
+ * The creatures to morph through: those chosen in the grid, or else the creature's family (itself
+ * and its variants), or else the whole grid, or else variations of the creature. The grid only
+ * counts while it holds the current creature: one opened since breeding starts afresh.
  */
-function startMorph(): void {
-  if (!current) return;
+function loopMembers(current: Creature): Creature[] {
   const ours = breeder.holds(current);
   let members = ours ? breeder.selection : [];
   if (members.length < 2) members = familyOf(current);
@@ -325,7 +345,11 @@ function startMorph(): void {
     breeder.start([current], 0.5);
     members = breeder.creatures.slice(0, 6);
   }
-  morpher.start(members);
+  return members;
+}
+
+function startMorph(): void {
+  if (current) morpher.start(loopMembers(current));
 }
 
 function strength(): number {
@@ -335,7 +359,7 @@ function strength(): number {
 function enableTools(): void {
   const ok = current !== undefined;
   for (const b of document.querySelectorAll<HTMLButtonElement>(
-    "[data-mode=breed], [data-mode=morph]",
+    "[data-mode=breed], [data-mode=morph], [data-mode=dance]",
   )) {
     b.disabled = !ok;
   }
@@ -386,6 +410,146 @@ $("play").addEventListener("click", () => {
 $<HTMLInputElement>("speed").addEventListener("input", (e) => {
   morpher.secondsEach = Number((e.target as HTMLInputElement).value);
 });
+
+// ---------- dancing ----------
+
+const player = new MusicPlayer();
+const styleSelect = $<HTMLSelectElement>("dance-style");
+const OWN_STYLE = "own";
+
+const styleNames = Object.keys(danceFiles)
+  .map((path) =>
+    path
+      .split("/")
+      .pop()!
+      .replace(/\.genie$/, ""),
+  )
+  .sort();
+const styles = new Map<string, CheckResult>();
+
+/** A style from the dances/ folder, checked once. */
+function libraryStyle(name: string): CheckResult | undefined {
+  if (!styles.has(name)) {
+    const path = Object.keys(danceFiles).find((p) => p.endsWith(`/${name}.genie`));
+    if (path === undefined) return undefined;
+    styles.set(name, check(danceFiles[path]!));
+  }
+  return styles.get(name);
+}
+
+const rememberedStyle = (): string => {
+  try {
+    return localStorage.getItem("genocode.style") ?? "";
+  } catch {
+    return "";
+  }
+};
+
+/** Lists the styles: the creature's own first (when it has a dance block), then the library's. */
+function fillStyleMenu(): void {
+  const own = current?.program.dance !== undefined;
+  const options = [
+    ...(own ? [[OWN_STYLE, `Its own (${current!.program.file.name})`]] : []),
+    ...styleNames.map((n) => [n, n.replace(/_/g, " ")]),
+  ].map(([value, label]) => {
+    const o = document.createElement("option");
+    o.value = value!;
+    o.textContent = label!;
+    return o;
+  });
+  styleSelect.replaceChildren(...options);
+  const remembered = rememberedStyle();
+  styleSelect.value = own
+    ? OWN_STYLE
+    : styleNames.includes(remembered)
+      ? remembered
+      : (styleNames.find((n) => n === "Groove") ?? styleNames[0] ?? "");
+}
+
+function chosenStyle(): CheckResult | undefined {
+  return styleSelect.value === OWN_STYLE ? current?.program : libraryStyle(styleSelect.value);
+}
+
+function startDance(): void {
+  if (!current) return;
+  fillStyleMenu();
+  floor.start(loopMembers(current), chosenStyle());
+}
+
+styleSelect.addEventListener("change", () => {
+  if (styleSelect.value !== OWN_STYLE) {
+    try {
+      localStorage.setItem("genocode.style", styleSelect.value);
+    } catch {
+      // Not remembered, then.
+    }
+  }
+  floor.setStyle(chosenStyle());
+});
+
+// A small bar for each music input, and the beat.
+const meterNames = [...MUSIC_FIELDS, "beat"] as const;
+const meterBars = meterNames.map((name) => {
+  const meter = document.createElement("div");
+  meter.className = `meter${name.endsWith("hit") ? " hit" : ""}`;
+  meter.title = name === "beat" ? "beat" : `music.${name}`;
+  const bar = document.createElement("div");
+  meter.append(bar);
+  $("meters").append(meter);
+  return bar;
+});
+
+let lastDancePanel = 0;
+const floor = new DanceFloor(view, player, (f: DanceFrame) => {
+  meterNames.forEach((name, i) => {
+    const v = name === "beat" ? f.beat : f.music[name];
+    meterBars[i]!.style.height = `${Math.round(v * 100)}%`;
+  });
+  if (performance.now() - lastDancePanel < 200) return;
+  lastDancePanel = performance.now();
+  showGenes(f.creature.program.genes, f.creature.values);
+  showProblems(f.creature.program, f.problems);
+  showDanceHint(f.styleOk);
+});
+
+function showDanceHint(styleOk = true): void {
+  const tempo = player.tempo;
+  const music = player.active
+    ? `${player.name}${player.paused ? " (paused)" : ""}${tempo ? ` · ${Math.round(tempo)} beats a minute` : ""}`
+    : "Pick some music to dance to";
+  $("dance-hint").textContent = styleOk ? music : `${music} · the style has a problem`;
+  const play = $<HTMLButtonElement>("music-play");
+  play.disabled = !player.active || player.source === "microphone";
+  play.textContent =
+    player.source === "microphone" ? "Listening" : player.paused ? "Play" : "Pause";
+}
+
+/** Starts some music, reporting what went wrong if it can't. */
+async function playMusic(start: () => Promise<void>): Promise<void> {
+  try {
+    await start();
+  } catch (e) {
+    alert(`That music can't be played: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  showDanceHint();
+}
+
+const musicInput = $<HTMLInputElement>("music-input");
+$("music-file").addEventListener("click", () => musicInput.click());
+musicInput.addEventListener("change", () => {
+  const file = musicInput.files?.[0];
+  if (file) void playMusic(() => player.playFile(file));
+  musicInput.value = "";
+});
+$("music-url").addEventListener("click", () => {
+  const url = prompt("The web address of some music (the site must allow it to be played here):");
+  if (url) void playMusic(() => player.playUrl(url));
+});
+$("music-mic").addEventListener("click", () => void playMusic(() => player.listen()));
+$("music-play").addEventListener("click", () => void playMusic(() => player.togglePause()));
+
+const isMusic = (f: File) =>
+  f.type.startsWith("audio/") || /\.(mp3|wav|ogg|oga|opus|flac|m4a|aac|webm)$/i.test(f.name);
 
 // ---------- saving ----------
 
@@ -530,7 +694,10 @@ window.addEventListener("drop", async (e) => {
   if (handle && (handle as { kind?: string }).kind === "file")
     return openHandle(handle as FileHandleLike);
   const file = e.dataTransfer?.files[0];
-  if (file) await openFile(file);
+  if (file && isMusic(file)) {
+    if (current && mode !== "dance") setMode("dance");
+    await playMusic(() => player.playFile(file));
+  } else if (file) await openFile(file);
 });
 
 $("reset").addEventListener("click", () => view.resetView());
@@ -583,6 +750,12 @@ window.addEventListener("keydown", (e) => {
   if ((e.key === "f" || e.key === "F") && mode !== "breed") {
     e.preventDefault();
     toggleFullscreen();
+  }
+  // Number keys switch styles while dancing, as the original's function keys did.
+  const n = Number(e.key);
+  if (mode === "dance" && Number.isInteger(n) && n >= 1 && n <= styleSelect.options.length) {
+    styleSelect.selectedIndex = n - 1;
+    styleSelect.dispatchEvent(new Event("change"));
   }
 });
 

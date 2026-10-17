@@ -13,6 +13,23 @@ export interface MorphFrame {
   problems: Diagnostic[];
 }
 
+/** The creature at a position in a loop of creatures, from 0 up to 1 (and round again). */
+export function morphAt(members: readonly Creature[], position: number): MorphFrame {
+  const n = members.length;
+  const x = (((position % 1) + 1) % 1) * n;
+  const index = Math.min(Math.floor(x), n - 1);
+  const t = x - index;
+  const a = members[index]!;
+  const b = members[(index + 1) % n]!;
+  const m = morph(
+    { genes: a.program.genes, values: a.values },
+    { genes: b.program.genes, values: b.values },
+    t,
+  );
+  const program = m.from === "a" ? a.program : b.program;
+  return { creature: { program, values: m.values }, index, t, problems: [] };
+}
+
 export class Morpher {
   private members: Creature[] = [];
   private position = 0;
@@ -56,23 +73,6 @@ export class Morpher {
     this.draw(false);
   }
 
-  /** The creature at a position in the loop, from 0 up to 1. */
-  at(position: number): MorphFrame {
-    const n = this.members.length;
-    const x = (((position % 1) + 1) % 1) * n;
-    const index = Math.min(Math.floor(x), n - 1);
-    const t = x - index;
-    const a = this.members[index]!;
-    const b = this.members[(index + 1) % n]!;
-    const m = morph(
-      { genes: a.program.genes, values: a.values },
-      { genes: b.program.genes, values: b.values },
-      t,
-    );
-    const program = m.from === "a" ? a.program : b.program;
-    return { creature: { program, values: m.values }, index, t, problems: [] };
-  }
-
   private draw(first: boolean): void {
     if (this.members.length === 0) return;
     const now = performance.now();
@@ -80,7 +80,7 @@ export class Morpher {
       this.position += (now - this.last) / 1000 / (this.secondsEach * this.members.length);
     }
     this.last = now;
-    const f = this.at(this.position);
+    const f = morphAt(this.members, this.position);
     const { built, background } = buildCreature(f.creature, { time: (now - this.started) / 1000 });
     f.problems = built.diagnostics;
     this.view.setCreature(built.shapes, !first);

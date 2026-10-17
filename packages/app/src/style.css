@@ -496,3 +496,31 @@ input[type="color"].gene-control {
     border-top: 1px solid var(--line);
   }
 }
+
+/* What the creature hears: a small bar for each music input and the beat. */
+.meters {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 26px;
+}
+
+.meter {
+  position: relative;
+  width: 10px;
+  height: 100%;
+  background: #ffffff14;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.meter > div {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 0;
+  background: var(--accent);
+}
+
+.meter.hit > div {
+  background: #40cfff;
+}

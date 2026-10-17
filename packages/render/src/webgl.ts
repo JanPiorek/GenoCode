@@ -67,6 +67,9 @@ function makeMaterial(transparent: boolean): MeshPhongMaterial {
   return material;
 }
 
+/** How much of the way to the camera a dance's zoom can bring the creature. */
+const NEAREST = 0.75;
+
 /** Light strengths in three are scaled by π compared with the software renderer's. */
 const LIGHT_SCALE = Math.PI;
 
@@ -89,6 +92,12 @@ class CreatureScene {
       this.lights.push({ light, direction: new Vector3(...l.direction) });
     }
     this.setBackground(undefined);
+  }
+
+  /** Turns the creature as a whole by `turn` and moves it by `offset`, as a dance does. */
+  pose(turn: Quaternion, offset: Vector3): void {
+    this.creature.quaternion.copy(turn);
+    this.creature.position.copy(offset);
   }
 
   /** Turns the lights with the camera, by `turn`, so every side is lit as the front is. */
@@ -233,6 +242,23 @@ export class CreatureView {
     this.controls.maxDistance =
       new Vector3(...placement.position).distanceTo(this.controls.target) * 8;
     this.controls.update();
+    this.requestFrame();
+  }
+
+  /**
+   * Turns the creature as a whole about its middle (`turn` is a quaternion: x, y, z, w) and brings
+   * it `nearness` of the way (0 to 1) towards the camera, as a dance does. The camera stays put, so
+   * the viewer can still look round.
+   */
+  setPose(turn: readonly [number, number, number, number], nearness = 0): void {
+    const q = new Quaternion(...turn);
+    const middle = this.controls.target;
+    const towardsCamera = this.camera.position.clone().sub(middle);
+    const offset = middle
+      .clone()
+      .sub(middle.clone().applyQuaternion(q))
+      .addScaledVector(towardsCamera, NEAREST * Math.min(Math.max(nearness, 0), 1));
+    this.look.pose(q, offset);
     this.requestFrame();
   }
 
