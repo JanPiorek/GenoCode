@@ -3,6 +3,8 @@ creature Cobra
 // their sides and a pearl in a ring between them.
 // Inspired by Cobra, a DancerDNA creature.
 
+gene textured = false  // whether it wears its texture, as the Scales variant does
+
 gene sway        = 28.09  in -28.65..28.65  // how far the body sways from side to side
 gene sway_waves  = 2.659  in 1..3           // how many half-waves the sway makes along the body
 gene rise        = -3.236 in -28.65..28.65  // how far the body rises and falls
@@ -61,6 +63,10 @@ part snake(side) {
     grow taper
     forward 0.45
     colour skin(bump(along))
+    if textured {
+      colour white
+      texture pattern(cells, skin(bump(along)).hue, 4, pastel)
+    }
     total_y += turtle.position.y
     total_z += turtle.position.z
     lay
@@ -68,6 +74,7 @@ part snake(side) {
       pitch 90
       let reach = (fin.x * sin(180 * fin_waves.x * along), fin.y * sin(180 * fin_waves.y * along), fin.z * sin(180 * fin_waves.z * (along - 1)))
       move reach
+      texture none
       colour fins(bump(along))
       lay { grow reach * 3 }
     }
@@ -82,6 +89,10 @@ part pearl_ring {
   move (0, middle_y, middle_z)
   shape ball
   colour pearl_colour
+  if textured {
+    colour white
+    texture pattern(plasma, pearl_colour.hue, 5, pastel, pearl)
+  }
   grow pearl_size
   lay
   pitch ring_tilt.x
@@ -89,6 +100,7 @@ part pearl_ring {
   roll ring_tilt.z
   grow ring_size
   shape ring
+  texture none
   colour ring_colour
   lay
 }
@@ -384,3 +396,5 @@ variant member_12 {
   ring_size    = 1.826
   ring_tilt    = (-0.7805, -101, -184.1)
 }
+
+variant Scales { textured = true }

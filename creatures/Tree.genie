@@ -4,6 +4,8 @@ creature Tree
 // twigs have neighbouring colours and the whole crown is a rainbow. It has a calm dance of its own.
 // Inspired by Tree, a Fantastic Avian Creatures design.
 
+gene textured = false  // whether it wears its texture, as the Bark variant does
+
 gene depth = 5 in 2..6 step 1  // how many times the limbs fork
 
 pitch -90
@@ -26,6 +28,10 @@ part limb(level, size, first, width) {
   grow size
   shape tube
   colour bark
+  if textured {
+    colour white
+    texture pattern(cells, bark.hue, 12, analogous, satin)
+  }
   branch {
     forward reach / 2
     lay { grow (thick, thick, reach) }
@@ -33,6 +39,7 @@ part limb(level, size, first, width) {
   forward reach
   if level <= 0 {
     shape ball
+    texture none
     colour hsv(leaf.hue + rainbow * (first + width / 2), leaf.sat, leaf.val)
     grow 1.2
     lay
@@ -60,3 +67,5 @@ dance {
   turn    on music.bass_hit rises  by 0.6
   reverse on music.high drops  by 0.5  on 8 off 8
 }
+
+variant Bark { textured = true }

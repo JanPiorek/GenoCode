@@ -3,6 +3,8 @@ creature Jellyfish
 // two rings of glowing cubes.
 // Inspired by Jellyfish, a DancerDNA creature.
 
+gene textured = false  // whether it wears its texture, as the Neon variant does
+
 gene bell_start   = -94.85  in -114.6..114.6  // how far the ribs tip at the top of the bell
 gene bend_1       = 0.4957  in -22.92..22.92  // how far the ribs bend, in two waves added together
 gene bend_waves_1 = 3.834   in 1..4
@@ -82,12 +84,17 @@ part rib {
         branch {
           yaw 90
           colour skin(along)
+          if textured {
+            colour white
+            texture pattern(plasma, skin(along).hue, 6, electric)
+          }
           lay { grow (1, 1, width) }
         }
       }
       branch {
         move ((width + 1.5) / 2, 0, 0)
         shape ball
+        texture none
         colour beads(along)
         sharpness 1
         shine 1
@@ -470,3 +477,5 @@ variant member_13 {
   glow_gap_1      = 0.5097
   glow_gap_2      = 0.7541
 }
+
+variant Neon { textured = true }
