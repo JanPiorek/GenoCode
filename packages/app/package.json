@@ -15,7 +15,7 @@
     "@genocode/core": "^0.7.0",
     "@genocode/dance": "^0.0.0",
     "@genocode/music": "^0.0.0",
-    "@genocode/render": "^0.5.0",
+    "@genocode/render": "^0.6.0",
     "@lezer/highlight": "1.2.5",
     "codemirror": "6.0.2"
   },
