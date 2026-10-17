@@ -1,3 +1,4 @@
-// The dance effects engine (morph, zoom, spin, turn, reverse, flat). Built in roadmap phase 6.
+// The dance effects engine: moves a creature as a whole to music, by its dance style
+// (docs/LANGUAGE.md section 17): morph, zoom, spin, turn, reverse and flat.
 
-export {};
+export { Dancer, type Quaternion, type Vector } from "./dancer.js";
