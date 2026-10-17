@@ -4,7 +4,8 @@
 //
 // It follows DancerDNA's dance (see CREDITS.md): envelopes that rise fast and fall slowly push the
 // morph and the zoom, a trigger that fires when an input moves far enough turns the spin and
-// reverses the morph, and counted bursts of triggers switch the flat, face-on spin on and off.
+// reverses the morph, and counted bursts of triggers switch the flat, face-on spin on and off. Unlike
+// the original, a dance starts tumbling in 3D rather than flat.
 // The original counted in timer ticks; this counts in seconds, so any frame rate dances the same.
 
 import type { DanceStyle, Trigger } from "@genocode/core";
@@ -35,8 +36,9 @@ class Switch {
 
 /** Counts triggers into bursts: working for `on` of them, then resting for `off`, and so on. */
 class Bursts {
-  working = true;
   private count = 0;
+
+  constructor(public working = true) {}
 
   /** Counts a trigger and says whether the effect is working after it. */
   trigger(bursts: Trigger["bursts"]): boolean {
@@ -78,7 +80,8 @@ export class Dancer {
   private readonly reverseSwitch = new Switch();
   private readonly flatSwitch = new Switch();
   private readonly reverseBursts = new Bursts();
-  private readonly flatBursts = new Bursts();
+  // Flat starts resting, so a dance opens tumbling in 3D and shows the creature's shape.
+  private readonly flatBursts = new Bursts(false);
 
   constructor(private readonly random: () => number = Math.random) {}
 
@@ -112,7 +115,6 @@ export class Dancer {
       return;
     }
     if (this.flatSwitch.fires(f)) this.flatBursts.trigger(f.bursts);
-    // Bursts start working, so a dance with a flat line starts flat, as the original did.
     const flat = this.flatBursts.working;
     if (flat === this.flat) return;
     this.flat = flat;

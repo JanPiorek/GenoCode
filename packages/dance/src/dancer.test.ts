@@ -88,16 +88,20 @@ describe("Dancer", () => {
     expect(flips).toEqual([false, true, true, true, true, false]);
   });
 
-  it("starts flat when it has a flat line, and comes out of it after its burst", () => {
+  it("starts in 3D, goes flat after its rest, and comes out after its burst", () => {
     const d = new Dancer();
     const style = (input: number): DanceStyle => ({
       spin: { input: 0, from: 30, to: 30, smooth: 0 },
       flat: { input, when: "changes", by: 0.5, bursts: { on: 2, off: 2 } },
     });
     dance(d, 0.1, () => style(0));
+    expect(d.flat).toBe(false);
+    dance(d, 0.1, () => style(1));
+    dance(d, 0.1, () => style(0));
+    expect(d.flat).toBe(false);
+    dance(d, 0.1, () => style(1));
     expect(d.flat).toBe(true);
     expect(d.spin.axis[2]).toBeCloseTo(1);
-    dance(d, 0.1, () => style(1));
     dance(d, 0.1, () => style(0));
     expect(d.flat).toBe(true);
     dance(d, 0.1, () => style(1));

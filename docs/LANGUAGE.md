@@ -830,7 +830,8 @@ at least `by` since the last trigger. After `on x`, one word says which moves co
 on, `turn` only counts drops, whatever its line says.
 
 **Bursts.** `on n off m` makes an effect work in bursts: it works for `n` triggers, then rests for
-`m`, and so on, starting at work. For `flat`, working means being flat. Without `on … off …`,
+`m`, and so on, starting at work. For `flat`, working means being flat, and it starts at rest:
+the creature tumbles in 3D for `m` triggers before it first goes flat. Without `on … off …`,
 `reverse` always works, and `flat` uses `on 24 off 48`.
 
 - A creature's dance block is its default style. The app may switch to another style while the

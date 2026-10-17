@@ -1,7 +1,6 @@
 dance Stammer
-// The bass pushes the morph; the snares bring it nearer; the middle sets how fast it spins and
-// the middle turns it; drops in the kicks reverse it; drops in the snares switch its flat spin on
-// and off.
+// The bass pushes the morph; the snares bring it nearer; the middle sets how fast it spins and the
+// middle turns it; drops in the kicks reverse it.
 // Inspired by stutter, a DancerDNA music style.
 
 morph   follows music.bass  speed 0.8  settle 0.17
@@ -9,4 +8,3 @@ zoom    follows music.mid_hit  amount 0.5  settle 94.3
 spin    follows music.mid  from 80.2 to 252  smooth 0
 turn    on music.mid changes  by 0.49
 reverse on music.bass_hit drops  by 1  on 8 off 4
-flat    on music.mid_hit drops  by 0.47  on 180 off 260
