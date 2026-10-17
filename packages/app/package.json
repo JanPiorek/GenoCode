@@ -16,7 +16,7 @@
     "@genocode/core": "^0.8.0",
     "@genocode/dance": "^0.0.0",
     "@genocode/music": "^0.0.0",
-    "@genocode/render": "^0.7.0",
+    "@genocode/render": "^0.8.0",
     "@lezer/highlight": "1.2.5",
     "blockly": "12.5.1",
     "codemirror": "6.0.2"
