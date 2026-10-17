@@ -5,7 +5,8 @@
 
 import * as Blockly from "blockly/core";
 import * as En from "blockly/msg/en";
-import { format, parse } from "@genocode/core";
+import { format, formatValue, parse, type Value } from "@genocode/core";
+import { backgroundRamp, pixelsWhenReady } from "@genocode/render";
 import {
   defineBlocks,
   DEFINITIONS,
@@ -106,6 +107,7 @@ export class BlocksView {
     const keep = name === this.name ? this.positions() : this.savedLayout(name);
     this.name = name;
     this.shown = formatted;
+    this.previewed = "";
     this.loading = true;
     Blockly.Events.disable();
     try {
@@ -119,6 +121,19 @@ export class BlocksView {
   }
 
   private pending: string | undefined;
+  /** The background the preview shows, so it's only drawn again when it changes. */
+  private previewed = "";
+
+  /** Shows the creature's background on its background block, small. */
+  setBackground(fill: Value | undefined): void {
+    const block = this.ws.getAllBlocks(false).find((b) => b.type === "g_background");
+    const key = fill === undefined ? "" : formatValue(fill);
+    if (!block || key === this.previewed) return;
+    this.previewed = key;
+    void preview(fill).then((src) => {
+      if (this.previewed === key && !block.isDisposed()) block.getField("PREVIEW")?.setValue(src);
+    });
+  }
 
   /** Brings the blocks up to date and sizes them, when the pane is shown. */
   revealed(): void {
@@ -209,4 +224,25 @@ export class BlocksView {
       // Not remembered, then.
     }
   }
+}
+
+/** A small picture of a background: its pattern, colour or gradient. */
+async function preview(fill: Value | undefined): Promise<string> {
+  const canvas = document.createElement("canvas");
+  canvas.width = 96;
+  canvas.height = 48;
+  const ctx = canvas.getContext("2d")!;
+  if (typeof fill === "object" && fill.type === "pattern" && fill.kind !== null) {
+    const size = 96;
+    const pixels = await pixelsWhenReady(fill, size);
+    // The middle of the square pattern, as the view shows it.
+    ctx.putImageData(new ImageData(pixels, size, size), 0, -24);
+  } else {
+    const ramp = backgroundRamp(fill, 48);
+    ramp.forEach(([r, g, b], i) => {
+      ctx.fillStyle = `rgb(${r * 255}, ${g * 255}, ${b * 255})`;
+      ctx.fillRect(0, 47 - i, 96, 1);
+    });
+  }
+  return canvas.toDataURL();
 }

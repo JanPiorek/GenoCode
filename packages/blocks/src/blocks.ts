@@ -6,7 +6,45 @@
 
 import * as Blockly from "blockly/core";
 import { MUSIC_FIELDS } from "@genocode/core";
+import { colourOf, FieldNameText, FieldNumberText, pickColour, swatch } from "./fields.js";
 import type { ExtraState } from "./state.js";
+
+/** What the app does for the blocks: exporting a background or dance as its own file. */
+export const hooks: { exportDefinition?: (kind: "background" | "dance") => void } = {};
+
+/** A picture of a download arrow, for the export buttons. */
+const EXPORT_ICON = `data:image/svg+xml;utf8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="#dfe5f2" ' +
+    'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13.5h10"/></svg>',
+)}`;
+
+/** An export button for a background or dance block. */
+function exportButton(kind: "background" | "dance"): Blockly.FieldImage {
+  return new Blockly.FieldImage(EXPORT_ICON, 16, 16, `Export the ${kind} as its own file`, () =>
+    hooks.exportDefinition?.(kind),
+  );
+}
+
+/** A colour block's swatch, which opens a colour picker, kept up to date as its values change. */
+function addSwatch(input: Blockly.Input): void {
+  input.appendField(
+    new Blockly.FieldImage(swatch(undefined), 16, 16, "Pick a colour", pickColour),
+    "SWATCH",
+  );
+}
+
+function updateSwatch(block: Blockly.Block): void {
+  const field = block.getField("SWATCH");
+  if (!field) return;
+  const rgb = colourOf(block);
+  const src = swatch(rgb);
+  if (field.getValue() !== src) field.setValue(src);
+  if (field.isVisible() !== (rgb !== undefined)) {
+    field.setVisible(rgb !== undefined);
+    if (block instanceof Blockly.BlockSvg && block.rendered) block.queueRender();
+  }
+}
 
 /** The colours of the palettes' blocks, as hues. */
 export const HUES = {
@@ -193,7 +231,10 @@ export function defineBlocks(): void {
   define("g_background", {
     init(this: GBlock) {
       this.extra = {};
-      this.appendDummyInput().appendField("background");
+      this.appendDummyInput()
+        .appendField("background")
+        .appendField(new Blockly.FieldImage(swatch(undefined), 48, 24, "A preview"), "PREVIEW")
+        .appendField(exportButton("background"));
       this.appendStatementInput("BODY");
       this.setColour(HUES.music);
       this.setTooltip("The background the creature is shown against: its genes, then one fill.");
@@ -203,7 +244,7 @@ export function defineBlocks(): void {
   define("g_dance", {
     init(this: GBlock) {
       this.extra = {};
-      this.appendDummyInput().appendField("dance");
+      this.appendDummyInput().appendField("dance").appendField(exportButton("dance"));
       this.appendStatementInput("BODY");
       this.setColour(HUES.music);
       this.setTooltip("The creature's own dance style: its genes and one line per effect.");
@@ -552,7 +593,7 @@ export function defineBlocks(): void {
   define("g_number", {
     init(this: GBlock) {
       this.extra = {};
-      this.appendDummyInput().appendField(new Blockly.FieldTextInput("0"), "NUM");
+      this.appendDummyInput().appendField(new FieldNumberText("0"), "NUM");
       value(this, HUES.values, "A number. Write ° after it for degrees.");
     },
   });
@@ -582,15 +623,20 @@ export function defineBlocks(): void {
   define("g_hex", {
     init(this: GBlock) {
       this.extra = {};
-      this.appendDummyInput().appendField(new Blockly.FieldTextInput("#ff8000"), "HEX");
+      const input = this.appendDummyInput();
+      addSwatch(input);
+      input.appendField(new Blockly.FieldTextInput("#ff8000"), "HEX");
       value(this, HUES.look, "A colour written in hex.");
+    },
+    onchange(this: GBlock) {
+      updateSwatch(this);
     },
   });
 
   define("g_name", {
     init(this: GBlock) {
       this.extra = {};
-      this.appendDummyInput().appendField(new Blockly.FieldTextInput("name"), "NAME");
+      this.appendDummyInput().appendField(new FieldNameText("name"), "NAME");
       value(this, HUES.values, "A gene, variable or parameter, or a built-in name such as red.");
     },
   });
@@ -681,7 +727,10 @@ export function defineBlocks(): void {
       init(this: GBlock) {
         this.extra = { count: 0 };
         if (type === "g_call") {
-          this.appendDummyInput("HEAD").appendField(new Blockly.FieldTextInput("name"), "NAME");
+          const head = this.appendDummyInput("HEAD");
+          addSwatch(head);
+          head.appendField(new Blockly.FieldTextInput("name"), "NAME");
+          this.getField("SWATCH")?.setVisible(false);
         } else {
           this.appendValueInput("CALLEE").appendField("call");
         }
@@ -697,6 +746,9 @@ export function defineBlocks(): void {
       },
       customContextMenu(this: GBlock, menu: Blockly.ContextMenuRegistry.LegacyContextMenuOption[]) {
         countMenu(this, menu, "argument");
+      },
+      onchange(this: GBlock) {
+        updateSwatch(this);
       },
     });
   }

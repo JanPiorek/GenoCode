@@ -445,7 +445,12 @@ type SaveWindow = Window & {
 };
 
 /** Saves a file: with the browser's save dialog where there is one, or else as a download. */
-async function saveBlob(blob: Blob, name: string, description: string, ext: string) {
+export async function saveBlob(
+  blob: Blob,
+  name: string,
+  description: string,
+  ext: string,
+): Promise<void> {
   const picker = (window as SaveWindow).showSaveFilePicker;
   if (picker) {
     try {

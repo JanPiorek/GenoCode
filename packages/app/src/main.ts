@@ -8,6 +8,7 @@
 
 import {
   check,
+  format,
   geneEdits,
   MUSIC_FIELDS,
   type CheckResult,
@@ -15,6 +16,7 @@ import {
   type Pattern,
   type Value,
 } from "@genocode/core";
+import { hooks } from "@genocode/blocks";
 import { MusicPlayer } from "@genocode/music";
 import { CreatureView, type Side } from "@genocode/render";
 import { BlocksView } from "./blocksview.js";
@@ -34,7 +36,7 @@ import { drawFieldsInWorkers } from "./fields.js";
 import { InputControls } from "./inputs.js";
 import { deleteCreature, saveCreature, savedNames, savedText } from "./library.js";
 import { Morpher } from "./morph.js";
-import { PatternDesigner, withBackground } from "./patterns.js";
+import { PatternDesigner, saveBlob, withBackground } from "./patterns.js";
 import { showGenes, showInfo, showProblems, showStatus } from "./panel.js";
 
 // The starter creatures in the repository's creatures/ folder.
@@ -100,6 +102,42 @@ const blocks = new BlocksView(blocksSection, (text) => {
   editor.setText(text);
   show(text, true);
 });
+
+// The background and dance blocks' export buttons save each as its own file (section 15).
+hooks.exportDefinition = (kind) => {
+  const file = checkText(editor.text).file;
+  const item = file.items.find((i) => i.kind === (kind === "background" ? "Background" : "Dance"));
+  if (!item || (item.kind !== "Background" && item.kind !== "Dance")) return;
+  const name = `${file.name}_${kind === "background" ? "Background" : "Dance"}`;
+  const nowhere = { start: 0, end: 0 };
+  const description = {
+    text: `// The ${kind} of ${file.name}.`,
+    span: nowhere,
+    line: 0,
+    endLine: 0,
+    ownLine: true,
+    blankBefore: false,
+  };
+  const text = format({
+    kind,
+    name,
+    nameSpan: nowhere,
+    headerComments: [],
+    description: [description],
+    // Set off from the header by a blank line, as files are.
+    items: item.body.items.map((s, k) =>
+      k > 0
+        ? s
+        : s.leading.length > 0
+          ? { ...s, leading: [{ ...s.leading[0]!, blankBefore: true }, ...s.leading.slice(1)] }
+          : { ...s, blankBefore: true },
+    ),
+    endComments: [],
+    span: nowhere,
+  });
+  const blob = new Blob([text], { type: "text/plain" });
+  void saveBlob(blob, `${name}.genie`, `GenoCode ${kind}s`, ".genie");
+};
 const inputs = new InputControls($("inputs-section"), () => {
   if (mode === "view" && !inputs.running) showCurrent(true, false);
 });
@@ -164,6 +202,7 @@ function showCurrent(keepView: boolean, panel = true): void {
     const { built, background } = buildCreature(c, inputs.now());
     view.setCreature(built.shapes, keep);
     view.setBackground(background);
+    blocks.setBackground(background);
     report(built.diagnostics, built.shapes.length, live);
     if (live && inputs.running) liveFrame = requestAnimationFrame(() => frame(true));
   };
