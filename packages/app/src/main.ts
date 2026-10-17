@@ -79,6 +79,7 @@ const codeSection = $("code");
 drawFieldsInWorkers();
 const view = new CreatureView(canvas);
 const creatureSelect = $<HTMLSelectElement>("creatures");
+const danceCreatureSelect = $<HTMLSelectElement>("dance-creature");
 const fileInput = $<HTMLInputElement>("file-input");
 const watching = $("watching");
 
@@ -168,7 +169,8 @@ function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Val
   enableTools();
   if (mode === "breed" && current) breeder.start(familyOf(current), strength());
   if (mode === "morph" && current) startMorph();
-  if (mode === "dance" && current) startDance();
+  // A new creature while dancing keeps the style it's danced to.
+  if (mode === "dance" && current) startDance(true);
   if (mode === "view") showCurrent(keepView);
 }
 
@@ -254,6 +256,8 @@ function load(text: string, from: Source): void {
 function showSource(): void {
   fillCreatureMenu();
   creatureSelect.value = source.kind === "other" ? "" : `${source.kind}:${source.name}`;
+  danceCreatureSelect.value = creatureSelect.value;
+  if (danceCreatureSelect.selectedIndex < 0) danceCreatureSelect.value = "";
   $("delete").hidden = source.kind !== "mine";
   const url = new URL(location.href);
   url.searchParams.delete("example");
@@ -298,6 +302,18 @@ function fillCreatureMenu(): void {
     ...(mine.length > 0 ? [group("Mine", "mine", mine)] : []),
     group("Examples", "example", exampleNames),
   );
+  // The dance's own menu, so the creature can be changed in full screen: creatures only.
+  const myCreatures = mine.filter((n) => kindOf(savedText(n)!) === "creature");
+  const none = other.cloneNode(true);
+  danceCreatureSelect.replaceChildren(
+    none,
+    ...(myCreatures.length > 0 ? [group("Mine", "mine", myCreatures)] : []),
+    group(
+      "Examples",
+      "example",
+      exampleNames.filter((n) => kindOf(exampleText(n)!) === "creature"),
+    ),
+  );
 }
 
 function openListed(kind: "example" | "mine", name: string): boolean {
@@ -307,14 +323,27 @@ function openListed(kind: "example" | "mine", name: string): boolean {
   return true;
 }
 
-creatureSelect.addEventListener("change", () => {
-  const [kind, ...rest] = creatureSelect.value.split(":");
+/** Opens a creature picked from a menu (`kind:name`), unless that would lose changes. */
+function openPicked(value: string): void {
+  const [kind, ...rest] = value.split(":");
   if (!mayDiscard()) {
     showSource();
     return;
   }
   openListed(kind as "example" | "mine", rest.join(":"));
-});
+}
+
+creatureSelect.addEventListener("change", () => openPicked(creatureSelect.value));
+danceCreatureSelect.addEventListener("change", () => openPicked(danceCreatureSelect.value));
+
+/** Dances the next (or previous) creature in the dance's menu. */
+function stepCreature(by: number): void {
+  const options = [...danceCreatureSelect.options].filter((o) => o.value !== "");
+  if (options.length === 0) return;
+  const at = options.findIndex((o) => o.value === danceCreatureSelect.value);
+  const next = options[(at + by + options.length) % options.length]!;
+  openPicked(next.value);
+}
 
 $("new").addEventListener("click", () => {
   if (mayDiscard()) load(NEW_CREATURE, { kind: "other" });
@@ -394,11 +423,6 @@ function setMode(next: Mode): void {
   patternsSection.hidden = mode !== "patterns";
   librarySection.hidden = mode !== "library";
   $("views").hidden = pictureless;
-  // While dancing, the dance turns the creature and the camera follows it, so the sides to look
-  // from don't apply; full screen still does.
-  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-side]")) {
-    b.disabled = mode === "dance";
-  }
   cancelAnimationFrame(liveFrame);
   morpher.stop();
   floor.stop();
@@ -542,8 +566,19 @@ const library = new LibraryView(librarySection, {
     load(entry.text, from);
     setMode("view");
   },
+  dance(entry) {
+    const key = entry.yours ? `mine:${entry.name}` : entry.name;
+    if (entry.yours) yourStyles.set(key, check(entry.text));
+    // A style needs a creature to dance: the one on show, or else Geno.
+    if (current?.program.file.kind !== "creature") {
+      if (!mayDiscard()) return;
+      openListed("example", "Geno");
+    }
+    wantedStyle = key;
+    setMode("dance");
+  },
   putIn(entry) {
-    if (putIn(entry.text)) setMode("view");
+    if (putIn(entry.text)) setMode(entry.kind === "dance" ? "dance" : "view");
   },
   remove(entry) {
     if (!confirm(`Delete ${entry.name} from this browser?`)) return;
@@ -600,9 +635,14 @@ const styleNames = Object.keys(danceFiles)
   )
   .sort();
 const styles = new Map<string, CheckResult>();
+/** Dance styles kept in this browser, added to the menu when danced to from the library. */
+const yourStyles = new Map<string, CheckResult>();
+/** The style to dance to next, picked in the library. */
+let wantedStyle: string | undefined;
 
-/** A style from the dances/ folder, checked once. */
+/** A style from the dances/ folder (checked once), or one of yours (`mine:Name`). */
 function libraryStyle(name: string): CheckResult | undefined {
+  if (name.startsWith("mine:")) return yourStyles.get(name);
   if (!styles.has(name)) {
     const path = Object.keys(danceFiles).find((p) => p.endsWith(`/${name}.genie`));
     if (path === undefined) return undefined;
@@ -619,12 +659,18 @@ const rememberedStyle = (): string => {
   }
 };
 
-/** Lists the styles: the creature's own first (when it has a dance block), then the library's. */
-function fillStyleMenu(): void {
+/**
+ * Lists the styles: the creature's own first (when it has a dance block), then the library's and
+ * yours. With `keep`, a style from the library that's chosen stays chosen, as when the creature
+ * changes while dancing.
+ */
+function fillStyleMenu(keep = false): void {
+  const before = keep && styleSelect.value !== OWN_STYLE ? styleSelect.value : undefined;
   const own = current?.program.dance !== undefined;
   const options = [
     ...(own ? [[OWN_STYLE, `Its own (${current!.program.file.name})`]] : []),
     ...styleNames.map((n) => [n, n.replace(/_/g, " ")]),
+    ...[...yourStyles.keys()].map((k) => [k, `${k.slice(5).replace(/_/g, " ")} (yours)`]),
   ].map(([value, label]) => {
     const o = document.createElement("option");
     o.value = value!;
@@ -633,20 +679,24 @@ function fillStyleMenu(): void {
   });
   styleSelect.replaceChildren(...options);
   const remembered = rememberedStyle();
-  styleSelect.value = own
-    ? OWN_STYLE
-    : styleNames.includes(remembered)
-      ? remembered
-      : (styleNames.find((n) => n === "Groove") ?? styleNames[0] ?? "");
+  const wanted = wantedStyle ?? before;
+  wantedStyle = undefined;
+  styleSelect.value = wanted
+    ? wanted
+    : own
+      ? OWN_STYLE
+      : styleNames.includes(remembered)
+        ? remembered
+        : (styleNames.find((n) => n === "Groove") ?? styleNames[0] ?? "");
 }
 
 function chosenStyle(): CheckResult | undefined {
   return styleSelect.value === OWN_STYLE ? current?.program : libraryStyle(styleSelect.value);
 }
 
-function startDance(): void {
+function startDance(keepStyle = false): void {
   if (!current) return;
-  fillStyleMenu();
+  fillStyleMenu(keepStyle);
   floor.start(loopMembers(current), chosenStyle());
 }
 
@@ -973,6 +1023,8 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
     toggleFullscreen();
   }
+  // [ and ] switch creatures while dancing, so it can be done in full screen.
+  if (mode === "dance" && (e.key === "[" || e.key === "]")) stepCreature(e.key === "]" ? 1 : -1);
   // Number keys switch styles while dancing, as the original's function keys did.
   const n = Number(e.key);
   if (mode === "dance" && Number.isInteger(n) && n >= 1 && n <= styleSelect.options.length) {

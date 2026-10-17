@@ -68,10 +68,13 @@ The app has six modes:
 - **Morph** blends the creature through its variants, or the creatures chosen in the grid, in a
   loop.
 - **Dance** moves the creature to music (a file, a web address, the microphone or another browser
-  tab), by a dance style.
+  tab), by a dance style. Its own menus change the creature and the style, also in full screen;
+  `[` and `]` step through the creatures and the number keys through the styles.
 - **Patterns** designs texture and background recipes, with variations to breed, and exports
   them as code, background files or pictures.
 - **Library** has the starter creatures and dance styles, and everything saved in the browser.
+  Clicking a dance style dances the creature to it; **Make it its own** writes it into the
+  creature.
 
 In View, Morph and Dance, the buttons at the bottom right turn the picture to look from each side,
 and ⛶ (or the F key) shows it full screen.

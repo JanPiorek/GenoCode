@@ -1,6 +1,7 @@
 // The library: the starter creatures and dance styles, and everything kept in this browser, as
-// tiles with small pictures. A tile opens its file; a background or dance can also be put into
-// the creature on show; your own can be deleted.
+// tiles with small pictures. A creature or background tile opens its file, and a dance style
+// dances the creature on show to it. A background or dance can also be put into the creature, a
+// style opened to edit it, and your own deleted.
 
 import { onFieldReady, Thumbnails } from "@genocode/render";
 import { buildCreature, checkText, fromProgram } from "./creature.js";
@@ -17,6 +18,8 @@ export interface LibraryEntry {
 
 export interface LibraryActions {
   open(entry: LibraryEntry): void;
+  /** Dances the creature on show (or Geno) to a dance style. */
+  dance(entry: LibraryEntry): void;
   /** Puts a background or dance into the creature on show. */
   putIn(entry: LibraryEntry): void;
   remove(entry: LibraryEntry): void;
@@ -85,7 +88,7 @@ export class LibraryView {
       ),
       ...section(
         "Dance styles",
-        `How music moves a creature. Click one to open it${into}.`,
+        `How music moves a creature. Click one to dance ${creature ?? "Geno"} to it.`,
         starters.filter((e) => e.kind === "dance"),
       ),
     );
@@ -96,7 +99,10 @@ export class LibraryView {
     const tile = document.createElement("div");
     tile.className = `library-tile ${entry.kind}`;
     tile.tabIndex = 0;
-    tile.title = `Open ${entry.name}`;
+    tile.title =
+      entry.kind === "dance"
+        ? `Dance ${this.actions.creature() ?? "Geno"} to ${entry.name}`
+        : `Open ${entry.name}`;
     const program = checkText(entry.text);
     if (entry.kind === "dance") {
       const icon = document.createElement("div");
@@ -134,13 +140,19 @@ export class LibraryView {
       buttons.append(b);
     };
     const creature = this.actions.creature();
-    if (entry.kind !== "creature" && creature) {
-      button(
-        entry.kind === "background" ? "Put behind" : "Give it",
-        entry.kind === "background"
-          ? `Put this background behind ${creature}`
-          : `Give ${creature} this dance`,
-        () => this.actions.putIn(entry),
+    if (entry.kind === "background" && creature) {
+      button("Put behind", `Put this background behind ${creature}`, () =>
+        this.actions.putIn(entry),
+      );
+    }
+    if (entry.kind === "dance") {
+      if (creature) {
+        button("Make it its own", `Write this style into ${creature} as its own dance`, () =>
+          this.actions.putIn(entry),
+        );
+      }
+      button("Edit", "Open the style's code, to change or export it", () =>
+        this.actions.open(entry),
       );
     }
     if (entry.yours) {
@@ -148,7 +160,8 @@ export class LibraryView {
     }
     if (buttons.childElementCount > 0) tile.append(buttons);
 
-    const open = () => this.actions.open(entry);
+    const open = () =>
+      entry.kind === "dance" ? this.actions.dance(entry) : this.actions.open(entry);
     tile.addEventListener("click", open);
     tile.addEventListener("keydown", (e) => {
       if (e.key === "Enter") open();
