@@ -99,34 +99,3 @@ export function creatureBounds(shapes: readonly LaidShape[]): Bounds {
   const radius = Math.max(1e-3, Math.hypot(hi[0]! - lo[0]!, hi[1]! - lo[1]!, hi[2]! - lo[2]!) / 2);
   return { centre, radius };
 }
-
-/**
- * The bounds of most of a creature: around the middle of its shapes, far enough out to hold
- * `share` of them. Far-flung shapes, such as a horn that grows until it's huge, are left out, so
- * a camera that follows these keeps the body in view.
- */
-export function mainBounds(shapes: readonly LaidShape[], share = 0.9): Bounds {
-  if (shapes.length === 0) return { centre: [0, 0, 0], radius: 1 };
-  const median = (values: number[]) => {
-    const sorted = [...values].sort((a, b) => a - b);
-    return sorted[Math.floor(sorted.length / 2)]!;
-  };
-  const centre: [number, number, number] = [0, 1, 2].map((i) =>
-    median(shapes.map((s) => s.matrix[12 + i]!)),
-  ) as [number, number, number];
-  // How far out each shape reaches: to its middle, and then half its longest side.
-  const reach = shapes
-    .map((s) => {
-      const m = s.matrix;
-      const half =
-        Math.max(
-          Math.hypot(m[0]!, m[1]!, m[2]!),
-          Math.hypot(m[4]!, m[5]!, m[6]!),
-          Math.hypot(m[8]!, m[9]!, m[10]!),
-        ) / 2;
-      return Math.hypot(m[12]! - centre[0], m[13]! - centre[1], m[14]! - centre[2]) + half;
-    })
-    .sort((a, b) => a - b);
-  const radius = reach[Math.min(reach.length - 1, Math.floor(reach.length * share))]!;
-  return { centre, radius: Math.max(1e-3, radius) };
-}

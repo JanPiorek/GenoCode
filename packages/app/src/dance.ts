@@ -84,8 +84,7 @@ export class DanceFloor {
     const f = morphAt(this.members, this.dancer.morph / this.members.length);
     const { built, background } = buildCreature(f.creature, inputs);
     f.problems = built.diagnostics;
-    // The camera follows the creature, as the dance takes it through creatures of other sizes.
-    this.view.setCreature(built.shapes, !first, true);
+    this.view.setCreature(built.shapes, !first);
     this.view.setBackground(background);
     this.view.setPose(this.dancer.orientation, this.dancer.nearness);
     this.onFrame({ ...f, music, beat, styleOk });
