@@ -125,6 +125,17 @@ export class MusicPlayer {
     return this.analyser !== undefined;
   }
 
+  /**
+   * How far into the music it is, and how long the music is, in seconds; undefined for live
+   * music, which has no length, or before the length is known.
+   */
+  get position(): { at: number; length: number } | undefined {
+    if (!this.active || this.live) return undefined;
+    const length = this.audio.duration;
+    if (!Number.isFinite(length) || length <= 0) return undefined;
+    return { at: this.audio.currentTime, length };
+  }
+
   /** Beats a minute, once there's a beat to follow. */
   get tempo(): number | undefined {
     return this.analyser?.tempo;

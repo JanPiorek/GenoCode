@@ -736,10 +736,21 @@ const floor = new DanceFloor(view, player, (f: DanceFrame) => {
   showDanceHint(f.styleOk);
 });
 
+/** A time in seconds as minutes and seconds: 3:07. */
+function minutes(seconds: number): string {
+  const s = Math.floor(seconds);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
 function showDanceHint(styleOk = true): void {
   const tempo = player.tempo;
+  const at = player.position;
   const music = player.active
-    ? `${player.name}${player.paused ? " (paused)" : ""}${tempo ? ` · ${Math.round(tempo)} beats a minute` : ""}`
+    ? [
+        `${player.name}${player.paused ? " (paused)" : ""}`,
+        ...(at ? [`${minutes(at.at)} of ${minutes(at.length)}`] : []),
+        ...(tempo ? [`${Math.round(tempo)} beats a minute`] : []),
+      ].join(" · ")
     : "Pick some music to dance to";
   $("dance-hint").textContent = styleOk ? music : `${music} · the style has a problem`;
   const play = $<HTMLButtonElement>("music-play");
