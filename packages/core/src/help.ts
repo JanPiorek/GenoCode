@@ -1,7 +1,7 @@
 // Help for editors: what a name means when you point at it, and which names can be typed where.
 // The text follows docs/LANGUAGE.md, and help.test.ts keeps every built-in covered.
 
-import type { Block, Param, Stmt } from "./ast.js";
+import type { Block, Param, PictureExpr, Stmt } from "./ast.js";
 import { BUILTIN_CONSTANTS } from "./builtins.js";
 import type { CheckResult } from "./checker.js";
 import { NAMED_COLOURS } from "./colour.js";
@@ -685,7 +685,7 @@ export function geneRange(g: GeneInfo): string {
 
 interface InScope {
   name: string;
-  kind: "gene" | "part" | "function" | "variable";
+  kind: "gene" | "part" | "function" | "variable" | "constant";
   help: Help;
 }
 
@@ -721,7 +721,9 @@ function symbolsAt(program: CheckResult, offset: number): InScope[] {
 
   // Declarations that can be used from anywhere in the creature.
   const selfContained = items.find(
-    (s) => (s.kind === "Background" || s.kind === "Dance") && contains(s.span, offset),
+    (s) =>
+      (s.kind === "Background" || s.kind === "Dance" || s.kind === "Pattern") &&
+      contains(s.span, offset),
   );
   if (!selfContained) {
     for (const s of items) {
@@ -740,18 +742,37 @@ function symbolsAt(program: CheckResult, offset: number): InScope[] {
       }
     }
   }
+  // Patterns can be named as kinds anywhere outside pattern code.
+  if (!selfContained || selfContained.kind !== "Pattern") {
+    for (const s of items) {
+      if (s.kind !== "Pattern") continue;
+      out.push({
+        name: s.name,
+        kind: "constant",
+        help: h(`pattern ${s.name}`, "A pattern kind defined in this creature.", "14.1"),
+      });
+    }
+  }
 
   const visit = (stmts: readonly Stmt[], inBody: boolean): void => {
     for (const s of stmts) {
       if (s.kind === "Gene") {
         const g = geneOf(s);
         if (g) out.push(geneSymbol(g));
-      } else if (s.kind === "Let" && s.span.start < offset) {
+      } else if (s.kind === "Let" && s.span.start < offset && !contains(s.span, offset)) {
         out.push(variable(s.name, inBody ? "A variable." : "A global variable.", "7"));
       }
     }
     for (const s of stmts) {
       if (!contains(s.span, offset)) continue;
+      // A `picture { }` sits in an expression, so only in statements without blocks of their own.
+      const picture =
+        "block" in s || "body" in s || "branches" in s ? undefined : pictureAt(s, offset);
+      if (picture) {
+        for (const [name, text] of PIXEL_NAMES) out.push(variable(name, text, "14.1"));
+        visit(picture.body.items, true);
+        continue;
+      }
       const into = (b: Block | undefined) => {
         if (b && contains(b.span, offset)) visit(b.items, inBody);
       };
@@ -765,6 +786,7 @@ function symbolsAt(program: CheckResult, offset: number): InScope[] {
           break;
         case "Background":
         case "Dance":
+        case "Pattern":
           into(s.body);
           break;
         case "If":
@@ -797,6 +819,77 @@ function symbolsAt(program: CheckResult, offset: number): InScope[] {
   };
   visit(selfContained ? [selfContained] : items, false);
   return out;
+}
+
+/** The names a `picture { }` block gives its code for each pixel (section 14.1). */
+const PIXEL_NAMES: readonly [string, string][] = [
+  ["x", "Where the pixel is from left to right, from −1 to 1."],
+  ["y", "Where the pixel is from top to bottom, from −1 to 1."],
+  ["r", "The pixel's distance from the middle of the picture."],
+  ["a", "The pixel's angle from the `x` axis, in degrees from −180 to 180."],
+];
+
+/** Pattern code's words, which aren't keywords (section 14.1). */
+export const PATTERN_WORD_HELP: ReadonlyMap<string, Help> = new Map([
+  [
+    "pattern",
+    h(
+      "pattern Name { … }",
+      "Makes a pattern kind of your own: its code draws a grey picture, which `pattern(Name, …)` colours like any built-in kind. A pattern file starts with `pattern Name`.",
+      "14.1",
+    ),
+  ],
+  [
+    "picture",
+    h(
+      "picture { … }",
+      "A picture made by running the block once for every pixel, with `x`, `y`, `r` and `a` saying where the pixel is. The block ends with `value v`, the pixel's number from 0 (dark) to 1 (light).",
+      "14.1",
+    ),
+  ],
+  [
+    "value",
+    h(
+      "value v",
+      "Ends a pattern, giving its picture, or a `picture { }` block, giving the pixel's number.",
+      "14.1",
+    ),
+  ],
+]);
+
+/** The `picture { }` in `node` whose block holds `offset`, if any. */
+function pictureAt(node: unknown, offset: number): PictureExpr | undefined {
+  if (typeof node !== "object" || node === null) return undefined;
+  if (Array.isArray(node)) {
+    for (const n of node) {
+      const found = pictureAt(n, offset);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  const n = node as { kind?: unknown; span?: Span; body?: Block };
+  if (n.span && !contains(n.span, offset)) return undefined;
+  if (n.kind === "Picture" && n.body && contains(n.body.span, offset)) return n as PictureExpr;
+  for (const [key, value] of Object.entries(n)) {
+    if (key === "span") continue;
+    const found = pictureAt(value, offset);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/** Whether a pattern word at `start` is the word itself rather than a name: a pattern's start, a
+ * `picture { }` or a `value` statement. */
+function patternWordAt(node: unknown, start: number, word: string): boolean {
+  if (typeof node !== "object" || node === null) return false;
+  if (Array.isArray(node)) return node.some((n) => patternWordAt(n, start, word));
+  const n = node as { kind?: unknown; span?: Span };
+  if (n.span && (start < n.span.start || start >= n.span.end)) return false;
+  const kind = { pattern: "Pattern", picture: "Picture", value: "Value" }[word];
+  if (n.kind === kind && n.span?.start === start) return true;
+  return Object.entries(n).some(
+    ([key, value]) => key !== "span" && patternWordAt(value, start, word),
+  );
 }
 
 // ---------- hover ----------
@@ -840,12 +933,26 @@ export function helpAt(
   if (dot?.text === "." && owner && MEMBER_HELP.has(owner.text)) {
     return found(MEMBER_HELP.get(owner.text)!.get(t.text));
   }
+  if (t.kind === "name" && PATTERN_WORD_HELP.has(t.text)) {
+    if (patternWordAt(program.file.items, t.span.start, t.text) || isPatternHeader(program, t)) {
+      return found(PATTERN_WORD_HELP.get(t.text));
+    }
+  }
   if (t.kind === "name") {
     const symbols = symbolsAt(program, offset).filter((s) => s.name === t.text);
     if (symbols.length > 0) return found(symbols[symbols.length - 1]!.help);
     return found(FUNCTION_HELP.get(t.text) ?? constantHelp(t.text));
   }
   return found(KEYWORD_HELP.get(t.text));
+}
+
+/** Whether `t` is the `pattern` that starts a pattern file. */
+function isPatternHeader(program: CheckResult, t: Token): boolean {
+  return (
+    program.file.kind === "pattern" &&
+    t.text === "pattern" &&
+    lex(program.text).tokens.find((x) => x.kind !== "newline")?.span.start === t.span.start
+  );
 }
 
 // ---------- completion ----------

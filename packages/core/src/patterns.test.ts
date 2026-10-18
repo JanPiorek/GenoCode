@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { check } from "./checker.js";
 import { formatText } from "./format.js";
+import { completionsAt, helpAt } from "./help.js";
 import { build, buildBackground, buildPattern, patternFileText } from "./interpreter.js";
 import { Canvas } from "./picture.js";
 import { applyEdits, rename } from "./symbols.js";
@@ -158,6 +159,34 @@ pattern P {
     expect(
       errors("creature C\npart P {\n  lay\n}\npattern P {\n  value clouds()\n}\nP\n"),
     ).toContainEqual(expect.stringMatching(/already/));
+  });
+});
+
+describe("help in pattern code", () => {
+  const title = (text: string, word: string, along = 1) =>
+    helpAt(check(text), text.indexOf(word) + along)?.help.title;
+
+  it("explains the pattern words, and leaves names called the same alone", () => {
+    expect(title(SHELL, "pattern Ripples {")).toBe("pattern Name { … }");
+    expect(title(RIPPLES, "pattern Ripples")).toBe("pattern Name { … }");
+    expect(title(SHELL, "pattern(kind")).toMatch(/^pattern\(kind/);
+    expect(title(RIPPLES, "value picture")).toBe("value v");
+    expect(title(RIPPLES, "picture {")).toBe("picture { … }");
+    expect(title("creature C\nlet value = 3\nforward value\n", "value\n")).toBe("value");
+  });
+
+  it("knows the names of the pattern and of each pixel", () => {
+    expect(title(RIPPLES, "r * rings", 0)).toBe("r");
+    expect(title(RIPPLES, "rings * 180")).toBe("gene Ripples.rings");
+    expect(title(RIPPLES, "turn + lumps")).toBe("turn");
+    expect(title(SHELL, "Ripples, 0.5")).toBe("pattern Ripples");
+    const names = (text: string, word: string) =>
+      completionsAt(check(text), text.indexOf(word)).map((c) => c.label);
+    expect(names(RIPPLES, "value ripple")).toEqual(expect.arrayContaining(["x", "a", "ripple"]));
+    expect(names(RIPPLES, "let lumps")).not.toContain("x");
+    // A pattern block can't see the creature's names, and the creature can't see the pattern's.
+    expect(names(SHELL, "value sin")).not.toContain("kind");
+    expect(names(SHELL, "shape ball")).not.toContain("rings");
   });
 });
 
