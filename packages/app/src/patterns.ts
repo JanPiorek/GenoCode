@@ -41,15 +41,19 @@ export const DEFAULT_RECIPE: Pattern = {
   mix: { way: "blend", kind: "lightning", amount: 0.5 },
 };
 
-/** A pattern written in GenoCode that the open file defines, which recipes can use as a kind. */
+/** A pattern written in GenoCode, defined in the open file or kept in the library, which recipes
+ * can use as a kind. */
 export interface OwnPattern {
   name: string;
   source: PatternSource;
 }
 
 export interface PatternActions {
-  /** Puts this background source (the block's contents, one line each) behind the creature. */
-  useAsBackground(lines: string[]): void;
+  /**
+   * Puts this background source (the block's contents, one line each) behind the creature, with
+   * the library's patterns it uses put into the creature first.
+   */
+  useAsBackground(lines: string[], patterns: OwnPattern[]): void;
 }
 
 const pick = <T>(options: readonly T[]): T => options[Math.floor(Math.random() * options.length)]!;
@@ -267,13 +271,20 @@ function choice<T extends string>(options: readonly T[], extra?: string): HTMLSe
   return select;
 }
 
-/** Fills a kind menu: the built-in kinds, then the file's own patterns in a group of their own. */
-function kindOptions(select: HTMLSelectElement, own: readonly string[]): void {
+/** Fills a kind menu: the built-in kinds, then the file's own patterns and the library's, each in
+ * a group of their own. */
+function kindOptions(
+  select: HTMLSelectElement,
+  own: readonly string[],
+  library: readonly string[],
+): void {
   const option = (o: string) => element("option", { value: o, textContent: o });
   select.replaceChildren(...PATTERN_KINDS.map(option));
-  if (own.length > 0) {
-    select.append(element("optgroup", { label: "Written in GenoCode" }, ...own.map(option)));
-  }
+  const group = (label: string, names: readonly string[]) => {
+    if (names.length > 0) select.append(element("optgroup", { label }, ...names.map(option)));
+  };
+  group("In this file", own);
+  group("In your library", library);
 }
 
 function slider(min: number, max: number, step: number): HTMLInputElement {
@@ -302,6 +313,8 @@ export class PatternDesigner {
   private readonly kind = choice(PATTERN_KINDS);
   /** The open file's own patterns, and every pattern source seen, by name. */
   private own: string[] = [];
+  /** The library's patterns that the open file doesn't define. */
+  private library: string[] = [];
   private readonly sources = new Map<string, PatternSource>();
   private readonly exportButton: HTMLButtonElement;
   private readonly hue = slider(0, 359, 1);
@@ -351,7 +364,7 @@ export class PatternDesigner {
       { className: "pattern-actions" },
       button("Copy code", "Copy the recipe, for `texture` or `fill`", () => void this.copy()),
       button("Use as background", "Put this recipe behind the creature, with genes", () =>
-        this.actions.useAsBackground(backgroundLines(this.recipe, this.kinds())),
+        this.useAsBackground(),
       ),
       button(
         "Open .genie…",
@@ -420,13 +433,21 @@ export class PatternDesigner {
     this.mutate();
   }
 
-  /** Starts designing, from a recipe such as the creature's background if there is one. `own`
-   * are the open file's patterns, offered as kinds beside the built-in ones. */
-  show(start?: Pattern, own: readonly OwnPattern[] = []): void {
+  /**
+   * Starts designing, from a recipe such as the creature's background if there is one. `own` are
+   * the open file's patterns and `library` the library's, offered as kinds beside the built-in
+   * ones; where both have a pattern of the same name, the file's is used.
+   */
+  show(
+    start?: Pattern,
+    own: readonly OwnPattern[] = [],
+    library: readonly OwnPattern[] = [],
+  ): void {
     this.own = own.map((o) => o.name);
-    for (const o of own) this.sources.set(o.name, o.source);
-    kindOptions(this.kind, this.own);
-    kindOptions(this.second, this.own);
+    this.library = library.map((o) => o.name).filter((n) => !this.own.includes(n));
+    for (const o of [...library, ...own]) this.sources.set(o.name, o.source);
+    kindOptions(this.kind, this.own, this.library);
+    kindOptions(this.second, this.own, this.library);
     if (start && start.kind !== null) {
       this.learn(start);
       this.recipe = start;
@@ -439,9 +460,22 @@ export class PatternDesigner {
     if (this.tiles.length === 0) this.mutate();
   }
 
-  /** The kinds new recipes are made of: the built-in ones and the file's own patterns. */
+  /** The kinds new recipes are made of: the built-in ones, the file's patterns and the library's. */
   private kinds(): string[] {
-    return [...PATTERN_KINDS, ...this.own];
+    return [...PATTERN_KINDS, ...this.own, ...this.library];
+  }
+
+  /**
+   * Puts the recipe behind the creature. The library's patterns it uses go into the creature too,
+   * and the kind genes choose from the creature's patterns, those included.
+   */
+  private useAsBackground(): void {
+    const used = [this.recipe.kind, this.recipe.mix?.kind].filter(
+      (k, i, all): k is string => k != null && this.library.includes(k) && all.indexOf(k) === i,
+    );
+    const patterns = used.map((name) => ({ name, source: this.sources.get(name)! }));
+    const kinds = [...PATTERN_KINDS, ...this.own, ...used];
+    this.actions.useAsBackground(backgroundLines(this.recipe, kinds), patterns);
   }
 
   /** Remembers the sources of a recipe's patterns written in GenoCode. */

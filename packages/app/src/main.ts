@@ -41,6 +41,7 @@ import { Morpher } from "./morph.js";
 import {
   definitionLines,
   PatternDesigner,
+  type OwnPattern,
   saveBlob,
   withBackground,
   withDefinition,
@@ -443,7 +444,8 @@ function setMode(next: Mode): void {
   if (mode === "morph") startMorph();
   if (mode === "dance") startDance();
   if (mode === "patterns") {
-    designer.show(creaturePattern(), current ? patternsOf(current.program, current.values) : []);
+    const own = current ? patternsOf(current.program, current.values) : [];
+    designer.show(creaturePattern(), own, libraryPatterns());
   }
   if (mode === "library") library.show(libraryEntries());
   enableTools();
@@ -545,14 +547,30 @@ $<HTMLInputElement>("speed").addEventListener("input", (e) => {
 
 const patternsSection = $("patterns");
 const designer = new PatternDesigner(patternsSection, {
-  useAsBackground(lines) {
-    const text = withBackground(editor.text, lines);
+  useAsBackground(lines, patterns) {
+    // The library's patterns the recipe uses go in first, so the background can name them.
+    let text: string | undefined = editor.text;
+    for (const p of patterns) {
+      const body = definitionLines(p.source.text);
+      text = body && text !== undefined ? withDefinition(text, "pattern", body, p.name) : undefined;
+    }
+    text = text === undefined ? undefined : withBackground(text, lines);
     if (text === undefined) return;
     editor.setText(text);
     show(text, true);
     setMode("view");
   },
 });
+
+/** The pattern files kept in this browser's library, for the designer to offer as kinds. */
+function libraryPatterns(): OwnPattern[] {
+  return savedNames().flatMap((name) => {
+    const text = savedText(name);
+    if (text === undefined || kindOf(text) !== "pattern") return [];
+    const program = checkText(text);
+    return program.ok ? patternsOf(program) : [];
+  });
+}
 
 /** The creature's background, when it's a pattern, to start designing from. */
 function creaturePattern(): Pattern | undefined {

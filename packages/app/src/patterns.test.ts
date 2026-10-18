@@ -133,6 +133,20 @@ describe("patterns written in GenoCode", () => {
     expect(program.genes.find((g) => g.fullName === "background.kind")?.options).toHaveLength(2);
   });
 
+  it("from the library go into the creature with a background that uses them", () => {
+    const file =
+      "pattern Rings\n// Rings.\n\ngene count = 6 in 2..20\n\nvalue picture {\n  value r * count\n}\n";
+    const recipe2: Pattern = { ...recipe, kind: "Rings" };
+    const withPattern = withDefinition(CREATURE, "pattern", definitionLines(file)!, "Rings")!;
+    const text = withBackground(withPattern, backgroundLines(recipe2, ["marble", "Rings"]))!;
+    const program = check(text);
+    expect(program.diagnostics).toEqual([]);
+    expect(text.indexOf("pattern Rings {")).toBeLessThan(text.indexOf("background {"));
+    const fill = buildBackground(program).fill as Pattern;
+    expect(fill.kind).toBe("Rings");
+    expect(program.genes.map((g) => g.fullName)).toContain("Rings.count");
+  });
+
   it("are picked by variations from the kinds given", () => {
     const kinds = ["Ripples"];
     for (let i = 0; i < 50; i++) {
