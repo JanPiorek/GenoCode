@@ -3,7 +3,9 @@ import { createRequire } from "node:module";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
-import { page, PAGES, sitemap } from "./docs.js";
+import { creatureFiles } from "./creatures.js";
+import { docs } from "./docs.js";
+import { sitemap, type SiteFile } from "./site.js";
 
 const repo = fileURLToPath(new URL("../..", import.meta.url));
 const src = (name: string) => fileURLToPath(new URL(`../${name}/src/index.ts`, import.meta.url));
@@ -51,37 +53,46 @@ function blocklyMedia(): Plugin {
   };
 }
 
-/** The documentation pages, made from docs/ (see docs.ts), served at `docs/`, and the sitemap. */
-function documentation(): Plugin {
+/** The website's own pages around the app (see site.ts): every one, and the sitemap. */
+function siteFiles(): SiteFile[] {
+  const files = [...docs(), ...creatureFiles()];
+  const pages = files.filter((f) => f.path.endsWith(".html")).map((f) => f.path);
+  return [...files, { path: "sitemap.xml", type: "application/xml", make: () => sitemap(pages) }];
+}
+
+/** Serves the website's pages while developing, and writes them out in the build. */
+function site(): Plugin {
   return {
-    name: "documentation",
+    name: "site",
     configureServer(server) {
-      server.middlewares.use("/docs", (req, res, next) => {
-        // Pages link to the app and each other relative to docs/, so it needs its slash.
-        if (req.originalUrl === "/docs") {
+      server.middlewares.use((req, res, next) => {
+        let path = decodeURIComponent((req.url ?? "/").split("?")[0]!).replace(/^\//, "");
+        // Folders' pages link to the others relative to the folder, so they need their slash.
+        if (path === "docs" || path === "creatures") {
           res.statusCode = 301;
-          res.setHeader("Location", "/docs/");
+          res.setHeader("Location", `/${path}/`);
           res.end();
           return;
         }
-        const html = page((req.url ?? "/").split("?")[0]!.replace(/^\//, "") || "index.html");
-        if (!html) return next();
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(html);
+        if (path === "" || path.endsWith("/")) path += "index.html";
+        // The front page and the app are Vite's own.
+        if (path === "index.html" || path.startsWith("app/")) return next();
+        const file = siteFiles().find((f) => f.path === path);
+        if (!file) return next();
+        res.setHeader("Content-Type", file.type);
+        res.end(file.make());
       });
     },
     generateBundle() {
-      for (const p of PAGES) {
-        this.emitFile({ type: "asset", fileName: `docs/${p.file}`, source: page(p.file)! });
-      }
-      this.emitFile({ type: "asset", fileName: "sitemap.xml", source: sitemap() });
+      for (const f of siteFiles())
+        this.emitFile({ type: "asset", fileName: f.path, source: f.make() });
     },
   };
 }
 
 export default defineConfig({
   base: "./",
-  plugins: [blocklyMedia(), documentation()],
+  plugins: [blocklyMedia(), site()],
   resolve: {
     // Use the other packages' sources directly, so changes show up without rebuilding them.
     alias: {

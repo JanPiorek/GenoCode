@@ -1,46 +1,37 @@
-// The documentation pages of the website: the getting-started guide and the language reference,
-// made from the Markdown in docs/ when the app is built (and on request while developing).
+// The pages of the website made from Markdown: the getting-started guide, the language reference
+// and the credits.
 
 import { readFileSync } from "node:fs";
+import { posix } from "node:path";
 import { Marked } from "marked";
+import { shell, type SiteFile } from "./site.js";
 
-const docs = new URL("../../docs/", import.meta.url);
-
-/** Where the website lives, for search engines and link previews, which need full addresses. */
-export const SITE = "https://genocode.piorek.co.za/";
+const repo = new URL("../../", import.meta.url);
 
 /** The pages: where each is published, the Markdown it's made from, and what search results say. */
-export const PAGES: { file: string; source: string; title: string; description: string }[] = [
+const PAGES: { path: string; source: string; title: string; description: string }[] = [
   {
-    file: "index.html",
-    source: "GETTING_STARTED.md",
+    path: "docs/index.html",
+    source: "docs/GETTING_STARTED.md",
     title: "Getting started",
     description:
       "Build your first GenoCode creature step by step: a snowman made of code, then breed it, morph it and make it dance.",
   },
   {
-    file: "language.html",
-    source: "LANGUAGE.md",
+    path: "docs/language.html",
+    source: "docs/LANGUAGE.md",
     title: "The language",
     description:
       "The GenoCode language reference: shapes, the turtle, genes, variants, colours, patterns, backgrounds and dances.",
   },
+  {
+    path: "credits.html",
+    source: "CREDITS.md",
+    title: "Credits",
+    description:
+      "What GenoCode grew from: DancerDNA (1999), Fantastic Avian Creatures and other work in evolutionary art.",
+  },
 ];
-
-/** The address of a documentation page, as search engines should list it. */
-function address(file: string): string {
-  return `${SITE}docs/${file === "index.html" ? "" : file}`;
-}
-
-/** The sitemap: every page of the website, so search engines find them all. */
-export function sitemap(): string {
-  const urls = [SITE, `${SITE}app/`, ...PAGES.map((p) => address(p.file))];
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((u) => `  <url><loc>${u}</loc></url>`).join("\n")}
-</urlset>
-`;
-}
 
 /** A heading's anchor, as GitHub makes them, so the documents' own links keep working. */
 function slug(text: string): string {
@@ -52,77 +43,39 @@ function slug(text: string): string {
     .replace(/\s/g, "-");
 }
 
-const marked = new Marked({
-  renderer: {
-    heading({ tokens, depth }) {
-      const text = this.parser.parseInline(tokens);
-      return `<h${depth} id="${slug(text)}">${text}</h${depth}>\n`;
+/** Markdown made into HTML for the page at `path`: links to the other documents go to their pages. */
+function render(markdown: string, from: (typeof PAGES)[number]): string {
+  const marked = new Marked({
+    renderer: {
+      heading({ tokens, depth }) {
+        const text = this.parser.parseInline(tokens);
+        return `<h${depth} id="${slug(text)}">${text}</h${depth}>\n`;
+      },
+      link({ href, tokens }) {
+        const [file, anchor] = href.split("#");
+        const target = file && posix.join(posix.dirname(from.source), file);
+        const page = PAGES.find((p) => p.source === target);
+        const to = page
+          ? posix.relative(posix.dirname(from.path), page.path) + (anchor ? `#${anchor}` : "")
+          : href;
+        return `<a href="${to}">${this.parser.parseInline(tokens)}</a>`;
+      },
     },
-    link({ href, tokens }) {
-      const page = PAGES.find((p) => href.split("#")[0] === p.source);
-      const to = page ? href.replace(page.source, page.file) : href;
-      return `<a href="${to}">${this.parser.parseInline(tokens)}</a>`;
-    },
-  },
-});
+  });
+  return marked.parse(markdown) as string;
+}
 
-const STYLE = `
-:root { color-scheme: dark; --bg: #0b0e17; --panel: #121725; --line: #222a3d; --text: #dfe5f2;
-  --muted: #8a93a8; --accent: #f06bc0; font: 16px/1.6 system-ui, sans-serif; }
-body { margin: 0; background: var(--bg); color: var(--text); }
-header { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; padding: 10px 16px;
-  border-bottom: 1px solid var(--line); background: var(--panel); }
-header a { color: var(--text); text-decoration: none; }
-header a[aria-current] { color: var(--accent); }
-.brand { display: flex; gap: 8px; align-items: center; font-weight: 700; margin-right: 8px; }
-main { max-width: 820px; margin: 0 auto; padding: 8px 16px 64px; }
-a { color: #6bc8f2; }
-code { font-family: ui-monospace, monospace; font-size: 0.92em; color: #f2a66b; }
-pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px;
-  overflow-x: auto; }
-pre code { color: var(--text); }
-table { border-collapse: collapse; display: block; overflow-x: auto; }
-th, td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
-h1, h2, h3 { line-height: 1.25; }
-h2 { border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-top: 2em; }
-`;
-
-/** A documentation page, in the app's colours, with links to the others and to the app. */
-export function page(file: string): string | undefined {
-  const p = PAGES.find((x) => x.file === file);
-  if (!p) return undefined;
-  const body = marked.parse(readFileSync(new URL(p.source, docs), "utf8")) as string;
-  const nav = PAGES.map(
-    (x) => `<a href="${x.file}"${x === p ? ' aria-current="page"' : ""}>${x.title}</a>`,
-  ).join("");
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${p.title} · GenoCode</title>
-<meta name="description" content="${p.description}">
-<link rel="canonical" href="${address(p.file)}">
-<meta property="og:type" content="article">
-<meta property="og:site_name" content="GenoCode">
-<meta property="og:title" content="${p.title} · GenoCode">
-<meta property="og:description" content="${p.description}">
-<meta property="og:url" content="${address(p.file)}">
-<meta property="og:image" content="${SITE}preview.png">
-<meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<style>${STYLE}</style>
-</head>
-<body>
-<header>
-<a class="brand" href="../"><img src="../favicon.svg" alt="" width="24" height="24">GenoCode</a>
-${nav}
-<a href="../app/">Open the app</a>
-</header>
-<main>
-${body}
-</main>
-</body>
-</html>
-`;
+/** The documentation pages and the credits, in the website's colours. */
+export function docs(): SiteFile[] {
+  return PAGES.map((p) => ({
+    path: p.path,
+    type: "text/html; charset=utf-8",
+    make: () =>
+      shell({
+        path: p.path,
+        title: `${p.title} · GenoCode`,
+        description: p.description,
+        body: render(readFileSync(new URL(p.source, repo), "utf8"), p),
+      }),
+  }));
 }
