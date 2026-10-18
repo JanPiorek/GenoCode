@@ -5,6 +5,10 @@
 /** Where the website lives, for search engines and link previews, which need full addresses. */
 export const SITE = "https://genocode.piorek.co.za/";
 
+/** The footer's copyright line, for a page whose way up to the website's root is `up`. */
+const copyright = (up: string) =>
+  `© 2026 Jan Piorek · <a href="https://github.com/genocode-org/GenoCode/blob/main/LICENSE">MIT License</a> · <a href="${up}licenses.txt">Third-party licences</a>`;
+
 /** A file of the website: where it's published, and how to make it. */
 export interface SiteFile {
   path: string;
@@ -53,7 +57,7 @@ header a[aria-current] { color: var(--accent); }
 .brand { display: flex; gap: 8px; align-items: center; font-weight: 700; margin-right: 8px; }
 main { max-width: 820px; margin: 0 auto; padding: 8px 16px 64px; }
 main.wide { max-width: 1160px; }
-footer { border-top: 1px solid var(--line); padding: 20px 16px 32px; text-align: center;
+footer { border-top: 1px solid var(--line); padding: 12px 16px 24px; text-align: center;
   color: var(--muted); font-size: 0.9em; }
 a { color: #6bc8f2; }
 img { max-width: 100%; height: auto; }
@@ -133,7 +137,8 @@ ${nav}
 ${page.body}
 </main>
 <footer>
-GenoCode is inspired by <a href="${up}credits.html">DancerDNA (1999) and other work in evolutionary art</a>.
+<p>GenoCode is inspired by <a href="${up}credits.html">DancerDNA (1999) and other work in evolutionary art</a>.</p>
+<p>${copyright(up)}</p>
 </footer>
 </body>
 </html>

@@ -9,7 +9,7 @@ const app = new URL("../", import.meta.url);
 /** Everything the website has: its own pages and files, and what Vite publishes. */
 function published(): Set<string> {
   const paths = new Set([...docs(), ...creatureFiles()].map((f) => f.path));
-  for (const p of ["index.html", "app/index.html", "sitemap.xml"]) paths.add(p);
+  for (const p of ["index.html", "app/index.html", "sitemap.xml", "licenses.txt"]) paths.add(p);
   for (const f of readdirSync(new URL("public/", app))) paths.add(f);
   for (const f of readdirSync(new URL("landing/", app))) paths.add(`landing/${f}`);
   return paths;

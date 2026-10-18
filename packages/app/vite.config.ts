@@ -115,6 +115,8 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     chunkSizeWarningLimit: 2500,
+    // The libraries' copyright notices, which the minified code no longer carries.
+    license: { fileName: "licenses.txt" },
     // The front page, and the app itself at app/.
     rollupOptions: {
       input: {
