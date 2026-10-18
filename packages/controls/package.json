@@ -1,0 +1,33 @@
+{
+  "name": "@genocode/controls",
+  "version": "0.1.0",
+  "description": "Controls for trying GenoCode creatures in a web page: a control for each gene, and sliders for time, beat and music.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/genocode-org/GenoCode.git",
+    "directory": "packages/controls"
+  },
+  "homepage": "https://github.com/genocode-org/GenoCode#readme",
+  "bugs": "https://github.com/genocode-org/GenoCode/issues",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@genocode/core": "^0.8.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

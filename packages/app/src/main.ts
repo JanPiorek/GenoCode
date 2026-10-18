@@ -18,11 +18,11 @@ import {
   type Value,
 } from "@genocode/core";
 import { hooks } from "@genocode/blocks";
+import { InputControls, type GeneEditing } from "@genocode/controls";
 import { MusicPlayer } from "@genocode/music";
 import { CreatureView, type Side } from "@genocode/render";
 import { BlocksView } from "./blocksview.js";
 import { Breeder } from "./breed.js";
-import type { GeneEditing } from "./controls.js";
 import {
   breedable,
   buildCreature,
@@ -34,7 +34,6 @@ import {
 import { DanceFloor, type DanceFrame } from "./dance.js";
 import { CodeEditor } from "./editor.js";
 import { drawFieldsInWorkers } from "./fields.js";
-import { InputControls } from "./inputs.js";
 import { kindOf, LibraryView, type LibraryEntry } from "./libraryview.js";
 import { deleteCreature, saveCreature, savedNames, savedText } from "./library.js";
 import { Morpher } from "./morph.js";

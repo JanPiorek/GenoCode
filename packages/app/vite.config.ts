@@ -90,6 +90,7 @@ export default defineConfig({
       ),
       "@genocode/core": src("core"),
       "@genocode/render": src("render"),
+      "@genocode/controls": src("controls"),
       "@genocode/music": src("music"),
       "@genocode/dance": src("dance"),
       "@genocode/blocks": src("blocks"),

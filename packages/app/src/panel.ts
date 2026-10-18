@@ -10,7 +10,7 @@ import {
   type GeneInfo,
   type Value,
 } from "@genocode/core";
-import { geneControl, type GeneEditing } from "./controls.js";
+import { geneControl, type GeneEditing } from "@genocode/controls";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 

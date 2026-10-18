@@ -1,6 +1,6 @@
 name: Release
 
-# Publishes @genocode/core and @genocode/render to npm when a version tag (such as v0.2.0) is
+# Publishes @genocode/core, @genocode/render and @genocode/controls to npm when a version tag (such as v0.2.0) is
 # pushed. Only versions that aren't on npm yet are published. Releases are staged: each one waits
 # for approval on npmjs.com (or `npm stage approve`) before it goes live. Uses npm trusted publishing, so no npm token is stored in the repository: each package
 # lists this workflow as a trusted publisher in its settings on npmjs.com.
@@ -29,7 +29,7 @@ jobs:
       - run: npm run check
       # Publish each package whose version isn't on npm yet, so a release can contain just one.
       - run: |
-          for pkg in core render; do
+          for pkg in core render controls; do
             version=$(node -p "require('./packages/$pkg/package.json').version")
             if npm view "@genocode/$pkg@$version" version > /dev/null 2>&1; then
               echo "@genocode/$pkg@$version is already on npm"
