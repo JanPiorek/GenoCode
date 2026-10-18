@@ -38,6 +38,9 @@ gene pearl_size   = 2.978 in 1.2..3
 gene ring_size    = 1.787 in 1.5..2.5
 gene ring_tilt    = (207.7, 52.8, 0) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8)  // how the ring turns: up, sideways and round
 
+gene ball_hue     = 125 in 0..360
+gene ball_pulse   = 90 in 0..90 
+
 let skin = spectrum(skin_1, skin_2 at skin_gaps.x, skin_3 at skin_gaps.x + skin_gaps.y, skin_4 at skin_gaps.x + skin_gaps.y + skin_gaps.z)
 let fins = spectrum(fin_1, fin_2 at fin_gaps.x, fin_3 at fin_gaps.x + fin_gaps.y, fin_4 at fin_gaps.x + fin_gaps.y + fin_gaps.z)
 
@@ -92,7 +95,7 @@ part pearl_ring {
   move (0, middle_y - turtle.position.y, middle_z - turtle.position.z) / size
   shape ball
   colour pearl_colour
-  texture mixed(pattern(kaleidoscope, 125, 19, pastel, pearl), blend, lightning, 0.6)
+  texture mixed(pattern(kaleidoscope, ball_hue + ball_pulse * music.bass, 19, pastel, pearl), blend, lightning, 0.6)
   wear scales
   grow pearl_size
   lay
