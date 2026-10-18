@@ -1,6 +1,6 @@
 {
   "name": "@genocode/core",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "The GenoCode language: parser, checker, formatter, interpreter and genetics.",
   "license": "MIT",
   "repository": {
