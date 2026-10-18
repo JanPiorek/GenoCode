@@ -16,6 +16,7 @@ export {
   type SymbolUses,
   type TextEdit,
 } from "./symbols.js";
+export { colourLiterals, writeColour, type ColourForm, type ColourLiteral } from "./swatches.js";
 export { format, formatText, type FormatResult } from "./format.js";
 export {
   build,
