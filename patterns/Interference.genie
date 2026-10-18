@@ -1,0 +1,23 @@
+pattern Interference
+// Ripples spreading from a few points, crossing each other. The built-in kind `interference`,
+// written in GenoCode: it draws the same pictures.
+
+let sources = 2 + floor(random(0, 6))
+let frequency = random(15, 70)
+let gamma = random(1, 2.5)
+let soften = random(0.5, 1.5)
+let sx = []
+let sy = []
+repeat sources {
+  sx += [random(-0.8, 0.8)]
+  sy += [random(-0.8, 0.8)]
+}
+
+let ripples = picture {
+  let sum = 0
+  repeat sources as k {
+    sum += sin(degrees(length((x - sx[k], y - sy[k], 0)) * frequency))
+  }
+  value sum
+}
+value blur(power(stretch(ripples), gamma), soften)

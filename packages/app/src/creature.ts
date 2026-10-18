@@ -51,11 +51,38 @@ export function buildCreature(
   inputs: BuildOptions["inputs"] = {},
 ): { built: BuildResult; background: Value | undefined } {
   const options = { genes: c.values, inputs };
+  if (c.program.file.kind === "pattern") {
+    // A pattern file is shown on a ball that wears it, with the same genes (section 14.1).
+    const ball = previewOf(c.program);
+    return { built: build(ball, options), background: undefined };
+  }
   const built =
     c.program.file.kind === "creature"
       ? build(c.program, options)
       : { shapes: [], diagnostics: [], printed: [], ok: true };
   return { built, background: buildBackground(c.program, options).fill };
+}
+
+const previews = new Map<string, CheckResult>();
+
+/** A creature that's a ball wearing a pattern file's pattern, so it can be shown and bred. */
+function previewOf(program: CheckResult): CheckResult {
+  let ball = previews.get(program.text);
+  if (ball === undefined) {
+    const { name, items } = program.file;
+    const first = items[0];
+    const body = first ? program.text.slice(first.span.start).trimEnd() : "";
+    const block = body
+      .split("\n")
+      .map((l) => (l ? `  ${l}` : ""))
+      .join("\n");
+    ball = check(
+      `creature ${name}\n\npattern ${name} {\n${block}\n}\n\nshine 0.3\ntexture pattern(${name}, 200, 1)\nlay\n`,
+    );
+    if (previews.size > 32) previews.clear();
+    previews.set(program.text, ball);
+  }
+  return ball;
 }
 
 /** Whether a program can be shown and bred: a creature or background that checked without errors. */

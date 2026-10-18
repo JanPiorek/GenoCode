@@ -1,0 +1,17 @@
+pattern Bloom
+// Petals: waves round the middle that ripple the rings, fading outwards. The built-in kind
+// `bloom`, written in GenoCode: it draws the same pictures.
+
+let petals = 3 + floor(random(0, 11))
+let inner = 7 + floor(random(0, 15))
+let depth = random(0.05, 0.25)  // how deep the petals are
+let rings = random(10, 40)
+let decay = random(0.8, 2.5)
+let zoom = random(0.05, 0.3)
+let mist = clouds()
+
+let flower = picture {
+  let outline = cos(a * petals) * depth + cos(a * inner + degrees(r * 6)) * depth * 0.5
+  value sin(degrees((r + outline) * rings)) * exp(-r * decay) + (1 - r) + 0.2 * mist(x, y)
+}
+value zoom_blur(stretch(flower), zoom)

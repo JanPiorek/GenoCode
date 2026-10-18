@@ -75,6 +75,8 @@ const folded = new Set<string>();
 
 /** The group a gene is shown under: none for top-level genes, else its part, function or block. */
 function groupOf(g: GeneInfo): string | undefined {
+  // A pattern's genes are grouped under its name.
+  if (g.section === "pattern") return g.owner;
   if (g.section !== "creature") return g.section;
   return g.owner;
 }
@@ -173,8 +175,10 @@ export function showGenes(
   edit?: GeneEditing,
 ): void {
   const groups = new Map<string | undefined, GeneInfo[]>([[undefined, []]]);
+  // A pattern file's genes are all its own, so they aren't put in a group.
+  const onePattern = genes.every((g) => g.section === "pattern" && g.owner === genes[0]?.owner);
   for (const g of genes) {
-    const key = groupOf(g);
+    const key = onePattern ? undefined : groupOf(g);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(g);
   }

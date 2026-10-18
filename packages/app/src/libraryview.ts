@@ -6,7 +6,7 @@
 import { onFieldReady, Thumbnails } from "@genocode/render";
 import { buildCreature, checkText, fromProgram } from "./creature.js";
 
-export type EntryKind = "creature" | "background" | "dance";
+export type EntryKind = "creature" | "background" | "dance" | "pattern";
 
 export interface LibraryEntry {
   kind: EntryKind;
@@ -87,6 +87,11 @@ export class LibraryView {
         starters.filter((e) => e.kind === "background"),
       ),
       ...section(
+        "Patterns",
+        `Pattern kinds written in GenoCode, to read and change. Click one to open it${creature ? `, or give it to ${creature}` : ""}.`,
+        starters.filter((e) => e.kind === "pattern"),
+      ),
+      ...section(
         "Dance styles",
         `How music moves a creature. Click one to dance ${creature ?? "Geno"} to it.`,
         starters.filter((e) => e.kind === "dance"),
@@ -142,6 +147,11 @@ export class LibraryView {
     const creature = this.actions.creature();
     if (entry.kind === "background" && creature) {
       button("Put behind", `Put this background behind ${creature}`, () =>
+        this.actions.putIn(entry),
+      );
+    }
+    if (entry.kind === "pattern" && creature) {
+      button("Give it", `Give ${creature} this pattern kind, to use in its textures`, () =>
         this.actions.putIn(entry),
       );
     }

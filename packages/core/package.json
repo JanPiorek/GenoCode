@@ -20,7 +20,8 @@
     },
     "./LANGUAGE.md": "./reference/LANGUAGE.md",
     "./creatures/*": "./reference/creatures/*",
-    "./dances/*": "./reference/dances/*"
+    "./dances/*": "./reference/dances/*",
+    "./patterns/*": "./reference/patterns/*"
   },
   "files": [
     "dist",

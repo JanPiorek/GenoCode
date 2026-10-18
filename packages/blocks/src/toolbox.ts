@@ -148,6 +148,33 @@ export const TOOLBOX = {
       block({ type: "g_variant", fields: { NAME: "Big" } }),
       block({ type: "g_setting", fields: { GENE: "size" }, inputs: { VALUE: n("2") } }),
     ]),
+    category("Patterns", HUES.look, [
+      block({ type: "g_pattern", fields: { NAME: "Ripples" } }),
+      block(call("clouds").block),
+      block({
+        type: "g_value",
+        inputs: {
+          VALUE: {
+            block: {
+              type: "g_picture",
+              inputs: {
+                BODY: {
+                  block: {
+                    type: "g_value",
+                    inputs: { VALUE: call("sin", name("r")) },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      block({ type: "g_picture" }),
+      block(call("blur", name("p"), n("2")).block),
+      block(call("stretch", name("p")).block),
+      block({ type: "g_list", extraState: { count: 0 } }),
+      block({ type: "g_index", inputs: { INDEX: n("0") } }),
+    ]),
     category("Parts", HUES.parts, [
       block({ type: "g_part", fields: { NAME: "limb", PARAMS: "" } }),
       block({ type: "g_function", fields: { NAME: "twice", PARAMS: "x" } }),

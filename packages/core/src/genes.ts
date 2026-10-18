@@ -8,7 +8,7 @@ import type { Value } from "./values.js";
 export type GeneKind = "number" | "vector" | "colour" | "bool" | "choice" | "part";
 
 /** Where a gene is declared. */
-export type GeneSection = "creature" | "background" | "dance";
+export type GeneSection = "creature" | "background" | "dance" | "pattern";
 
 /** A colour gene's hue range: an arc of the hue circle (section 6.4). */
 export interface HueArc {

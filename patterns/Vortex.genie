@@ -1,0 +1,18 @@
+pattern Vortex
+// Clouds twisted round the middle, tighter towards it. The built-in kind `vortex`, written in
+// GenoCode: it draws the same pictures.
+
+let twist = random(2, 9)  // how far the middle is turned, in radians
+if random(0, 1) < 0.5 {
+  twist = -twist
+}
+let falloff = random(0.8, 3)  // how quickly the twist fades outwards
+let core = random(0, 1)  // how bright the middle is
+let soften = random(0.5, 2)
+let mist = clouds(4 + floor(random(0, 4)), 3 + floor(random(0, 4)))
+
+let swirl = picture {
+  let turned = a + degrees(twist * exp(-r * falloff))
+  value mist(r * cos(turned), r * sin(turned)) + core * exp(-r * 3)
+}
+value blur(stretch(swirl), soften)

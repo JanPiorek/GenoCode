@@ -2,8 +2,11 @@
 
 import { hsv, mixColour, NAMED_COLOURS, rgb } from "./colour.js";
 import { fbm3, noise3 } from "./noise.js";
+import * as pictures from "./picture.js";
 import {
   isColour,
+  isList,
+  isPicture,
   isVec,
   FINISHES,
   MIX_WAYS,
@@ -16,6 +19,7 @@ import {
   typeOf,
   ValueError,
   vec,
+  type Picture,
   type TypeName,
   type Value,
   type Vec,
@@ -24,6 +28,8 @@ import {
 /** What a built-in function can ask of the running build. */
 export interface BuiltinContext {
   random(): number;
+  /** In pattern code: the size of the pictures being drawn (section 14.1). */
+  pictureSize?: number;
 }
 
 export interface BuiltinFunction {
@@ -35,6 +41,11 @@ export interface BuiltinFunction {
   /** Allowed in constant expressions (section 6.1). */
   constant: boolean;
   call(args: Value[], ctx: BuiltinContext): Value;
+  /**
+   * The same function for arguments that are all numbers, for code that knows they are, such as
+   * the per-pixel code of pictures (section 14.1). It gives exactly what `call` gives.
+   */
+  numeric?: (...args: number[]) => number;
 }
 
 const DEG = Math.PI / 180;
@@ -126,8 +137,28 @@ function fn(
 }
 
 function math1(name: string, f: (x: number) => number): BuiltinFunction {
-  return fn(name, 1, "number", (a) => f(num(a, 0, name)));
+  return { ...fn(name, 1, "number", (a) => f(num(a, 0, name))), numeric: f };
 }
+
+/** A function of numbers only, with its numeric form. */
+function mathN(name: string, f: (...x: number[]) => number): BuiltinFunction {
+  const n = f.length;
+  return {
+    ...fn(name, n, "number", (a) => {
+      const xs: number[] = [];
+      for (let i = 0; i < n; i++) xs.push(num(a, i, name));
+      return f(...xs);
+    }),
+    numeric: f,
+  };
+}
+
+/** Gives a function that also takes other values a numeric form, for when all its arguments are numbers. */
+function withNumeric(b: BuiltinFunction, numeric: (...x: number[]) => number): BuiltinFunction {
+  return { ...b, numeric };
+}
+
+const mixNumbers = (a: number, b: number, t: number) => (1 - t) * a + t * b;
 
 const FUNCTIONS: BuiltinFunction[] = [
   math1("abs", Math.abs),
@@ -136,24 +167,13 @@ const FUNCTIONS: BuiltinFunction[] = [
   math1("ceil", Math.ceil),
   math1("round", roundHalfUp),
   math1("frac", (x) => x - Math.trunc(x)),
-  fn("min", 2, "number", (a) => Math.min(num(a, 0, "min"), num(a, 1, "min"))),
-  fn("max", 2, "number", (a) => Math.max(num(a, 0, "max"), num(a, 1, "max"))),
-  fn("clamp", 3, "number", (a) => {
-    const x = num(a, 0, "clamp");
-    const lo = num(a, 1, "clamp");
-    const hi = num(a, 2, "clamp");
-    return Math.min(hi, Math.max(lo, x));
-  }),
-  fn("wrap", 3, "number", (a) => {
-    const x = num(a, 0, "wrap");
-    const lo = num(a, 1, "wrap");
-    const hi = num(a, 2, "wrap");
-    return hi === lo ? lo : lo + mod(x - lo, hi - lo);
-  }),
-  fn("bounce", 3, "number", (a) => {
-    const x = num(a, 0, "bounce");
-    const lo = num(a, 1, "bounce");
-    const hi = num(a, 2, "bounce");
+  mathN("min", (p: number, q: number) => Math.min(p, q)),
+  mathN("max", (p: number, q: number) => Math.max(p, q)),
+  mathN("clamp", (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x))),
+  mathN("wrap", (x: number, lo: number, hi: number) =>
+    hi === lo ? lo : lo + mod(x - lo, hi - lo),
+  ),
+  mathN("bounce", (x: number, lo: number, hi: number) => {
     const w = hi - lo;
     if (w === 0) return lo;
     const m = mod(x - lo, 2 * w);
@@ -169,19 +189,28 @@ const FUNCTIONS: BuiltinFunction[] = [
   math1("asin", (x) => Math.asin(x) / DEG),
   math1("acos", (x) => Math.acos(x) / DEG),
   math1("atan", (x) => Math.atan(x) / DEG),
-  fn("atan2", 2, "number", (a) => Math.atan2(num(a, 0, "atan2"), num(a, 1, "atan2")) / DEG),
+  mathN("atan2", (y: number, x: number) => Math.atan2(y, x) / DEG),
   math1("degrees", (r) => r / DEG),
   math1("radians", (d) => d * DEG),
   math1("wave", (t) => Math.sin(t * 360 * DEG)),
   math1("bump", (t) => Math.sin(t * 180 * DEG)),
-  fn("mix", 3, undefined, (a) => mix(a[0]!, a[1]!, num(a, 2, "mix"), "mix")),
-  fn("smoothmix", 3, undefined, (a) => {
-    const t = Math.min(1, Math.max(0, num(a, 2, "smoothmix")));
-    return mix(a[0]!, a[1]!, (1 - Math.cos(180 * t * DEG)) / 2, "smoothmix");
-  }),
-  fn("mandel", 2, "number", (a) => mandel(num(a, 0, "mandel"), num(a, 1, "mandel"))),
+  withNumeric(
+    fn("mix", 3, undefined, (a) => mix(a[0]!, a[1]!, num(a, 2, "mix"), "mix")),
+    mixNumbers,
+  ),
+  withNumeric(
+    fn("smoothmix", 3, undefined, (a) => {
+      const t = Math.min(1, Math.max(0, num(a, 2, "smoothmix")));
+      return mix(a[0]!, a[1]!, (1 - Math.cos(180 * t * DEG)) / 2, "smoothmix");
+    }),
+    (a, b, t) => mixNumbers(a, b, (1 - Math.cos(180 * Math.min(1, Math.max(0, t)) * DEG)) / 2),
+  ),
+  mathN("mandel", mandel),
   fn("vec", 3, "vector", (a) => vec(num(a, 0, "vec"), num(a, 1, "vec"), num(a, 2, "vec"))),
   fn("length", 1, "number", (a) => {
+    // A list's length is how many items it has (section 8.3).
+    const l = a[0]!;
+    if (isList(l)) return l.items.length;
     const v = vecArg(a, 0, "length");
     return Math.hypot(v.x, v.y, v.z);
   }),
@@ -206,8 +235,14 @@ const FUNCTIONS: BuiltinFunction[] = [
   fn("rgb", [3, 4], "colour", (a) =>
     rgb(num(a, 0, "rgb"), num(a, 1, "rgb"), num(a, 2, "rgb"), a.length > 3 ? num(a, 3, "rgb") : 1),
   ),
-  fn("noise", 1, "number", (a) => noise3(...noiseInput(a, "noise")), false),
-  fn("fbm", 1, "number", (a) => fbm3(...noiseInput(a, "fbm")), false),
+  withNumeric(
+    fn("noise", 1, "number", (a) => noise3(...noiseInput(a, "noise")), false),
+    (x) => noise3(x, 0, 0),
+  ),
+  withNumeric(
+    fn("fbm", 1, "number", (a) => fbm3(...noiseInput(a, "fbm")), false),
+    (x) => fbm3(x, 0, 0),
+  ),
   fn(
     "random",
     2,
@@ -253,6 +288,90 @@ const FUNCTIONS: BuiltinFunction[] = [
     false,
   ),
 ];
+
+/**
+ * The picture functions (section 18.7). They're built in only in pattern code, so creatures can
+ * still use their names, such as `stretch`, for their own variables.
+ */
+export const PICTURE_FUNCTIONS: ReadonlyMap<string, BuiltinFunction> = new Map(
+  [
+    fn(
+      "clouds",
+      [0, 2],
+      "picture",
+      (a, ctx) => {
+        const size = ctx.pictureSize;
+        if (size === undefined) throw new ValueError("`clouds` can only be used in a pattern.");
+        const octaves = a.length > 0 ? roundHalfUp(num(a, 0, "clouds")) : 6;
+        const base = a.length > 1 ? roundHalfUp(num(a, 1, "clouds")) : 4;
+        if (octaves < 1 || octaves > 12) throw new ValueError("`clouds` takes 1 to 12 layers.");
+        if (base < 1) throw new ValueError("`clouds` needs a grid of at least 1 × 1.");
+        return { type: "picture", size, v: pictures.fbm(ctx.random, size, octaves, base) };
+      },
+      false,
+    ),
+    fn(
+      "blur",
+      [2, 3],
+      "picture",
+      (a) => {
+        const p = picture(a, 0, "blur");
+        const across = num(a, 1, "blur");
+        const down = a.length > 2 ? num(a, 2, "blur") : across;
+        return { type: "picture", size: p.size, v: pictures.blur(p.v, p.size, across, down) };
+      },
+      false,
+    ),
+    fn(
+      "zoom_blur",
+      2,
+      "picture",
+      (a) => {
+        const p = picture(a, 0, "zoom_blur");
+        return {
+          type: "picture",
+          size: p.size,
+          v: pictures.zoomBlur(p.v, p.size, num(a, 1, "zoom_blur")),
+        };
+      },
+      false,
+    ),
+    fn(
+      "stretch",
+      1,
+      "picture",
+      (a) => {
+        const p = picture(a, 0, "stretch");
+        const v = p.v.slice();
+        pictures.normalise(v);
+        return { type: "picture", size: p.size, v };
+      },
+      false,
+    ),
+    fn(
+      "power",
+      2,
+      "picture",
+      (a) => {
+        const p = picture(a, 0, "power");
+        const v = p.v.slice();
+        pictures.power(v, num(a, 1, "power"));
+        return { type: "picture", size: p.size, v };
+      },
+      false,
+    ),
+  ].map((f) => [f.name, f]),
+);
+
+function picture(args: Value[], i: number, fn: string): Picture {
+  const v = args[i]!;
+  if (!isPicture(v)) {
+    throw new ValueError(
+      `\`${fn}\` needs a picture for argument ${i + 1}, not ${typeLabel(typeOf(v))}.`,
+    );
+  }
+  return v;
+}
 
 export const BUILTIN_FUNCTIONS: ReadonlyMap<string, BuiltinFunction> = new Map(
   FUNCTIONS.map((f) => [f.name, f]),

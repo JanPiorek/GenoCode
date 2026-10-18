@@ -1,0 +1,23 @@
+pattern Lightning
+// Thin bright veins on dark, with a glow round them: ridges of clouds added up. The built-in kind
+// `lightning`, written in GenoCode: it draws the same pictures.
+
+let count = 2 + floor(random(0, 3))
+let keenness = random(6, 20)  // how thin the veins are
+let glow = random(2, 7)  // how far the glow spreads
+
+let veins = picture {
+  value 0
+}
+repeat count {
+  let mist = clouds(5, 2 + floor(random(0, 3)))
+  veins = picture {
+    value veins + (1 - abs(mist(x, y) - 0.5) * 2) ^ keenness
+  }
+}
+let bolts = power(stretch(veins), 0.8)
+// The glow is added and cut off, as light adds up.
+let halo = blur(bolts, glow)
+value picture {
+  value min(1, bolts + halo)
+}

@@ -93,7 +93,10 @@ export const FUNCTION_HELP: ReadonlyMap<string, Help> = new Map([
     ),
   ],
   ["vec", h("vec(x, y, z)", "The vector `(x, y, z)`.", "18.2")],
-  ["length", h("length(v)", "The length of the vector `v`.", "18.2")],
+  [
+    "length",
+    h("length(v)", "The length of the vector `v`, or how many items the list `v` has.", "18.2"),
+  ],
   ["normalize", h("normalize(v)", "`v` scaled to length 1. The zero vector stays zero.", "18.2")],
   ["dot", h("dot(a, b)", "The dot product of two vectors.", "18.2")],
   ["cross", h("cross(a, b)", "The cross product of two vectors.", "18.2")],
@@ -162,6 +165,33 @@ export const FUNCTION_HELP: ReadonlyMap<string, Help> = new Map([
       "13.3",
     ),
   ],
+  // The picture functions, in pattern code (section 18.7).
+  [
+    "clouds",
+    h(
+      "clouds(layers, size)",
+      "A picture of fractal noise from the recipe's seed: `layers` (6 if left out) of random grids, the first `size` × `size` (4 if left out).",
+      "18.7",
+    ),
+  ],
+  [
+    "blur",
+    h(
+      "blur(p, across, down)",
+      "The picture `p` blurred, in pixels of a picture 512 across; `down` is `across` if left out.",
+      "18.7",
+    ),
+  ],
+  [
+    "zoom_blur",
+    h(
+      "zoom_blur(p, s)",
+      "The picture `p` streaked out from the middle, up to `1 + s` times.",
+      "18.7",
+    ),
+  ],
+  ["stretch", h("stretch(p)", "The picture `p` stretched so it runs from 0 to 1.", "18.7")],
+  ["power", h("power(p, e)", "Every value of the picture `p` raised to the power `e`.", "18.7")],
 ]);
 
 const NUMBER_CONSTANTS: ReadonlyMap<string, string> = new Map([
@@ -361,7 +391,7 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
   ["not", h("not a", "The opposite of a bool.", "8.1")],
   ["true", h("true", "A bool.", "5")],
   ["false", h("false", "A bool.", "5")],
-  ["print", h("print(a, b, …)", "Writes its arguments to the app's console.", "18.6")],
+  ["print", h("print(a, b, …)", "Writes its arguments to the app's console.", "18.8")],
   [
     "turtle",
     h(

@@ -60,7 +60,7 @@ export interface ExtraState {
   words?: (string | null)[];
   /** The main block's file: its kind, and comments before and after everything. */
   file?: {
-    kind: "creature" | "background" | "dance";
+    kind: "creature" | "background" | "dance" | "pattern";
     header?: RawComment[];
     description?: string[];
     end?: RawComment[];

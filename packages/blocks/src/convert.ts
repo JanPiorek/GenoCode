@@ -14,7 +14,14 @@ import type {
 } from "./state.js";
 
 /** The block types that stand on their own on the canvas, holding a part of the program. */
-export const DEFINITIONS = ["g_part", "g_function", "g_background", "g_dance", "g_variant"];
+export const DEFINITIONS = [
+  "g_part",
+  "g_function",
+  "g_background",
+  "g_dance",
+  "g_pattern",
+  "g_variant",
+];
 
 /** The main block: the file's header, with the top-level statements below it. */
 export const MAIN = "g_main";
@@ -50,7 +57,7 @@ function withOrder(b: BlockState, order: number): BlockState {
 }
 
 function isDefinition(s: Stmt): boolean {
-  return ["Part", "Function", "Background", "Dance", "Variant"].includes(s.kind);
+  return ["Part", "Function", "Background", "Dance", "Pattern", "Variant"].includes(s.kind);
 }
 
 function raws(comments: Comment[]): RawComment[] {
@@ -80,11 +87,11 @@ function chain(items: Stmt[]): BlockState | undefined {
   return first;
 }
 
-function metaOf(s: Stmt, bodies?: Record<string, Block>): Meta {
+function metaOf(s: Stmt | undefined, bodies?: Record<string, Block>): Meta {
   const meta: Meta = {};
-  if (s.leading.length > 0) meta.leading = raws(s.leading);
-  if (s.blankBefore) meta.blank = true;
-  if (s.trailing) meta.trailing = s.trailing.text;
+  if (s && s.leading.length > 0) meta.leading = raws(s.leading);
+  if (s?.blankBefore) meta.blank = true;
+  if (s?.trailing) meta.trailing = s.trailing.text;
   if (bodies) {
     const comments: Record<string, BodyComments> = {};
     for (const [name, b] of Object.entries(bodies)) {
@@ -246,6 +253,15 @@ function stmtBlock(s: Stmt): BlockState {
       type = "g_dance";
       body("BODY", s.body);
       break;
+    case "Pattern":
+      type = "g_pattern";
+      fields["NAME"] = s.name;
+      body("BODY", s.body);
+      break;
+    case "Value":
+      type = "g_value";
+      value("VALUE", s.value);
+      break;
     case "Variant":
       type = "g_variant";
       fields["NAME"] = s.name;
@@ -372,6 +388,24 @@ function exprBlock(e: Expr): BlockState {
         value(`AT${k}`, s.at);
       });
       break;
+    case "List":
+      b = { type: "g_list", extraState: { count: e.items.length } };
+      e.items.forEach((item, k) => value(`ARG${k}`, item));
+      break;
+    case "Index":
+      b = { type: "g_index" };
+      value("OBJ", e.object);
+      value("INDEX", e.index);
+      break;
+    case "Picture": {
+      // A value block holding statements: the block run for every pixel.
+      b = { type: "g_picture" };
+      const first = chain(e.body.items);
+      if (first) inputs["BODY"] = { block: first };
+      const meta = metaOf(undefined, { BODY: e.body });
+      if (Object.keys(meta).length > 0) b.extraState = { meta };
+      break;
+    }
     case "ErrorExpr":
       throw new Error("Code with syntax errors can't be shown as blocks.");
   }
@@ -666,6 +700,10 @@ class Reader {
         return { ...base, kind: "Background", body: this.block(b, "BODY") };
       case "g_dance":
         return { ...base, kind: "Dance", body: this.block(b, "BODY") };
+      case "g_pattern":
+        return { ...base, ...name, kind: "Pattern", body: this.block(b, "BODY") };
+      case "g_value":
+        return { ...base, kind: "Value", value: this.value(b, "VALUE") };
       case "g_variant":
         return { ...base, ...name, kind: "Variant", body: this.block(b, "BODY") };
       case "g_setting":
@@ -777,6 +815,12 @@ class Reader {
           })),
         };
       }
+      case "g_list":
+        return { kind: "List", span, items: this.args(b) };
+      case "g_index":
+        return { kind: "Index", span, object: this.value(b, "OBJ"), index: this.value(b, "INDEX") };
+      case "g_picture":
+        return { kind: "Picture", span, body: this.block(b, "BODY") };
       default:
         throw new Error(`A ${b.type} block isn't a value.`);
     }

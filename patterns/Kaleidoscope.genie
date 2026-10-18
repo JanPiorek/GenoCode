@@ -1,0 +1,15 @@
+pattern Kaleidoscope
+// Clouds folded into mirrored slices round the middle, with a swirl. The built-in kind
+// `kaleidoscope`, written in GenoCode: it draws the same pictures.
+
+let folds = 3 + floor(random(0, 14))
+let zoom = random(0.5, 1.2)
+let swirl = random(-2, 2)  // how much the slices bend outwards, in radians
+let slice = 360 / folds
+let mist = clouds(3 + floor(random(0, 4)), 2 + floor(random(0, 3)))
+
+let mirrored = picture {
+  let fold = abs(wrap(a + degrees(swirl * r), 0, slice) - slice / 2)
+  value mist(r * cos(fold) * zoom, r * sin(fold) * zoom)
+}
+value stretch(mirrored)

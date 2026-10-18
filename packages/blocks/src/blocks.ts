@@ -251,6 +251,42 @@ export function defineBlocks(): void {
     },
   });
 
+  define("g_pattern", {
+    init(this: GBlock) {
+      this.extra = {};
+      this.appendDummyInput()
+        .appendField("pattern")
+        .appendField(new Blockly.FieldTextInput("Name"), "NAME");
+      this.appendStatementInput("BODY");
+      this.setColour(HUES.look);
+      this.setTooltip(
+        "A pattern kind of the creature's own: its genes and settings, then the picture it makes.",
+      );
+    },
+  });
+
+  define("g_value", {
+    init(this: GBlock) {
+      this.extra = {};
+      this.appendValueInput("VALUE").appendField("value");
+      statement(
+        this,
+        HUES.look,
+        "What a pattern gives, its picture; or, in a picture block, the pixel's number.",
+      );
+    },
+  });
+
+  define("g_picture", {
+    init(this: GBlock) {
+      this.extra = {};
+      this.appendDummyInput().appendField("picture: for every pixel x, y, r, a");
+      this.appendStatementInput("BODY");
+      value(this, HUES.look, "A picture, made by running these statements for every pixel.");
+      this.setInputsInline(false);
+    },
+  });
+
   define("g_variant", {
     init(this: GBlock) {
       this.extra = {};
@@ -752,6 +788,34 @@ export function defineBlocks(): void {
       },
     });
   }
+
+  define("g_list", {
+    init(this: GBlock) {
+      this.extra = { count: 0 };
+      this.appendDummyInput("HEAD").appendField("list");
+      value(this, HUES.values, "Values in order: right-click to add or remove items.");
+      this.shape?.();
+    },
+    shape(this: GBlock) {
+      numbered(this, "ARG", this.extra.count ?? 0, (name, k) =>
+        this.appendValueInput(name).appendField(k === 0 ? "[" : ","),
+      );
+      if (this.getInput("CLOSE")) this.removeInput("CLOSE");
+      this.appendDummyInput("CLOSE").appendField((this.extra.count ?? 0) === 0 ? "[]" : "]");
+    },
+    customContextMenu(this: GBlock, menu: Blockly.ContextMenuRegistry.LegacyContextMenuOption[]) {
+      countMenu(this, menu, "item");
+    },
+  });
+
+  define("g_index", {
+    init(this: GBlock) {
+      this.extra = {};
+      this.appendValueInput("OBJ");
+      this.appendValueInput("INDEX").appendField("item");
+      value(this, HUES.values, "An item of a list, counting from 0.");
+    },
+  });
 
   define("g_gradient", {
     init(this: GBlock) {

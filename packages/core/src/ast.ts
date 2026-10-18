@@ -34,6 +34,9 @@ export type Expr =
   | Member
   | CallExpr
   | GradientLit
+  | ListLit
+  | Index
+  | PictureExpr
   | ErrorExpr;
 
 export interface NumberLit {
@@ -150,6 +153,28 @@ export interface GradientLit {
   straight: boolean;
 }
 
+/** `[a, b, c]` (section 8.3). */
+export interface ListLit {
+  kind: "List";
+  span: Span;
+  items: Expr[];
+}
+
+/** `l[i]`: an item of a list. */
+export interface Index {
+  kind: "Index";
+  span: Span;
+  object: Expr;
+  index: Expr;
+}
+
+/** `picture { … }` in pattern code: a block run for every pixel (section 14.1). */
+export interface PictureExpr {
+  kind: "Picture";
+  span: Span;
+  body: Block;
+}
+
 export interface ErrorExpr {
   kind: "ErrorExpr";
   span: Span;
@@ -206,6 +231,8 @@ export type Stmt =
   | Material
   | Fill
   | Effect
+  | PatternDecl
+  | ValueStmt
   | ErrorStmt;
 
 export type GeneRange =
@@ -265,6 +292,20 @@ export interface GeneSetting extends StmtBase {
 export interface DanceDecl extends StmtBase {
   kind: "Dance";
   body: Block;
+}
+
+/** `pattern Name { … }`: a pattern kind written in GenoCode (section 14.1). */
+export interface PatternDecl extends StmtBase {
+  kind: "Pattern";
+  name: string;
+  nameSpan: Span;
+  body: Block;
+}
+
+/** `value v`: what a pattern or a `picture` block gives. */
+export interface ValueStmt extends StmtBase {
+  kind: "Value";
+  value: Expr;
 }
 
 export interface Let extends StmtBase {
@@ -406,7 +447,7 @@ export interface ErrorStmt extends StmtBase {
 
 // ---------- files ----------
 
-export type FileKind = "creature" | "background" | "dance";
+export type FileKind = "creature" | "background" | "dance" | "pattern";
 
 export interface SourceFile {
   kind: FileKind;

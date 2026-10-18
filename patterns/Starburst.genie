@@ -1,0 +1,21 @@
+pattern Starburst
+// Rays of random brightness from a bright middle, streaked outwards. The built-in kind
+// `starburst`, written in GenoCode: it draws the same pictures.
+
+let count = (12 + floor(random(0, 117))) * 4
+let strength = random(2, 5)  // how few of the rays are bright
+let reach = random(0.6, 2)
+let core = random(3, 10)
+let soften = random(1, 3)
+let zoom = random(0.1, 0.4)
+let rays = []
+repeat count {
+  rays += [random(0, 1) ^ strength]
+}
+let mist = clouds()
+
+let burst = picture {
+  let ray = rays[floor((a + 180) / 360 * count) % count]
+  value ray * exp(-r * reach) + exp(-r * core) + 0.15 * mist(x, y)
+}
+value zoom_blur(blur(stretch(burst), soften), zoom)

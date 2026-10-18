@@ -181,21 +181,30 @@ export function withBackground(text: string, lines: string[]): string | undefine
  */
 export function withDefinition(
   text: string,
-  kind: "background" | "dance",
+  kind: "background" | "dance" | "pattern",
   lines: string[],
+  name = "",
 ): string | undefined {
   const file = check(text).file;
   let out: string;
-  if (file.kind === kind) {
+  if (file.kind === kind && (kind !== "pattern" || file.name === name)) {
     const first = file.items[0];
     if (!first) return undefined;
     out = text.slice(0, first.span.start) + lines.join("\n") + "\n";
   } else if (file.kind === "creature") {
-    const block = [`${kind} {`, ...lines.map((l) => (l ? `  ${l}` : "")), "}"].join("\n");
-    const own = kind === "background" ? "Background" : "Dance";
-    const old = file.items.find((i) => i.kind === own);
+    const header = kind === "pattern" ? `pattern ${name}` : kind;
+    const block = [`${header} {`, ...lines.map((l) => (l ? `  ${l}` : "")), "}"].join("\n");
+    // A pattern replaces the creature's pattern of the same name (section 14.1).
+    const old = file.items.find((i) =>
+      kind === "pattern"
+        ? i.kind === "Pattern" && i.name === name
+        : i.kind === (kind === "background" ? "Background" : "Dance"),
+    );
     const before = file.items.find(
-      (i) => i.kind === "Variant" || (kind === "background" && i.kind === "Dance"),
+      (i) =>
+        i.kind === "Variant" ||
+        (kind !== "dance" && i.kind === "Dance") ||
+        (kind === "pattern" && i.kind === "Background"),
     );
     if (old) out = text.slice(0, old.span.start) + block + text.slice(old.span.end);
     else if (before)

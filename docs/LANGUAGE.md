@@ -117,7 +117,7 @@ part whorl(scale) {
 
 ## 3. Files
 
-GenoCode files have the extension **`.genie`** and are encoded in UTF-8. There are three kinds,
+GenoCode files have the extension **`.genie`** and are encoded in UTF-8. There are four kinds,
 depending on the first line.
 
 **Creature files** start with `creature <Name>`. After the header, in any order:
@@ -126,13 +126,16 @@ depending on the first line.
 - `gene` declarations,
 - `part` and `function` definitions,
 - at most one `background { … }` block ([section 15](#15-backgrounds)),
-- at most one `dance { … }` block ([section 17](#17-dance-styles)).
+- at most one `dance { … }` block ([section 17](#17-dance-styles)),
+- `pattern <Name> { … }` blocks, the creature's own textures ([section 14.1](#141-your-own-patterns)).
 
 **Background files** start with `background <Name>` and hold the contents of one background block.
 
 **Dance files** start with `dance <Name>` and hold the contents of one dance block.
 
-The name after `creature`, `background` or `dance` is a name in the sense of
+**Pattern files** start with `pattern <Name>` and hold the contents of one pattern block.
+
+The name after `creature`, `background`, `dance` or `pattern` is a name in the sense of
 [section 4](#4-lexical-structure). Comment lines directly below the header are the file's
 **description**, which the app shows.
 
@@ -173,7 +176,9 @@ at  and  or  not  true  false  print  turtle  time  beat  music  variant
 Some words are only special in one place, and are ordinary names elsewhere:
 
 - `x`, `y` and `z` after `mirror` and `symmetric`,
-- the effect names `morph`, `zoom`, `spin`, `turn`, `reverse` and `flat` inside a `dance` block.
+- the effect names `morph`, `zoom`, `spin`, `turn`, `reverse` and `flat` inside a `dance` block,
+- `picture` and `value` in pattern code, and `x`, `y`, `r` and `a` inside `picture { }`
+  ([section 14.1](#141-your-own-patterns)).
 
 **Built-in names**, such as the library functions, constants, colour names, shape names and pattern
 kinds, and the words `gradient` and `spectrum`, can't be used as names of genes, variables, parameters,
@@ -200,6 +205,8 @@ creature is built.
 | scheme        | `jewel`, `dusk`, …                                     | a pattern's colour scheme                                                            |
 | finish        | `matte`, `pearl`, …                                    | a pattern's finish                                                                   |
 | way of mixing | `warp`, `blend`, `mask`, `carve`                       | how `mixed` adds a second pattern                                                    |
+| list          | `[1, 2, 3]`, `[]`                                      | values in order, read by position: `l[0]` ([section 8.3](#83-lists))                 |
+| picture       | `clouds(6, 4)`, `picture { … }`                        | a grey picture, in pattern code only ([section 14.1](#141-your-own-patterns))        |
 
 **Whole numbers.** Where a whole number is needed (a `repeat` count, a shape number), the value is
 rounded to the nearest whole number, with halves rounded up (`2.5` → `3`, `-2.5` → `-2`). Nothing
@@ -371,18 +378,18 @@ size *= 0.9           // the same. Also += -= /=
 
 From lowest to highest precedence:
 
-| Operators                | Meaning                                                             | Operands                                                                                                                                |
-| ------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `or`                     | true if either side is                                              | bools                                                                                                                                   |
-| `and`                    | true if both sides are                                              | bools                                                                                                                                   |
-| `not` (prefix)           | the opposite                                                        | bool                                                                                                                                    |
-| `==` `!=`                | equal, not equal                                                    | two values of the same type: numbers, bools, vectors, colours, shapes, and the pattern words (kinds, schemes, finishes, ways of mixing) |
-| `<` `<=` `>` `>=`        | comparisons                                                         | numbers                                                                                                                                 |
-| `+` `-`                  | add, subtract                                                       | numbers, or two vectors                                                                                                                 |
-| `*` `/` `%`              | multiply, divide, remainder                                         | numbers; vector with number; two vectors ([8.2](#82-vector-arithmetic))                                                                 |
-| `-` (prefix)             | negate                                                              | number or vector                                                                                                                        |
-| `^`                      | power                                                               | numbers                                                                                                                                 |
-| `.name` `f(…)` `skin(t)` | part of a value, call, sampling a gradient ([13.3](#133-gradients)) |                                                                                                                                         |
+| Operators                       | Meaning                                                                                                                | Operands                                                                                                                                |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `or`                            | true if either side is                                                                                                 | bools                                                                                                                                   |
+| `and`                           | true if both sides are                                                                                                 | bools                                                                                                                                   |
+| `not` (prefix)                  | the opposite                                                                                                           | bool                                                                                                                                    |
+| `==` `!=`                       | equal, not equal                                                                                                       | two values of the same type: numbers, bools, vectors, colours, shapes, and the pattern words (kinds, schemes, finishes, ways of mixing) |
+| `<` `<=` `>` `>=`               | comparisons                                                                                                            | numbers                                                                                                                                 |
+| `+` `-`                         | add, subtract                                                                                                          | numbers, or two vectors; `+` also joins two lists                                                                                       |
+| `*` `/` `%`                     | multiply, divide, remainder                                                                                            | numbers; vector with number; two vectors ([8.2](#82-vector-arithmetic))                                                                 |
+| `-` (prefix)                    | negate                                                                                                                 | number or vector                                                                                                                        |
+| `^`                             | power                                                                                                                  | numbers                                                                                                                                 |
+| `.name` `f(…)` `skin(t)` `l[i]` | part of a value, call, sampling a gradient ([13.3](#133-gradients)) or a picture, an item of a list ([8.3](#83-lists)) |                                                                                                                                         |
 
 - `and` and `or` only evaluate their right side when needed.
 - Comparisons don't chain: `a < b < c` is an error.
@@ -402,6 +409,27 @@ From lowest to highest precedence:
 
 Colours, gradients, shapes and patterns don't take arithmetic operators. Use the library functions
 instead.
+
+### 8.3 Lists
+
+A list holds values in order. Lists are written in square brackets, and grow by joining:
+
+```
+let points = []
+repeat 20 {
+  points += [(random(-1, 1), random(-1, 1), 0)]
+}
+let first = points[0]
+let count = length(points)
+```
+
+- `l[i]` is the item at position `i`, counting from 0. `i` is rounded to a whole number ([section
+  5](#5-values-and-types)), and must be at least 0 and less than `length(l)`.
+- `a + b` is a new list with the items of `a` and then those of `b`. Lists aren't changed in place:
+  `l += [x]` makes a new list and gives it to `l`.
+- The items can be of any types, and of different types.
+- `==` compares lists item by item.
+- A gene can't be a list, and a list can't be a gene's range.
 
 ## 9. Control flow
 
@@ -738,6 +766,89 @@ texture none
   takes a moment; the app may show the old one until the new one is ready, and fade from one to
   the other.
 
+### 14.1 Your own patterns
+
+A creature can bring its own pattern kinds, written in GenoCode. A `pattern` block names a new kind
+and draws its grey picture; `pattern(…)` then uses it like any built-in kind, coloured by a hue, a
+scheme and a finish:
+
+```
+creature Shell
+
+pattern Ripples {
+  gene rings  = 8   in 2..20  // how many rings
+  gene wobble = 0.3 in 0..1
+
+  let turn = random(0, 360)
+  let lumps = clouds(5, 3)
+  value picture {
+    let ripple = sin(r * rings * 180 + turn + lumps(x, y) * wobble * 360)
+    value ripple * 0.5 + 0.5
+  }
+}
+
+shape ball
+texture pattern(Ripples, 30, 4, dusk, pearl)
+lay
+```
+
+- **A pattern's code runs once for each picture it draws**, and ends with `value p`, where `p` is
+  the picture. The picture is grey, from 0 (dark) to 1 (light). Values outside are cut off, and
+  the palette colours it ([section 14](#14-textures)).
+- **`random` draws from the recipe's seed.** So `pattern(Ripples, 30, 4)` and
+  `pattern(Ripples, 30, 5)` are two different pictures of the same kind, and each recipe always
+  gives the same picture.
+- **Pictures are values.** `clouds(…)`, `blur(…)` and the other picture functions
+  ([section 18.7](#187-pictures)) make them, and `p(x, y)` reads a picture at a point, smoothly
+  between its pixels. Outside −1..1 the picture is folded back, as in a mirror, so there are no
+  seams.
+- **`picture { … }` makes a picture by running its block once for every pixel.** Inside the
+  block, `x` and `y` are where the pixel is, from −1 to 1 (`x` from left to right, `y` from top to
+  bottom), `r` is the distance from the middle, and `a` is the angle from the `x` axis, in degrees
+  from −180 to 180. The block ends with `value v`, the pixel's number.
+- **Inside `picture { }`, a picture named on its own is its value at this pixel,** and `p(x, y)` is
+  its value at another point. `random`, `clouds` and the other picture functions can't be used
+  there; draw random settings before the block, and keep them in lists ([section 8.3](#83-lists)).
+- A pattern may hold genes, `let`, assignment, `if`, `repeat`, `for`, `while` and `value`. It may
+  use the library ([section 18](#18-library)), but not the turtle, shapes, `time`, `beat` or
+  `music`.
+- **A pattern is self-contained**, like a background: it can't use the creature's genes, variables,
+  parts or functions. Its genes have full names starting with its name, such as `Ripples.rings`, and
+  they breed and morph with the rest of the creature's genes.
+- **Its name is a new pattern kind.** It can't be a built-in name or the name of a part or
+  function. It works everywhere a kind does: `pattern(Ripples, …)`, `mixed(p, warp, Ripples, 0.5)`
+  and kind genes (`gene kind = Ripples from [marble, Ripples]`). The creature's background can use
+  it too.
+- When a pattern is mixed ([section 14](#14-textures)), the second pattern's picture is mixed in
+  as its `value` gives it. With `warp`, the pixels' `x` and `y` are pushed about before the code
+  sees them, so every pattern bends without having to know.
+- The pictures are drawn in the app's own time, not every frame: a pattern can't read `time` or
+  `music`. Its colours can still follow them, because the hue, scheme, finish and wear only
+  recolour it.
+
+**Pattern files.** The contents of a pattern block, with the header `pattern <Name>` in place of
+the braces, form a pattern file. A pattern file and a pattern block convert into each other without
+any other change. Putting a pattern file into a creature adds its block, or replaces the block of
+the same name.
+
+```
+pattern Ripples
+// Rings that wobble.
+
+gene rings  = 8   in 2..20
+gene wobble = 0.3 in 0..1
+
+let turn = random(0, 360)
+let lumps = clouds(5, 3)
+value picture {
+  let ripple = sin(r * rings * 180 + turn + lumps(x, y) * wobble * 360)
+  value ripple * 0.5 + 0.5
+}
+```
+
+GenoCode's own pattern kinds are written as pattern files too, in the `patterns` folder, as
+examples to read and change.
+
 ## 15. Backgrounds
 
 A creature can carry the background it's shown against:
@@ -925,7 +1036,7 @@ All angles are in degrees.
 | Function                   | Result                                             |
 | -------------------------- | -------------------------------------------------- |
 | `vec(x, y, z)`             | the same as `(x, y, z)`                            |
-| `length(v)`                | length                                             |
+| `length(v)`                | length (and `length(l)`, a list's number of items) |
 | `normalize(v)`             | `v` scaled to length 1. The zero vector stays zero |
 | `dot(a, b)`, `cross(a, b)` | dot and cross products                             |
 
@@ -983,7 +1094,42 @@ random(lo, hi) = lo + (hi − lo) × next()
 The state starts as the `seed` gene's value. Use `noise` for variation that should change smoothly
 when a creature morphs.
 
-### 18.6 Debugging
+In a pattern ([section 14.1](#141-your-own-patterns)), the sequence starts from the recipe's seed
+instead, afresh for each picture, and `random` doesn't give the creature a `seed` gene.
+
+### 18.6 Lists
+
+| Function    | Result                          |
+| ----------- | ------------------------------- |
+| `length(l)` | how many items the list `l` has |
+
+### 18.7 Pictures
+
+These make and change pictures. They can only be used in pattern code, outside `picture { }`
+([section 14.1](#141-your-own-patterns)). They're built-in names only there: elsewhere, a creature
+may use `stretch`, `power` or `blur` as names of its own.
+
+| Function                      | Result                                                                                                                                                                                                                     |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clouds()`, `clouds(o, s)`    | fractal noise: `o` layers (6 if left out) of random values on a grid, the first `s` × `s` (4 if left out), each layer twice as fine and half as strong as the last, smoothly enlarged and added up, then stretched to 0..1 |
+| `blur(p, w)`, `blur(p, w, h)` | `p` blurred, `w` across and `h` down (`w` if left out). Widths are in pixels of a picture 512 across, so a blur looks the same at any size                                                                                 |
+| `zoom_blur(p, s)`             | `p` streaked out from the middle: the average of `p` enlarged from 1 to `1 + s` times about the middle                                                                                                                     |
+| `stretch(p)`                  | `p` stretched so its darkest point is 0 and its lightest 1                                                                                                                                                                 |
+| `power(p, e)`                 | every value of `p` raised to the power `e`                                                                                                                                                                                 |
+
+How they work, so that a pattern always draws the same picture:
+
+- **`clouds(o, s)`** takes `n × n` numbers from the random sequence for each layer `k` (0 to
+  `o − 1`, where `n` is `s · 2^k` but at most the picture's size), row by row. It enlarges the
+  grid with Catmull-Rom curves, holding the ends, first along the rows and then down. It adds the
+  layers with strengths 1, 1/2, 1/4, …, then stretches the sum to 0..1.
+- **`blur`** is a gaussian blur, across and then down, with the picture's edge pixels repeated
+  beyond it. Very small widths leave the picture as it is.
+- **`zoom_blur`** averages 24 copies, enlarged by 1, 1 + s/24, 1 + 2s/24, …, and read smoothly
+  between pixels.
+- **Reading** `p(x, y)` blends the four nearest pixels.
+
+### 18.8 Debugging
 
 `print(a, b, …)` writes its arguments, separated by spaces, to the app's console. It accepts any
 values, and strings in double quotes.
@@ -1119,14 +1265,16 @@ EBNF. `{ x }` means zero or more, `[ x ]` means optional. `NL` is the end of a s
 end ([section 4](#4-lexical-structure)) or `;`.
 
 ```
-file          = creature_file | background_file | dance_file ;
+file          = creature_file | background_file | dance_file | pattern_file ;
 creature_file = "creature" NAME NL { item } ;
 background_file = "background" NAME NL bg_body ;
 dance_file    = "dance" NAME NL dance_body ;
+pattern_file  = "pattern" NAME NL pattern_body ;
 
 item          = gene | part | function | statement
               | "background" "{" bg_body "}"
               | "dance" "{" dance_body "}"
+              | "pattern" NAME "{" pattern_body "}"
               | "variant" NAME "{" { gene_ref "=" expr NL } "}" ;
 gene_ref      = ( NAME | "background" | "dance" ) { "." NAME } ;
 
@@ -1177,6 +1325,16 @@ setting       = "changes" | "drops" | "rises" | word expr ;
 effect_name   = "morph" | "zoom" | "spin" | "turn" | "reverse" | "flat" ;
 word          = NAME | "from" | "to" | "by" ;
 
+pattern_body  = { gene | pattern_stmt } "value" expr NL ;
+pattern_stmt  = "let" NAME "=" expr NL
+              | NAME assign_op expr NL
+              | "if" expr pattern_block { "else" "if" expr pattern_block } [ "else" pattern_block ]
+              | "repeat" expr [ "as" NAME ] pattern_block
+              | "for" NAME "from" expr "to" expr [ "by" expr ] pattern_block
+              | "while" expr pattern_block ;
+pattern_block = "{" { pattern_stmt } "}" ;
+picture_body  = { pattern_stmt } "value" expr NL ;
+
 expr          = or_expr ;
 or_expr       = and_expr { "or" and_expr } ;
 and_expr      = not_expr { "and" not_expr } ;
@@ -1186,13 +1344,15 @@ sum           = product { ( "+" | "-" ) product } ;
 product       = unary { ( "*" | "/" | "%" ) unary } ;
 unary         = "-" unary | power ;
 power         = postfix [ "^" unary ] ;
-postfix       = primary { "." NAME | "(" [ args ] ")" } ;
+postfix       = primary { "." NAME | "(" [ args ] ")" | "[" expr "]" } ;
 primary       = NUMBER | HEX_COLOUR | STRING | "true" | "false"
               | NAME
               | "turtle" "." NAME | "time" | "beat" | "music" "." NAME
               | "(" expr ")"
               | "(" expr "," expr "," expr ")"
-              | ( "gradient" | "spectrum" ) "(" stop "," stop { "," stop } ")" ;
+              | ( "gradient" | "spectrum" ) "(" stop "," stop { "," stop } ")"
+              | "[" [ args ] "]"
+              | "picture" "{" picture_body "}" ;
 stop          = expr [ "at" expr ] ;
 args          = expr { "," expr } ;
 ```
@@ -1200,8 +1360,10 @@ args          = expr { "," expr } ;
 Rules the grammar doesn't express are given in the sections above: where genes may go
 ([6.2](#62-where-genes-can-go)), what may appear inside `lay { }` and `reshape { }`
 ([11.7](#117-the-shape-transform)), what functions may do ([section 10](#10-parts-and-functions)),
-constant expressions ([6.1](#61-declaring-genes)) and where strings are allowed
-([section 4](#4-lexical-structure)).
+constant expressions ([6.1](#61-declaring-genes)), where strings are allowed
+([section 4](#4-lexical-structure)), and what pattern code and `picture { }` may use
+([section 14.1](#141-your-own-patterns)). `"picture"` and `"value"` are only words in pattern
+code.
 
 ## 23. Not yet settled
 
@@ -1209,5 +1371,7 @@ constant expressions ([6.1](#61-declaring-genes)) and where strings are allowed
   the creature.
 - **Gene bias:** a possible `bias b` modifier on number genes, making mutation favour one part of
   the range. The word `bias` may become a keyword.
+- **Patterns that move:** a GPU version of pattern code, so a pattern's picture (not just its
+  colours) could follow `time` and `music` every frame.
 - **Mate preferences:** genes for what a creature finds attractive in a partner, for when creatures
   breed by themselves.

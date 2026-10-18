@@ -7,9 +7,21 @@
 // Every setting comes from the seed, so one kind has many looks and a recipe always gives the same
 // picture.
 
-import { mulberry32, type PatternKindName, type PatternMix } from "@genocode/core";
+import {
+  buildPattern,
+  check,
+  isBuiltinKind,
+  mulberry32,
+  pictures,
+  type CheckResult,
+  type PatternKindName,
+  type PatternMix,
+  type PatternSource,
+} from "@genocode/core";
 
-type Rng = () => number;
+const { Canvas, normalise, power, fbm, sample, blur, zoomBlur, posMod } = pictures;
+type Canvas = pictures.Canvas;
+type Rng = pictures.Rng;
 
 /** A grey picture, `size` × `size`, rows from the top. */
 export interface Field {
@@ -17,57 +29,12 @@ export interface Field {
   v: Float32Array;
 }
 
-/** How big the original's pictures were: its blur widths are in its pixels. */
-const ORIGINAL_SIZE = 512;
-
 const TAU = Math.PI * 2;
 
 const between = (rng: Rng, from: number, to: number) => from + (to - from) * rng();
 const betweenWhole = (rng: Rng, from: number, to: number) =>
   from + Math.floor(rng() * (to - from + 1));
 const sign = (rng: Rng) => (rng() < 0.5 ? -1 : 1);
-const posMod = (x: number, m: number) => x - m * Math.floor(x / m);
-
-/**
- * The coordinates of every pixel: x and y from -1 to 1, with the radius and angle from the
- * middle. A warped canvas has them pushed about, and every pattern drawn on it bends with them.
- */
-class Canvas {
-  readonly x: Float32Array;
-  readonly y: Float32Array;
-  readonly r: Float32Array;
-  readonly a: Float32Array;
-
-  constructor(
-    readonly size: number,
-    from?: Canvas,
-    dx?: (i: number) => number,
-    dy?: (i: number) => number,
-  ) {
-    const n = size * size;
-    this.x = new Float32Array(n);
-    this.y = new Float32Array(n);
-    this.r = new Float32Array(n);
-    this.a = new Float32Array(n);
-    for (let i = 0; i < n; i++) {
-      const x = from ? from.x[i]! + dx!(i) : -1 + (2 * (i % size)) / (size - 1);
-      const y = from ? from.y[i]! + dy!(i) : -1 + (2 * Math.floor(i / size)) / (size - 1);
-      this.x[i] = x;
-      this.y[i] = y;
-      this.r[i] = Math.hypot(x, y);
-      this.a[i] = Math.atan2(y, x);
-    }
-  }
-
-  warped(dx: (i: number) => number, dy: (i: number) => number): Canvas {
-    return new Canvas(this.size, this, dx, dy);
-  }
-
-  /** A noise field looked up where this pixel is, so noise bends with the canvas too. */
-  at(field: Float32Array, i: number): number {
-    return sample(field, this.size, this.x[i]!, this.y[i]!);
-  }
-}
 
 interface Layer {
   v: Float32Array;
@@ -355,27 +322,57 @@ const MAKERS: Record<PatternKindName, Maker> = {
   bloom,
 };
 
+/** Checked pattern files, by their text, so a pattern drawn again isn't checked again. */
+const checked = new Map<string, CheckResult>();
+
+function checkedSource(text: string): CheckResult {
+  let program = checked.get(text);
+  if (program === undefined) {
+    program = check(text);
+    if (checked.size >= 16) checked.delete(checked.keys().next().value!);
+    checked.set(text, program);
+  }
+  return program;
+}
+
+/**
+ * A built-in kind, or a pattern written in GenoCode (docs/LANGUAGE.md section 14.1), drawn by
+ * running its code with the same random numbers and canvas a built-in kind would get. A pattern
+ * that fails to draw gives a dark picture.
+ */
+function maker(kind: string, source: PatternSource | undefined): Maker {
+  if (isBuiltinKind(kind)) return MAKERS[kind]!;
+  return (c, rng) => {
+    const program = source ? checkedSource(source.text) : undefined;
+    const built = program
+      ? buildPattern(program, kind, rng, c, { genes: new Map(source!.genes) })
+      : undefined;
+    return { v: built?.picture?.v.slice() ?? new Float32Array(c.size * c.size), finish: plain };
+  };
+}
+
 /**
  * Draws a pattern's grey picture: its kind and seed, with a second pattern mixed in if it has one.
  * The first pattern, the second and the colours each have their own random numbers, so the first
  * keeps its layout whatever is mixed into it.
  */
 export function drawField(
-  kind: PatternKindName,
+  kind: string,
   seed: number,
   mix: PatternMix | undefined,
   size: number,
+  source?: PatternSource,
 ): Field {
   const firstRng = mulberry32(seed);
   const secondRng = mulberry32(seed * 7919 + 17);
   const canvas = new Canvas(size);
-  const first = MAKERS[kind];
+  const first = maker(kind, source);
   let layer: Layer;
   if (mix === undefined || mix.amount <= 0) {
     layer = first(canvas, firstRng);
   } else if (mix.way === "warp") {
     // The second pattern's brightness becomes a direction to push the first pattern in.
-    const push = MAKERS[mix.kind](canvas, secondRng).v;
+    const push = maker(mix.kind, mix.source)(canvas, secondRng).v;
     const turns = 1 + 2 * secondRng();
     const distance = 0.15 + 0.6 * mix.amount;
     layer = first(
@@ -388,7 +385,7 @@ export function drawField(
   } else {
     layer = first(canvas, firstRng);
     const a = layer.v;
-    const b = MAKERS[mix.kind](canvas, secondRng).v;
+    const b = maker(mix.kind, mix.source)(canvas, secondRng).v;
     const t = mix.amount;
     const v = new Float32Array(a.length);
     for (let i = 0; i < v.length; i++) {
@@ -405,158 +402,4 @@ export function drawField(
   const v = layer.finish(layer.v, size);
   for (let i = 0; i < v.length; i++) v[i] = Math.min(1, Math.max(0, v[i]!));
   return { size, v };
-}
-
-// ---------- building blocks ----------
-
-/** Stretches the values to 0..1. */
-function normalise(v: Float32Array): void {
-  let min = Infinity;
-  let max = -Infinity;
-  for (const x of v) {
-    if (x < min) min = x;
-    if (x > max) max = x;
-  }
-  const scale = 1 / (max - min + 1e-9);
-  for (let i = 0; i < v.length; i++) v[i] = (v[i]! - min) * scale;
-}
-
-function power(v: Float32Array, p: number): void {
-  for (let i = 0; i < v.length; i++) v[i] = Math.pow(v[i]!, p);
-}
-
-/** Fractal noise: random grids of growing size, smoothly enlarged and added up. */
-function fbm(rng: Rng, size: number, octaves = 6, baseSize = 4): Float32Array {
-  const sum = new Float32Array(size * size);
-  let amplitude = 1;
-  for (let octave = 0; octave < octaves; octave++) {
-    const n = Math.min(baseSize << octave, size);
-    const grid = new Float32Array(n * n);
-    for (let k = 0; k < grid.length; k++) grid[k] = rng();
-    const big = enlarge(grid, n, size);
-    for (let i = 0; i < sum.length; i++) sum[i]! += amplitude * big[i]!;
-    amplitude *= 0.5;
-  }
-  normalise(sum);
-  return sum;
-}
-
-/** An n × n grid enlarged to size × size, a row and then a column at a time. */
-function enlarge(grid: Float32Array, n: number, size: number): Float32Array {
-  const wide = new Float32Array(n * size);
-  for (let row = 0; row < n; row++) {
-    for (let col = 0; col < size; col++) {
-      wide[row * size + col] = cubic((k) => grid[row * n + k]!, n, size, col);
-    }
-  }
-  const big = new Float32Array(size * size);
-  for (let row = 0; row < size; row++) {
-    for (let col = 0; col < size; col++) {
-      big[row * size + col] = cubic((k) => wide[k * size + col]!, n, size, row);
-    }
-  }
-  return big;
-}
-
-/** Catmull-Rom between the grid points either side of a pixel, with the ends held. */
-function cubic(at: (k: number) => number, n: number, size: number, pixel: number): number {
-  const g = ((pixel + 0.5) * n) / size - 0.5;
-  const k = Math.floor(g);
-  const t = g - k;
-  const clampK = (j: number) => Math.min(n - 1, Math.max(0, j));
-  const p0 = at(clampK(k - 1));
-  const p1 = at(clampK(k));
-  const p2 = at(clampK(k + 1));
-  const p3 = at(clampK(k + 2));
-  return (
-    p1 + 0.5 * t * (p2 - p0 + t * (2 * p0 - 5 * p1 + 4 * p2 - p3 + t * (3 * (p1 - p2) + p3 - p0)))
-  );
-}
-
-/** A field looked up at x and y in -1..1, smoothly between pixels and mirrored outside. */
-function sample(f: Float32Array, size: number, x: number, y: number): number {
-  const fx = mirror(x, size);
-  const fy = mirror(y, size);
-  const x0 = Math.floor(fx);
-  const y0 = Math.floor(fy);
-  const x1 = Math.min(x0 + 1, size - 1);
-  const y1 = Math.min(y0 + 1, size - 1);
-  const tx = fx - x0;
-  const ty = fy - y0;
-  const top = f[y0 * size + x0]! + (f[y0 * size + x1]! - f[y0 * size + x0]!) * tx;
-  const bottom = f[y1 * size + x0]! + (f[y1 * size + x1]! - f[y1 * size + x0]!) * tx;
-  return top + (bottom - top) * ty;
-}
-
-/** -1..1 to a pixel position, folding back at the edges so there are no seams. */
-function mirror(c: number, size: number): number {
-  let t = posMod((c + 1) / 2, 2);
-  if (t > 1) t = 2 - t;
-  return t * (size - 1);
-}
-
-/** A gaussian blur, across and then down. Widths are in the original's pixels. */
-function blur(v: Float32Array, size: number, across: number, down: number): Float32Array {
-  const scale = size / ORIGINAL_SIZE;
-  return blurPass(blurPass(v, size, across * scale, 1, size), size, down * scale, size, 1);
-}
-
-/** `step`: from one pixel to the next along the blur; `lineStep`: from one line to the next. */
-function blurPass(
-  v: Float32Array,
-  size: number,
-  sigma: number,
-  step: number,
-  lineStep: number,
-): Float32Array {
-  if (sigma < 0.3) return v;
-  const radius = Math.ceil(sigma * 3);
-  const kernel = new Float32Array(radius * 2 + 1);
-  let total = 0;
-  for (let k = -radius; k <= radius; k++) {
-    kernel[k + radius] = Math.exp((-k * k) / (2 * sigma * sigma));
-    total += kernel[k + radius]!;
-  }
-  for (let k = 0; k < kernel.length; k++) kernel[k]! /= total;
-  const out = new Float32Array(v.length);
-  for (let line = 0; line < size; line++) {
-    for (let along = 0; along < size; along++) {
-      let sum = 0;
-      for (let k = -radius; k <= radius; k++) {
-        const at = Math.min(size - 1, Math.max(0, along + k));
-        sum += kernel[k + radius]! * v[line * lineStep + at * step]!;
-      }
-      out[line * lineStep + along * step] = sum;
-    }
-  }
-  return out;
-}
-
-/** The average of the picture enlarged by up to 1 + strength about its middle: rushing streaks. */
-function zoomBlur(v: Float32Array, size: number, strength: number, steps = 24): Float32Array {
-  const out = new Float32Array(v.length);
-  const centre = size / 2;
-  for (let row = 0; row < size; row++) {
-    for (let col = 0; col < size; col++) {
-      let sum = 0;
-      for (let s = 0; s < steps; s++) {
-        const scale = 1 + (strength * s) / steps;
-        const x = (col + 0.5 - centre) / scale + centre - 0.5;
-        const y = (row + 0.5 - centre) / scale + centre - 0.5;
-        const x0 = Math.floor(x);
-        const y0 = Math.floor(y);
-        const fx = x - x0;
-        const fy = y - y0;
-        const xa = Math.min(size - 1, Math.max(0, x0));
-        const xb = Math.min(size - 1, Math.max(0, x0 + 1));
-        const ya = Math.min(size - 1, Math.max(0, y0));
-        const yb = Math.min(size - 1, Math.max(0, y0 + 1));
-        const top = v[ya * size + xa]! + (v[ya * size + xb]! - v[ya * size + xa]!) * fx;
-        const bottom = v[yb * size + xa]! + (v[yb * size + xb]! - v[yb * size + xa]!) * fx;
-        sum += top + (bottom - top) * fy;
-      }
-      out[row * size + col] = sum / steps;
-    }
-  }
-  return out;
 }

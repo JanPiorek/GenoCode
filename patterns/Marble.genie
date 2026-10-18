@@ -1,0 +1,20 @@
+pattern Marble
+// Stripes pushed about by clouds: veins like marble, or liquid, swirly flesh. The built-in kind
+// `marble`, written in GenoCode: it draws the same pictures.
+
+let push = random(0.3, 1.6)  // how far the clouds push the stripes
+let stripes = random(5, 20)
+let angle = random(0, 360)
+let lean = random(0, 6)  // how much the stripes slope
+let soften = random(0.5, 1.5)
+let lx = cos(angle) * lean
+let ly = sin(angle) * lean
+let n1 = clouds()
+let n2 = clouds()
+let n3 = clouds()
+
+let veins = picture {
+  let pushed = n3(x + push * (n1(x, y) - 0.5), y + push * (n2(x, y) - 0.5))
+  value sin(degrees(pushed * stripes + x * lx + y * ly)) * 0.5 + 0.5
+}
+value blur(veins, soften)

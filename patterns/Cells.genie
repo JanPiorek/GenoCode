@@ -1,0 +1,48 @@
+pattern Cells
+// Cells round scattered points, with glowing walls between them: it reads like scales or skin.
+// The built-in kind `cells`, written in GenoCode: it draws the same pictures.
+
+let count = 15 + floor(random(0, 136))
+let keenness = random(10, 50) * sqrt(count / 60)  // how thin the walls are
+let shade = random(0.1, 0.7)  // how much the cells darken towards their edges
+let grain = random(0.1, 0.4)
+let px = []
+let py = []
+repeat count {
+  px += [random(-1.1, 1.1)]
+  py += [random(-1.1, 1.1)]
+}
+
+// The distance to the nearest point, and how much further the next nearest is.
+let near = picture {
+  let d0 = 1000
+  repeat count as k {
+    let dx = x - px[k]
+    let dy = y - py[k]
+    d0 = min(d0, dx * dx + dy * dy)
+  }
+  value sqrt(d0)
+}
+let walls = picture {
+  let d0 = 1000
+  let d1 = 1000
+  repeat count as k {
+    let dx = x - px[k]
+    let dy = y - py[k]
+    let d = dx * dx + dy * dy
+    if d < d0 {
+      d1 = d0
+      d0 = d
+    } else if d < d1 {
+      d1 = d
+    }
+  }
+  value sqrt(d1) - near
+}
+let nearest = stretch(near)
+let mist = clouds()
+
+let skin = picture {
+  value exp(-walls * keenness) + shade * (1 - nearest) + grain * mist(x, y)
+}
+value stretch(skin)

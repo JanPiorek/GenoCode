@@ -22,10 +22,13 @@ export {
   build,
   buildBackground,
   buildDance,
+  buildPattern,
+  patternFileText,
   DEFAULT_LIMITS,
   MUSIC_FIELDS,
   silence,
   type BackgroundResult,
+  type PatternResult,
   type DanceResult,
   type DanceStyle,
   type Trigger,
@@ -65,6 +68,7 @@ export {
   type Help,
 } from "./help.js";
 export { mulberry32 } from "./noise.js";
+export * as pictures from "./picture.js";
 export {
   BUILTIN_CONSTANTS,
   BUILTIN_FUNCTIONS,
@@ -74,6 +78,7 @@ export {
 export { hsv, rgb, hexColour, toRgb, mixColour, sampleGradient, NAMED_COLOURS } from "./colour.js";
 export {
   formatValue,
+  isBuiltinKind,
   typeOf,
   SHAPES,
   PATTERN_KINDS,
@@ -87,9 +92,12 @@ export type {
   Gradient,
   FinishName,
   MixWayName,
+  ListValue,
   Pattern,
   PatternKindName,
   PatternMix,
+  PatternSource,
+  Picture,
   SchemeName,
   ShapeName,
   TypeName,

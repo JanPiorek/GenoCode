@@ -1,0 +1,25 @@
+pattern Plasma
+// Waves across, down, slantwise and in rings round two centres, each with its own frequency. The
+// built-in kind `plasma`, written in GenoCode: it draws the same pictures.
+
+let frequency = []
+let phase = []
+repeat 5 {
+  frequency += [random(3, 16)]
+  phase += [random(0, 360)]
+}
+let cx = random(-0.7, 0.7)  // the second centre of rings
+let cy = random(-0.7, 0.7)
+let slant = random(0, 180)
+let ax = cos(slant)
+let ay = sin(slant)
+
+let waves = picture {
+  let sum = sin(degrees(x * frequency[0]) + phase[0])
+  sum += sin(degrees(y * frequency[1]) + phase[1])
+  sum += sin(degrees((x * ax + y * ay) * frequency[2]) + phase[2])
+  sum += sin(degrees(r * frequency[3]) + phase[3])
+  sum += sin(degrees(length((x - cx, y - cy, 0)) * frequency[4]) + phase[4])
+  value sum
+}
+value stretch(waves)

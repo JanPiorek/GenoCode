@@ -63,6 +63,8 @@ class Parser {
   private lastLine = -1;
   /** End offset of the last token taken (newlines don't count). */
   private lastEnd = 0;
+  /** Inside pattern code, where `value` and `picture { }` are words (section 14.1). */
+  private patternDepth = 0;
 
   constructor(
     private readonly tokens: Token[],
@@ -182,12 +184,15 @@ class Parser {
     let name = "";
     let nameSpan: Span = { start: first.span.start, end: first.span.start };
 
+    const patternFile = first.kind === "name" && first.text === "pattern";
     if (
-      first.kind === "keyword" &&
-      (first.text === "creature" || first.text === "background" || first.text === "dance")
+      (first.kind === "keyword" &&
+        (first.text === "creature" || first.text === "background" || first.text === "dance")) ||
+      patternFile
     ) {
       this.next();
       kind = first.text as FileKind;
+      if (patternFile) this.patternDepth++;
       const t = this.peek();
       if (t.kind === "name") {
         this.next();
@@ -203,7 +208,7 @@ class Parser {
     } else {
       this.error(
         first.span,
-        "A GenoCode file starts with `creature <Name>`, `background <Name>` or `dance <Name>`.",
+        "A GenoCode file starts with `creature <Name>`, `background <Name>`, `dance <Name>` or `pattern <Name>`.",
       );
     }
 
@@ -367,6 +372,34 @@ class Parser {
 
     if (t.kind === "name") {
       if (ctx === "dance" && EFFECT_NAMES.has(t.text)) return this.parseEffect();
+      if (t.text === "pattern" && this.peek(1).kind === "name" && this.isOp("{", 2)) {
+        this.next();
+        const name = this.next();
+        this.patternDepth++;
+        let body: Block;
+        try {
+          body = this.parseBlock("the pattern's name");
+        } finally {
+          this.patternDepth--;
+        }
+        return this.endCompound({
+          kind: "Pattern",
+          ...this.base(start),
+          name: name.text,
+          nameSpan: name.span,
+          body,
+        });
+      }
+      const after = this.peek(1);
+      if (
+        this.patternDepth > 0 &&
+        t.text === "value" &&
+        !(after.kind === "op" && ASSIGN_OPS.has(after.text))
+      ) {
+        this.next();
+        const value = this.parseExpr();
+        return this.endSimple({ kind: "Value", ...this.base(start), value });
+      }
       this.next();
       const op = this.peek();
       if (op.kind === "op" && ASSIGN_OPS.has(op.text)) {
@@ -867,6 +900,11 @@ class Parser {
       } else if (this.isOp("(")) {
         const args = this.parseArgs();
         e = { kind: "Call", callee: e, args, span: { start: e.span.start, end: this.lastEnd } };
+      } else if (this.isOp("[")) {
+        this.next();
+        const index = this.parseExpr();
+        this.expectOp("]", "after the position");
+        e = { kind: "Index", object: e, index, span: { start: e.span.start, end: this.lastEnd } };
       } else {
         return e;
       }
@@ -938,9 +976,14 @@ class Parser {
         this.next();
         if ((t.text === "gradient" || t.text === "spectrum") && this.isOp("("))
           return this.parseGradient(t);
+        if (t.text === "picture" && this.patternDepth > 0 && this.isOp("{")) {
+          const body = this.parseBlock("picture");
+          return { kind: "Picture", body, span: { start: t.span.start, end: body.span.end } };
+        }
         return { kind: "Name", name: t.text, span: t.span };
       case "op":
         if (t.text === "(") return this.parseBrackets();
+        if (t.text === "[") return this.parseList();
         break;
     }
     if (t.kind === "newline" || t.kind === "eof") {
@@ -970,6 +1013,20 @@ class Parser {
     if (this.isOp(",")) this.fail(this.peek().span, "A vector has three numbers, not more.");
     this.expectOp(")", "after the vector");
     return { kind: "Vector", x: first, y, z, span: { start: open.span.start, end: this.lastEnd } };
+  }
+
+  private parseList(): Expr {
+    const open = this.next();
+    const items: Expr[] = [];
+    if (!this.isOp("]")) {
+      for (;;) {
+        items.push(this.parseExpr());
+        if (!this.isOp(",")) break;
+        this.next();
+      }
+    }
+    this.expectOp("]", "after the list's items");
+    return { kind: "List", items, span: { start: open.span.start, end: this.lastEnd } };
   }
 
   private parseGradient(name: Token): Expr {

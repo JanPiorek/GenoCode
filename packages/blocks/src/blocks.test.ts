@@ -27,7 +27,7 @@ function throughBlockly(text: string): string {
 }
 
 describe("blocks in Blockly", () => {
-  for (const dir of ["creatures", "dances"]) {
+  for (const dir of ["creatures", "dances", "patterns"]) {
     for (const name of readdirSync(join(repo, dir)).filter((f) => f.endsWith(".genie"))) {
       it(`loads and saves ${dir}/${name} without changing it`, () => {
         const text = readFileSync(join(repo, dir, name), "utf8");

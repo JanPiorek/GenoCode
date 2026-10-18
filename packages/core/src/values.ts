@@ -53,9 +53,24 @@ export const PATTERN_KINDS = [
 ] as const;
 export type PatternKindName = (typeof PATTERN_KINDS)[number];
 
+/** Whether a kind is one of the built-in ones, not a pattern written in GenoCode. */
+export function isBuiltinKind(kind: string): kind is PatternKindName {
+  return (PATTERN_KINDS as readonly string[]).includes(kind);
+}
+
+/** A pattern kind: a built-in one, or the name of a pattern written in GenoCode (section 14.1). */
 export interface PatternKindValue {
   type: "patternKind";
-  name: PatternKindName;
+  name: string;
+}
+
+/**
+ * A pattern kind written in GenoCode, carried with a recipe so the picture can be drawn anywhere,
+ * such as in a web worker: the pattern as a pattern file, and its genes' values by full name.
+ */
+export interface PatternSource {
+  text: string;
+  genes: [string, Value][];
 }
 
 /** The colour schemes a pattern can be coloured in (docs/LANGUAGE.md section 14). */
@@ -96,14 +111,18 @@ export interface MixWayValue {
 /** A second pattern mixed into a first: how, which kind, and how much (0 to 1). */
 export interface PatternMix {
   way: MixWayName;
-  kind: PatternKindName;
+  kind: string;
   amount: number;
+  /** For a pattern written in GenoCode. */
+  source?: PatternSource | undefined;
 }
 
 /** A texture recipe. `kind` is null for `none`. */
 export interface Pattern {
   type: "pattern";
-  kind: PatternKindName | null;
+  kind: string | null;
+  /** For a pattern written in GenoCode. */
+  source?: PatternSource | undefined;
   hue: number;
   seed: number;
   scheme: SchemeName;
@@ -120,6 +139,19 @@ export const NO_PATTERN: Pattern = {
   scheme: "jewel",
   finish: "matte",
 };
+
+/** Values in order (section 8.3). */
+export interface ListValue {
+  type: "list";
+  items: Value[];
+}
+
+/** A grey picture, `size` × `size`, rows from the top, values usually 0 to 1 (section 14.1). */
+export interface Picture {
+  type: "picture";
+  size: number;
+  v: Float32Array;
+}
 
 /** The value of a part choice gene. Not a value the program can store or pass around. */
 export interface PartRef {
@@ -140,6 +172,8 @@ export type Value =
   | FinishValue
   | MixWayValue
   | Pattern
+  | ListValue
+  | Picture
   | PartRef;
 
 export type TypeName =
@@ -155,6 +189,8 @@ export type TypeName =
   | "finish"
   | "mixWay"
   | "pattern"
+  | "list"
+  | "picture"
   | "part";
 
 /** A problem with values; the interpreter adds where it happened. */
@@ -186,6 +222,8 @@ const LABELS: Record<TypeName, string> = {
   finish: "a finish",
   mixWay: "a way of mixing",
   pattern: "a pattern",
+  list: "a list",
+  picture: "a picture",
   part: "a part",
 };
 
@@ -199,6 +237,14 @@ export function vec(x: number, y: number, z: number): Vec {
 
 export function isVec(v: Value): v is Vec {
   return typeof v === "object" && v.type === "vector";
+}
+
+export function isList(v: Value): v is ListValue {
+  return typeof v === "object" && v.type === "list";
+}
+
+export function isPicture(v: Value): v is Picture {
+  return typeof v === "object" && v.type === "picture";
 }
 
 export function isColour(v: Value): v is Colour {
@@ -229,11 +275,30 @@ export function valuesEqual(a: Value, b: Value): boolean {
         a.finish === b.finish &&
         a.mix?.way === b.mix?.way &&
         a.mix?.kind === b.mix?.kind &&
-        a.mix?.amount === b.mix?.amount
+        a.mix?.amount === b.mix?.amount &&
+        sameSource(a.source, b.source) &&
+        sameSource(a.mix?.source, b.mix?.source)
       );
+    case "list":
+      return (
+        b.type === "list" &&
+        a.items.length === b.items.length &&
+        a.items.every((x, i) => valuesEqual(x, b.items[i]!))
+      );
+    case "picture":
+      return a === b;
     case "gradient":
       return false;
   }
+}
+
+function sameSource(a: PatternSource | undefined, b: PatternSource | undefined): boolean {
+  if (a === undefined || b === undefined) return a === b;
+  return (
+    a.text === b.text &&
+    a.genes.length === b.genes.length &&
+    a.genes.every(([name, v], i) => b.genes[i]![0] === name && valuesEqual(v, b.genes[i]![1]))
+  );
 }
 
 function formatNumber(n: number): string {
@@ -274,6 +339,10 @@ export function formatValue(v: Value): string {
         ? p
         : `mixed(${p}, ${v.mix.way}, ${v.mix.kind}, ${formatNumber(v.mix.amount)})`;
     }
+    case "list":
+      return `[${v.items.map(formatValue).join(", ")}]`;
+    case "picture":
+      return "a picture";
   }
 }
 
@@ -302,7 +371,7 @@ export function binaryOp(op: BinaryOp, a: Value, b: Value): Value {
           `\`${op}\` compares two values of the same type, not ${typeLabel(typeOf(a))} and ${typeLabel(typeOf(b))}.`,
         );
       }
-      if (typeOf(a) === "gradient" || typeOf(a) === "string") {
+      if (typeOf(a) === "gradient" || typeOf(a) === "string" || typeOf(a) === "picture") {
         throw new ValueError(`${typeLabel(typeOf(a))} can't be compared.`);
       }
       return op === "==" ? valuesEqual(a, b) : !valuesEqual(a, b);
@@ -329,6 +398,8 @@ export function binaryOp(op: BinaryOp, a: Value, b: Value): Value {
       const f = op === "+" ? (p: number, q: number) => p + q : (p: number, q: number) => p - q;
       if (typeof a === "number" && typeof b === "number") return f(a, b);
       if (isVec(a) && isVec(b)) return perAxis(a, b, f);
+      if (op === "+" && isList(a) && isList(b))
+        return { type: "list", items: [...a.items, ...b.items] };
       throw mismatch(op, a, b);
     }
     case "*":

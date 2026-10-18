@@ -7,7 +7,7 @@
 // drawing and says it's not ready yet, and are told when it is (onFieldReady). The original drew
 // its textures in the background the same way. Without a drawer, pictures are drawn on the spot.
 
-import type { PatternKindName, PatternMix, Pattern } from "@genocode/core";
+import type { PatternMix, Pattern, PatternSource } from "@genocode/core";
 import { paletteTable, SHEEN, TABLE_SIZE } from "./palette.js";
 import { drawField, type Field } from "./patterns.js";
 
@@ -40,7 +40,12 @@ const palettes = new Recent<Float32Array>(256);
 /** What decides a pattern's grey picture: its kind, seed and second pattern. */
 export function fieldKey(p: Pattern, size = TEXTURE_SIZE): string {
   const m = p.mix;
-  return `${p.kind}/${p.seed}/${m ? `${m.way}/${m.kind}/${m.amount}` : ""}/${size}`;
+  return `${p.kind}/${p.seed}/${m ? `${m.way}/${m.kind}/${m.amount}${sourceKey(m.source)}` : ""}/${size}${sourceKey(p.source)}`;
+}
+
+/** A pattern written in GenoCode: its code and its genes' values decide its picture too. */
+function sourceKey(s: PatternSource | undefined): string {
+  return s ? `/${JSON.stringify(s.genes)}/${s.text}` : "";
 }
 
 /** What decides everything about a texture's look. */
@@ -50,7 +55,7 @@ export function textureKey(p: Pattern, size = TEXTURE_SIZE): string {
 
 /** A pattern's grey picture. The pattern must have a kind (not be `none`). */
 export function patternField(p: Pattern, size = TEXTURE_SIZE): Field {
-  return fields.get(fieldKey(p, size), () => drawField(p.kind!, p.seed, p.mix, size));
+  return fields.get(fieldKey(p, size), () => drawField(p.kind!, p.seed, p.mix, size, p.source));
 }
 
 /** Whether a pattern's picture is ready, so colouring it is quick. */
@@ -60,10 +65,11 @@ export function hasField(p: Pattern, size = TEXTURE_SIZE): boolean {
 
 /** Draws a pattern's grey picture somewhere else, giving its values (see drawField). */
 export type FieldDrawer = (
-  kind: PatternKindName,
+  kind: string,
   seed: number,
   mix: PatternMix | undefined,
   size: number,
+  source: PatternSource | undefined,
 ) => Promise<Float32Array>;
 
 let drawer: FieldDrawer | undefined;
@@ -90,7 +96,7 @@ export function readyField(p: Pattern, size = TEXTURE_SIZE): Field | undefined {
   if (fields.has(key) || drawer === undefined) return patternField(p, size);
   if (!drawing.has(key)) {
     drawing.add(key);
-    drawer(p.kind!, p.seed, p.mix, size)
+    drawer(p.kind!, p.seed, p.mix, size, p.source)
       .then((v) => fields.get(key, () => ({ size, v })))
       // If drawing elsewhere fails, it's drawn here instead.
       .catch(() => patternField(p, size))

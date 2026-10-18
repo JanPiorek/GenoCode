@@ -25,11 +25,11 @@ export function drawFieldsInWorkers(): void {
     };
   }
   let next = 0;
-  const draw: FieldDrawer = (kind, seed, mix, size) =>
+  const draw: FieldDrawer = (kind, seed, mix, size, source) =>
     new Promise((resolve) => {
       const id = next++;
       waiting.set(id, resolve);
-      const request: FieldRequest = { id, kind, seed, mix, size };
+      const request: FieldRequest = { id, kind, seed, mix, size, source };
       workers[id % workers.length]!.postMessage(request);
     });
   drawFieldsWith(draw);

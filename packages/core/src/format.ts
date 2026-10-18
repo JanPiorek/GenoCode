@@ -56,6 +56,7 @@ function isDefinition(s: Stmt): boolean {
     s.kind === "Function" ||
     s.kind === "Background" ||
     s.kind === "Dance" ||
+    s.kind === "Pattern" ||
     s.kind === "Variant"
   );
 }
@@ -240,6 +241,8 @@ function simpleText(s: Stmt): string | undefined {
       return `${s.keyword} ${expr(s.value)}`;
     case "Fill":
       return `fill ${expr(s.value)}`;
+    case "Value":
+      return `value ${expr(s.value)}`;
     case "Effect":
       return `${s.name} ${effectSettings(s)}`;
     case "Gene":
@@ -258,7 +261,9 @@ function effectArg(a: EffectArg): string {
 function printStmt(out: string[], s: Stmt, level: number): void {
   const simple = simpleText(s);
   if (simple !== undefined) {
-    out.push(pad(level) + simple + (s.trailing ? `  ${s.trailing.text}` : ""));
+    // A `picture { }` in the statement spans lines, indented from the statement's own.
+    const text = simple.replace(/\n/g, "\n" + pad(level));
+    out.push(pad(level) + text + (s.trailing ? `  ${s.trailing.text}` : ""));
     return;
   }
   switch (s.kind) {
@@ -285,6 +290,9 @@ function printStmt(out: string[], s: Stmt, level: number): void {
       return;
     case "Dance":
       printBlock(out, "dance", s.body, level);
+      return;
+    case "Pattern":
+      printBlock(out, `pattern ${s.name}`, s.body, level);
       return;
     case "Variant": {
       const header = `variant ${s.name}`;
@@ -400,7 +408,7 @@ const BINARY_PRECEDENCE: Record<string, number> = {
 function precedence(e: Expr): number {
   if (e.kind === "Binary") return BINARY_PRECEDENCE[e.op]!;
   if (e.kind === "Unary") return e.op === "not" ? 3 : 7;
-  if (e.kind === "Member" || e.kind === "Call") return 9;
+  if (e.kind === "Member" || e.kind === "Call" || e.kind === "Index") return 9;
   return 10;
 }
 
@@ -457,6 +465,15 @@ export function expr(e: Expr): string {
       return `${wrap(e.callee, precedence(e.callee) < 9 || e.callee.kind === "Number")}(${e.args.map(expr).join(", ")})`;
     case "Gradient":
       return `${e.straight ? "spectrum" : "gradient"}(${e.stops.map((s) => (s.at ? `${expr(s.colour)} at ${expr(s.at)}` : expr(s.colour))).join(", ")})`;
+    case "List":
+      return `[${e.items.map(expr).join(", ")}]`;
+    case "Index":
+      return `${wrap(e.object, precedence(e.object) < 9 || e.object.kind === "Number")}[${expr(e.index)}]`;
+    case "Picture": {
+      const lines: string[] = [];
+      printBlock(lines, "picture", e.body, 0);
+      return lines.join("\n");
+    }
     case "ErrorExpr":
       throw new Error("Can't format a file with syntax errors.");
   }

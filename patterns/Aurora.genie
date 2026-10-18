@@ -1,0 +1,26 @@
+pattern Aurora
+// Wavy curtains of light across the sky, streaked downwards. The built-in kind `aurora`, written
+// in GenoCode: it draws the same pictures.
+
+let count = 2 + floor(random(0, 4))
+let bands = []
+repeat count {
+  bands += [(random(1, 4), random(0, 360), random(0.3, 0.8))]  // how wavy, where, how high
+}
+let thickness = random(4, 9)
+let wobble = random(0.1, 0.5)
+let streak = random(4, 12)
+let mist = clouds(4, 2)
+let fine = clouds()
+
+let light = picture {
+  let sum = 0
+  let n = mist(x, y) - 0.5
+  repeat count as k {
+    let band = bands[k]
+    let d = (y - band.z * sin(degrees(x * band.x) + band.y) - wobble * n) * thickness
+    sum += exp(-d * d)
+  }
+  value sum + 0.1 * fine(x, y)
+}
+value blur(stretch(light), 1, streak)

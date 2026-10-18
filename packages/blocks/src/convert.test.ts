@@ -19,7 +19,7 @@ function roundTrip(text: string): string {
 }
 
 describe("code to blocks and back", () => {
-  for (const dir of ["creatures", "dances"]) {
+  for (const dir of ["creatures", "dances", "patterns"]) {
     for (const name of readdirSync(join(repo, dir)).filter((f) => f.endsWith(".genie"))) {
       it(`gives ${dir}/${name} back as the formatter writes it`, () => {
         const text = readFileSync(join(repo, dir, name), "utf8");
@@ -48,6 +48,27 @@ describe("code to blocks and back", () => {
       "}",
       "",
       "// at the very end",
+      "",
+    ].join("\n");
+    expect(roundTrip(text)).toBe(formatText(text).text);
+  });
+
+  it("keeps a creature's own patterns, lists and pictures", () => {
+    const text = [
+      "creature Shell",
+      "",
+      "texture pattern(Ripples, 30, 4)",
+      "lay",
+      "",
+      "pattern Ripples {",
+      "  gene rings = 8 in 2..20",
+      "",
+      "  let sizes = [1, 2] + []",
+      "  value picture {  // every pixel",
+      "    // a ripple",
+      "    value sin(r * rings * 180 * sizes[0]) * 0.5 + 0.5",
+      "  }",
+      "}",
       "",
     ].join("\n");
     expect(roundTrip(text)).toBe(formatText(text).text);

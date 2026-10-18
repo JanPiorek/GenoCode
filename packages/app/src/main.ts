@@ -53,6 +53,13 @@ const examples = import.meta.glob("../../../creatures/*.genie", {
   eager: true,
 }) as Record<string, string>;
 
+// GenoCode's own pattern kinds written in GenoCode, in the repository's patterns/ folder.
+const patternFiles = import.meta.glob("../../../patterns/*.genie", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
 // The dance styles in the repository's dances/ folder.
 const danceFiles = import.meta.glob("../../../dances/*.genie", {
   query: "?raw",
@@ -616,7 +623,15 @@ function libraryEntries(): LibraryEntry[] {
       yours: false,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
-  return [...yours, ...starters, ...styles];
+  const patterns = Object.values(patternFiles)
+    .map((text) => ({
+      kind: "pattern" as const,
+      name: checkText(text).file.name,
+      text,
+      yours: false,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return [...yours, ...starters, ...patterns, ...styles];
 }
 
 // ---------- dancing ----------
@@ -911,17 +926,19 @@ function offerDefinition(text: string): boolean {
   const ask =
     file.kind === "background"
       ? `Put the background ${file.name} behind ${creature.name}?`
-      : `Give ${creature.name} the dance ${file.name}?`;
+      : file.kind === "pattern"
+        ? `Give ${creature.name} the pattern ${file.name}, to use in its textures?`
+        : `Give ${creature.name} the dance ${file.name}?`;
   if (!confirm(`${ask}\n\nCancel opens the ${file.kind} on its own.`)) return false;
   return putIn(text);
 }
 
 /** Puts a background or dance file into the creature on show. Says whether it could. */
 function putIn(text: string): boolean {
-  const kind = checkText(text).file.kind;
+  const { kind, name } = checkText(text).file;
   const lines = definitionLines(text);
   if (kind === "creature" || !lines) return false;
-  const out = withDefinition(editor.text, kind, lines);
+  const out = withDefinition(editor.text, kind, lines, name);
   if (out === undefined) return false;
   editor.setText(out);
   show(out, true);

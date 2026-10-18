@@ -12,7 +12,7 @@ const spec = readFileSync(new URL("../../../docs/LANGUAGE.md", import.meta.url),
 const blocks = [...spec.matchAll(/```\n([\s\S]*?)```/g)].map((m) => m[1]!);
 const guide = readFileSync(new URL("../../../docs/GETTING_STARTED.md", import.meta.url), "utf8");
 
-const isFile = (b: string) => /^(creature|background|dance) \w+\n/.test(b);
+const isFile = (b: string) => /^(creature|background|dance|pattern) \w+\n/.test(b);
 const isWrappedBlock = (b: string) => /^(background|dance) \{\n/.test(b);
 const isCode = (b: string) =>
   !b.includes("…") &&

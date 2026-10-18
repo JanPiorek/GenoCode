@@ -16,7 +16,12 @@ import {
   type Stmt,
   type VariantDecl,
 } from "./ast.js";
-import { BUILTIN_CONSTANTS, BUILTIN_FUNCTIONS, isBuiltinName } from "./builtins.js";
+import {
+  BUILTIN_CONSTANTS,
+  BUILTIN_FUNCTIONS,
+  isBuiltinName,
+  PICTURE_FUNCTIONS,
+} from "./builtins.js";
 import { hexColour } from "./colour.js";
 import { hueArc, inHueArc, seedGene, type GeneInfo, type GeneSection } from "./genes.js";
 import { MUSIC_FIELDS } from "./interpreter.js";
@@ -52,6 +57,8 @@ export interface CheckResult {
   background: Stmt[] | undefined;
   /** The dance style's statements. */
   dance: Stmt[] | undefined;
+  /** The patterns written in GenoCode (section 14.1): each one's statements, by name. */
+  patterns: Map<string, Stmt[]>;
   /** The creature reads `time`, `beat` or `music` outside its background and dance (section 16). */
   live: boolean;
   /** The background reads `time`, `beat` or `music`, so it changes while it's shown. */
@@ -96,6 +103,7 @@ export function check(text: string): CheckResult {
     functions: checker.functions,
     background: checker.background,
     dance: checker.dance,
+    patterns: checker.patterns,
     live: checker.live,
     backgroundLive: checker.backgroundLive,
     usesRandom: checker.usesRandom,
@@ -107,7 +115,7 @@ export function check(text: string): CheckResult {
 type StaticType = TypeName | "unknown";
 
 type SymbolKind =
-  "gene" | "global" | "local" | "param" | "readonly" | "part" | "function" | "partGene";
+  "gene" | "global" | "local" | "param" | "readonly" | "part" | "function" | "partGene" | "pattern";
 
 interface Sym {
   kind: SymbolKind;
@@ -141,6 +149,8 @@ interface Ctx {
   inShape: boolean;
   /** Inside `symmetric`. */
   inSymmetric: boolean;
+  /** Inside `picture { }`, which runs for every pixel (section 14.1). */
+  inPicture?: boolean;
   /** Set when a function returns a value. */
   returns: { value: boolean };
 }
@@ -182,6 +192,20 @@ const MUSIC_NAMES: ReadonlySet<string> = new Set(MUSIC_FIELDS);
 const VECTOR_FIELDS = new Set(["x", "y", "z"]);
 const COLOUR_FIELDS = new Set(["hue", "sat", "val", "alpha"]);
 const SHAPE_STATEMENTS = new Set(["Command", "Rotate", "Mirror", "Let", "Assign", "If"]);
+/** What pattern code may hold (section 14.1). */
+const PATTERN_STATEMENTS = new Set([
+  "Gene",
+  "Let",
+  "Assign",
+  "If",
+  "Repeat",
+  "For",
+  "While",
+  "Print",
+  "Value",
+  "ErrorStmt",
+]);
+
 const TURTLE_STATEMENTS = new Set([
   "Branch",
   "Symmetric",
@@ -192,6 +216,16 @@ const TURTLE_STATEMENTS = new Set([
   "Mirror",
   "Material",
 ]);
+
+function sectionName(section: GeneSection): string {
+  return section === "background"
+    ? "A background"
+    : section === "dance"
+      ? "A dance block"
+      : section === "pattern"
+        ? "A pattern"
+        : "A creature";
+}
 
 function describeSym(kind: SymbolKind): string {
   switch (kind) {
@@ -208,6 +242,8 @@ function describeSym(kind: SymbolKind): string {
       return "a function";
     case "partGene":
       return "a part gene";
+    case "pattern":
+      return "a pattern";
   }
 }
 
@@ -268,6 +304,8 @@ class Checker {
   functions = new Map<string, FunctionDecl>();
   background: Stmt[] | undefined;
   dance: Stmt[] | undefined;
+  patterns = new Map<string, Stmt[]>();
+  private readonly patternDecls = new Map<string, Span>();
   live = false;
   backgroundLive = false;
   usesRandom = false;
@@ -308,6 +346,9 @@ class Checker {
     } else if (file.kind === "dance") {
       this.dance = file.items;
       this.checkSection(file.items, "dance");
+    } else if (file.kind === "pattern") {
+      this.patterns.set(file.name, file.items);
+      this.checkPattern(file.items, file.name, file.nameSpan);
     } else {
       this.checkCreature(file.items);
     }
@@ -454,6 +495,14 @@ class Checker {
       if (item.kind === "Part") this.parts.set(item.name, item);
       else this.functions.set(item.name, item);
     }
+    // Patterns: their names are pattern kinds, usable anywhere in the creature.
+    for (const item of items) {
+      if (item.kind !== "Pattern") continue;
+      if (!this.checkNewName(item.name, item.nameSpan, module, "pattern")) continue;
+      this.define(module, item.name, { kind: "pattern", type: "patternKind", decl: item.nameSpan });
+      this.patterns.set(item.name, item.body.items);
+      this.patternDecls.set(item.name, item.nameSpan);
+    }
 
     for (const item of items) {
       if (item.kind === "Gene") this.declareGene(item, module, "creature", undefined);
@@ -503,6 +552,9 @@ class Checker {
           this.dance = item.body.items;
           this.checkSection(item.body.items, "dance");
         }
+      } else if (item.kind === "Pattern") {
+        if (this.patterns.get(item.name) === item.body.items)
+          this.checkPattern(item.body.items, item.name, item.nameSpan);
       }
     }
 
@@ -635,6 +687,62 @@ class Checker {
     }
   }
 
+  // ---------- patterns ----------
+
+  /** A pattern written in GenoCode (section 14.1): self-contained, ending with `value`. */
+  private checkPattern(items: Stmt[], name: string, nameSpan: Span): void {
+    const scope = new Scope(undefined);
+    for (const item of items) {
+      if (item.kind === "Gene") this.declareGene(item, scope, "pattern", name);
+    }
+    const ctx: Ctx = {
+      scope: new Scope(scope),
+      section: "pattern",
+      where: "top",
+      owner: name,
+      inShape: false,
+      inSymmetric: false,
+      returns: { value: false },
+    };
+    for (const item of items) this.checkStmt(item, ctx, true);
+    this.checkValueLast(items, items.length > 0 ? items[0]!.span : nameSpan, "A pattern");
+  }
+
+  /** A pattern or `picture` block ends with exactly one `value`. */
+  private checkValueLast(items: Stmt[], where: Span, what: string): void {
+    const values = items.filter((i) => i.kind === "Value");
+    const last = items[items.length - 1];
+    if (values.length === 0) {
+      this.error(where, `${what} needs a \`value\` statement at the end.`);
+    } else if (values.length > 1) {
+      for (const v of values.slice(1)) this.error(v.span, `${what} can only have one \`value\`.`);
+    } else if (last !== values[0]) {
+      this.error(values[0]!.span, `\`value\` must be the last statement of ${what.toLowerCase()}.`);
+    }
+  }
+
+  /** `picture { … }`: its block runs for every pixel, with `x`, `y`, `r` and `a`. */
+  private checkPicture(expr: Extract<Expr, { kind: "Picture" }>, ctx: Ctx): StaticType {
+    if (ctx.section !== "pattern") {
+      this.error(expr.span, "`picture { }` can only be used in a pattern.");
+      return "picture";
+    }
+    if (ctx.inPicture) {
+      this.error(
+        expr.span,
+        "A picture can't be made inside `picture { }`, which runs for every pixel.",
+      );
+      return "picture";
+    }
+    const scope = new Scope(ctx.scope);
+    for (const n of ["x", "y", "r", "a"])
+      scope.symbols.set(n, { kind: "readonly", type: "number" });
+    const inner: Ctx = { ...ctx, scope, inPicture: true };
+    for (const item of expr.body.items) this.checkStmt(item, inner, true);
+    this.checkValueLast(expr.body.items, expr.span, "A picture");
+    return "picture";
+  }
+
   // ---------- names ----------
 
   /** Checks a name that's about to be defined. Returns false if it can't be used. */
@@ -683,6 +791,7 @@ class Checker {
           : owner !== undefined
             ? `${owner}.${decl.name}`
             : decl.name;
+    // A pattern's genes are its own, named after it: `Ripples.rings`.
     if (!this.checkNewName(decl.name, decl.nameSpan, scope, "gene")) return;
     if (this.fullNames.has(fullName)) {
       this.error(decl.nameSpan, `There's already a gene called \`${fullName}\`.`);
@@ -956,6 +1065,10 @@ class Checker {
       case "Hex":
         return guard(() => hexColour(expr.raw));
       case "Name": {
+        if (this.patternDecls.has(expr.name)) {
+          this.references.push({ span: expr.span, declaration: this.patternDecls.get(expr.name)! });
+          return { type: "patternKind", name: expr.name };
+        }
         const v = BUILTIN_CONSTANTS.get(expr.name);
         if (v === undefined) {
           return fail(`Gene values must be constant: \`${expr.name}\` isn't a built-in constant.`);
@@ -1039,6 +1152,13 @@ class Checker {
       this.error(stmt.span, "A dance block can only hold genes, `let` and effect lines.");
       return;
     }
+    if (ctx.section === "pattern" && !PATTERN_STATEMENTS.has(stmt.kind)) {
+      this.error(
+        stmt.span,
+        "Pattern code can only hold genes, `let`, assignments, `if`, `repeat`, `for`, `while`, `print` and `value`.",
+      );
+      return;
+    }
     if (ctx.inShape && !SHAPE_STATEMENTS.has(stmt.kind) && stmt.kind !== "ErrorStmt") {
       this.error(
         stmt.span,
@@ -1060,7 +1180,9 @@ class Checker {
 
     switch (stmt.kind) {
       case "Gene":
-        if (!bodyLevel) {
+        if (ctx.inPicture) {
+          this.error(stmt.span, "Genes can't be declared inside `picture { }`.");
+        } else if (!bodyLevel) {
           this.error(
             stmt.span,
             "Genes can only be declared at the top level of a file, part, function, background or dance block.",
@@ -1081,6 +1203,19 @@ class Checker {
         return;
       case "GeneSetting":
         return;
+      case "Pattern":
+        if (!creatureTop)
+          this.error(stmt.span, "A pattern block can only be at the top level of a creature.");
+        return;
+      case "Value": {
+        const t = this.checkExpr(stmt.value, ctx);
+        if (!bodyLevel)
+          this.error(stmt.span, "`value` must be the last statement, not inside a block.");
+        if (ctx.inPicture)
+          this.expect(t, ["number"], stmt.value.span, "A pixel's value must be a number");
+        else this.expect(t, ["picture"], stmt.value.span, "A pattern's value must be a picture");
+        return;
+      }
       case "Background":
       case "Dance":
         if (!creatureTop)
@@ -1404,10 +1539,7 @@ class Checker {
       case "Turtle": {
         const t = TURTLE_FIELDS.get(expr.field);
         if (ctx.section !== "creature") {
-          this.error(
-            expr.span,
-            `A ${ctx.section === "background" ? "background" : "dance block"} can't read the turtle.`,
-          );
+          this.error(expr.span, `${sectionName(ctx.section)} can't read the turtle.`);
         }
         if (t === undefined) {
           this.error(
@@ -1423,9 +1555,18 @@ class Checker {
       }
       case "Time":
       case "Beat":
+        if (ctx.section === "pattern") {
+          this.error(
+            expr.span,
+            "A pattern can't read `time` or `beat`: its picture is drawn once.",
+          );
+        }
         this.markLive(ctx);
         return "number";
       case "Music":
+        if (ctx.section === "pattern") {
+          this.error(expr.span, "A pattern can't read `music`: its picture is drawn once.");
+        }
         if (!MUSIC_NAMES.has(expr.field)) {
           this.error(
             expr.fieldSpan,
@@ -1468,6 +1609,26 @@ class Checker {
       }
       case "Call":
         return this.checkCall(expr, ctx);
+      case "List":
+        for (const item of expr.items) this.checkExpr(item, ctx);
+        return "list";
+      case "Index": {
+        this.expect(
+          this.checkExpr(expr.object, ctx),
+          ["list"],
+          expr.object.span,
+          "Only a list has items",
+        );
+        this.expect(
+          this.checkExpr(expr.index, ctx),
+          ["number"],
+          expr.index.span,
+          "A position in a list must be a number",
+        );
+        return "unknown";
+      }
+      case "Picture":
+        return this.checkPicture(expr, ctx);
       case "Gradient":
         if (expr.stops.length < 2) this.error(expr.span, "A gradient needs at least two colours.");
         for (const s of expr.stops) {
@@ -1513,6 +1674,12 @@ class Checker {
       }
       return sym.type;
     }
+    // The creature's own patterns are pattern kinds, in its background too (section 14.1).
+    const pattern = this.patternDecls.get(name);
+    if (pattern && (ctx.section === "creature" || ctx.section === "background")) {
+      this.references.push({ span, declaration: pattern });
+      return "patternKind";
+    }
     const constant = BUILTIN_CONSTANTS.get(name);
     if (constant !== undefined) return typeOf(constant);
     if (BUILTIN_FUNCTIONS.has(name)) {
@@ -1542,14 +1709,30 @@ class Checker {
     if (callee.kind === "Name") {
       const sym = ctx.scope.lookup(callee.name);
       if (sym === undefined) {
-        const f = BUILTIN_FUNCTIONS.get(callee.name);
+        const f = BUILTIN_FUNCTIONS.get(callee.name) ?? PICTURE_FUNCTIONS.get(callee.name);
         if (f) {
           if (expr.args.length < f.minArgs || expr.args.length > f.maxArgs) {
             this.error(callee.span, this.arityMessage(f.name, f.minArgs, f.maxArgs));
           }
-          if (f.name === "random") {
+          if (f.name === "random" && ctx.inPicture) {
+            this.error(
+              callee.span,
+              "`random` can't be used inside `picture { }`: draw random settings before it, and keep them in lists.",
+            );
+          } else if (f.name === "random" && ctx.section !== "pattern") {
+            // A pattern's `random` draws from the recipe's seed, not the creature's (section 18.5).
             this.usesRandom = true;
             this.randomSpan ??= expr.span;
+          }
+          if (PICTURE_FUNCTIONS.has(f.name)) {
+            if (ctx.section !== "pattern") {
+              this.error(callee.span, `\`${f.name}\` makes pictures, which only patterns can use.`);
+            } else if (ctx.inPicture) {
+              this.error(
+                callee.span,
+                `\`${f.name}\` can't be used inside \`picture { }\`, which runs for every pixel.`,
+              );
+            }
           }
           if (f.returns) return f.returns;
           return argTypes[0] ?? "unknown";
@@ -1574,14 +1757,26 @@ class Checker {
         return "unknown";
       }
     }
-    // Anything else is a gradient being sampled.
+    // Anything else is a gradient or a picture being sampled.
     const t = this.checkExpr(callee, ctx);
-    if (t !== "unknown" && t !== "gradient") {
+    if (t !== "unknown" && t !== "gradient" && t !== "picture") {
       this.error(
         callee.span,
-        `${typeLabel(t)} can't be called. Only functions can be called, and gradients sampled.`,
+        `${typeLabel(t)} can't be called. Only functions can be called, and gradients and pictures sampled.`,
       );
       return "unknown";
+    }
+    if (
+      t === "picture" ||
+      (t === "unknown" && ctx.section === "pattern" && expr.args.length === 2)
+    ) {
+      if (expr.args.length !== 2) {
+        this.error(expr.span, "A picture is read at a point, such as `lumps(x, y)`.");
+      }
+      expr.args.forEach((a, i) =>
+        this.expect(argTypes[i]!, ["number"], a.span, "A point in a picture is two numbers"),
+      );
+      return "number";
     }
     if (expr.args.length !== 1) {
       this.error(expr.span, "A gradient is sampled at one position, such as `skin(0.5)`.");
@@ -1622,6 +1817,8 @@ class Checker {
           );
         } else if (a === "gradient" || b === "gradient") {
           this.error(expr.opSpan, "Gradients can't be compared.");
+        } else if (a === "picture" || b === "picture") {
+          this.error(expr.opSpan, "Pictures can't be compared.");
         }
         return "bool";
       case "<":
@@ -1635,6 +1832,10 @@ class Checker {
         this.expect(a, ["number"], expr.left.span, "`^` needs numbers");
         this.expect(b, ["number"], expr.right.span, "`^` needs numbers");
         return "number";
+    }
+    if (op === "+" && (a === "list" || b === "list")) {
+      if ((a === "list" || a === "unknown") && (b === "list" || b === "unknown")) return "list";
+      return bad();
     }
     if (a === "unknown" || b === "unknown") {
       const known = a === "unknown" ? b : a;

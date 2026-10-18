@@ -3,17 +3,26 @@
 
 import {
   TRIGGER_KINDS,
+  type BinaryOp,
   type Block,
   type Expr,
   type FunctionDecl,
   type PartDecl,
   type Stmt,
 } from "./ast.js";
-import { BUILTIN_CONSTANTS, BUILTIN_FUNCTIONS } from "./builtins.js";
+import {
+  BUILTIN_CONSTANTS,
+  BUILTIN_FUNCTIONS,
+  PICTURE_FUNCTIONS,
+  type BuiltinContext,
+} from "./builtins.js";
 import type { CheckResult } from "./checker.js";
 import { hexColour, makeGradient, sampleGradient } from "./colour.js";
+import { format } from "./format.js";
 import type { GeneInfo } from "./genes.js";
 import { mulberry32 } from "./noise.js";
+import { Canvas, sample } from "./picture.js";
+import { drawPixels, listItem, PixelError, PixelLimit, type PixelEngine } from "./pixels.js";
 import type { Diagnostic, Span } from "./source.js";
 import {
   cloneFrame,
@@ -30,7 +39,10 @@ import {
 import {
   binaryOp,
   formatValue,
+  isBuiltinKind,
   isColour,
+  isList,
+  isPicture,
   isVec,
   member,
   negate,
@@ -44,6 +56,8 @@ import {
   vec,
   type Colour,
   type Pattern,
+  type PatternSource,
+  type Picture,
   type ShapeName,
   type Value,
 } from "./values.js";
@@ -87,6 +101,8 @@ export interface BuildOptions {
   genes?: ReadonlyMap<string, Value>;
   inputs?: Partial<Omit<Inputs, "music">> & { music?: Partial<MusicInputs> };
   limits?: Partial<Limits>;
+  /** How pictures' per-pixel code is run (pixels.ts): for tests that compare the two ways. */
+  pixels?: PixelEngine;
 }
 
 export interface LaidShape {
@@ -256,6 +272,56 @@ export function buildBackground(
   };
 }
 
+export interface PatternResult {
+  /** The grey picture, or undefined if the pattern failed. */
+  picture: Picture | undefined;
+  diagnostics: Diagnostic[];
+  printed: string[];
+}
+
+/**
+ * Draws a pattern written in GenoCode (section 14.1): its picture for a recipe's `seed`, on a
+ * canvas of pixel positions (pushed about when the pattern is mixed in with `warp`). The genes are
+ * the pattern's, by full name, such as `Ripples.rings`.
+ */
+export function buildPattern(
+  program: CheckResult,
+  name: string,
+  seed: number | (() => number),
+  canvas: Canvas,
+  options: BuildOptions = {},
+): PatternResult {
+  const run = new Run(program, options);
+  const items = program.patterns.get(name);
+  if (!program.ok || items === undefined) {
+    return { picture: undefined, diagnostics: [], printed: [] };
+  }
+  run.guarded(() => run.runPattern(items, name, seed, canvas));
+  const v = run.value;
+  return {
+    picture: !run.failed && v !== undefined && isPicture(v) ? v : undefined,
+    diagnostics: run.finish(),
+    printed: run.printed,
+  };
+}
+
+/** A pattern block of a creature as a pattern file, the form a recipe carries it in. */
+export function patternFileText(program: CheckResult, name: string): string | undefined {
+  if (program.file.kind === "pattern") return program.file.name === name ? program.text : undefined;
+  const decl = program.file.items.find((s) => s.kind === "Pattern" && s.name === name);
+  if (decl?.kind !== "Pattern") return undefined;
+  return format({
+    kind: "pattern",
+    name,
+    nameSpan: decl.nameSpan,
+    headerComments: [],
+    description: [],
+    items: decl.body.items,
+    endComments: decl.body.endComments,
+    span: decl.span,
+  });
+}
+
 class RuntimeError extends Error {
   constructor(
     readonly span: Span,
@@ -318,7 +384,13 @@ class Run {
   printed: string[] = [];
   failed = false;
   fill: Value | undefined;
+  /** A pattern's `value`. */
+  value: Value | undefined;
   readonly effects: EffectValues[] = [];
+  /** In pattern code: the pixels being drawn. */
+  private canvas: Canvas | undefined;
+  /** Patterns written in GenoCode, as recipes carry them, made when first needed. */
+  private readonly sources = new Map<string, PatternSource>();
   private readonly diagnostics: Diagnostic[] = [];
   private readonly limits: Limits;
   private readonly inputs: Inputs;
@@ -354,7 +426,7 @@ class Run {
       music: { ...silence(), ...i.music },
     };
     for (const g of program.genes) {
-      const key = g.section === "creature" ? g.owner : g.section;
+      const key = geneKey(g);
       if (!this.genesByOwner.has(key)) this.genesByOwner.set(key, []);
       this.genesByOwner.get(key)!.push(g);
     }
@@ -419,6 +491,15 @@ class Run {
     this.execItems(this.program.file.items, this.module);
   }
 
+  runPattern(items: Stmt[], name: string, seed: number | (() => number), canvas: Canvas): void {
+    // `random` draws from the recipe's seed, afresh for each picture (section 18.5).
+    this.random = typeof seed === "number" ? mulberry32(seed) : seed;
+    this.canvas = canvas;
+    const env = new Env(undefined);
+    this.bindGenes(env, `pattern:${name}`);
+    this.execItems(items, new Env(env));
+  }
+
   runSection(items: Stmt[], section: "background" | "dance"): void {
     this.startRandom();
     const env = new Env(undefined);
@@ -462,7 +543,11 @@ class Run {
       case "Dance":
       case "Variant":
       case "GeneSetting":
+      case "Pattern":
       case "ErrorStmt":
+        return;
+      case "Value":
+        this.value = this.eval(s.value, env);
         return;
       case "Effect":
         this.effect(s, env);
@@ -628,9 +713,11 @@ class Run {
       case "Material":
         this.material(s, env);
         return;
-      case "Fill":
-        this.fill = this.eval(s.value, env);
+      case "Fill": {
+        const v = this.eval(s.value, env);
+        this.fill = typeof v === "object" && v.type === "pattern" ? this.withSource(v) : v;
         return;
+      }
     }
   }
 
@@ -676,7 +763,7 @@ class Run {
         return;
       case "texture":
         if (typeof v !== "object" || v.type !== "pattern") return wrong("a pattern");
-        this.state.texture = v.kind === null ? null : v;
+        this.state.texture = v.kind === null ? null : this.withSource(v);
         return;
     }
   }
@@ -821,6 +908,7 @@ class Run {
       case "Name": {
         const b = env.lookup(e.name);
         if (b) return b.value;
+        if (this.program.patterns.has(e.name)) return { type: "patternKind", name: e.name };
         const c = BUILTIN_CONSTANTS.get(e.name);
         if (c !== undefined) return c;
         throw new RuntimeError(e.span, this.unsetMessage(e.name));
@@ -871,6 +959,12 @@ class Run {
         });
         return this.guard(e.span, () => makeGradient(stops, e.straight));
       }
+      case "List":
+        return { type: "list", items: e.items.map((item) => this.eval(item, env)) };
+      case "Index":
+        return itemOf(this.eval(e.object, env), this.eval(e.index, env), e);
+      case "Picture":
+        return this.picture(e, env);
       case "ErrorExpr":
         throw new RuntimeError(e.span, "This expression couldn't be read.");
     }
@@ -886,13 +980,21 @@ class Run {
           e.args.map((a) => this.eval(a, env)),
           callee.span,
         );
-      const builtin = BUILTIN_FUNCTIONS.get(callee.name);
+      const builtin =
+        BUILTIN_FUNCTIONS.get(callee.name) ??
+        (this.canvas ? PICTURE_FUNCTIONS.get(callee.name) : undefined);
       if (builtin) {
         const args = e.args.map((a) => this.eval(a, env));
-        return this.guard(e.span, () => builtin.call(args, { random: this.random }));
+        return this.guard(e.span, () => builtin.call(args, this.builtinContext()));
       }
     }
     const target = this.eval(callee, env);
+    if (isPicture(target)) {
+      return samplePicture(
+        target,
+        e.args.map((a) => this.num(a, env, "A point in a picture")),
+      );
+    }
     if (typeof target !== "object" || target.type !== "gradient") {
       throw new RuntimeError(
         callee.span,
@@ -901,6 +1003,61 @@ class Run {
     }
     const t = this.num(e.args[0]!, env, "A gradient position");
     return sampleGradient(target, t);
+  }
+
+  private builtinContext(): BuiltinContext {
+    return this.canvas
+      ? { random: this.random, pictureSize: this.canvas.size }
+      : { random: this.random };
+  }
+
+  /** A recipe of a pattern written in GenoCode carries the pattern, so it can be drawn anywhere. */
+  private withSource(p: Pattern): Pattern {
+    const source = (kind: string | null) =>
+      kind === null || isBuiltinKind(kind) ? undefined : this.source(kind);
+    const first = source(p.kind);
+    const out: Pattern = first ? { ...p, source: first } : p;
+    if (p.mix) {
+      const second = source(p.mix.kind);
+      if (second) return { ...out, mix: { ...p.mix, source: second } };
+    }
+    return out;
+  }
+
+  private source(name: string): PatternSource | undefined {
+    let s = this.sources.get(name);
+    if (s === undefined) {
+      const text = patternFileText(this.program, name);
+      if (text === undefined) return undefined;
+      const genes = (this.genesByOwner.get(`pattern:${name}`) ?? []).map(
+        (g) => [g.fullName, this.geneValue(g)!] as [string, Value],
+      );
+      s = { text, genes };
+      this.sources.set(name, s);
+    }
+    return s;
+  }
+
+  /** `picture { … }`: its block, run for every pixel of the canvas (see pixels.ts). */
+  private picture(e: Extract<Expr, { kind: "Picture" }>, env: Env): Picture {
+    const canvas = this.canvas;
+    if (!canvas) throw new RuntimeError(e.span, "`picture { }` can only be used in a pattern.");
+    const last = e.body.items[e.body.items.length - 1];
+    const valueSpan = last?.kind === "Value" ? last.value.span : e.span;
+    try {
+      const v = drawPixels(
+        e.body,
+        (name) => env.lookup(name)?.value,
+        canvas,
+        valueSpan,
+        this.options.pixels,
+      );
+      return { type: "picture", size: canvas.size, v };
+    } catch (err) {
+      if (err instanceof PixelLimit) throw new LimitReached(err.span, err.message);
+      if (err instanceof PixelError) throw new RuntimeError(err.span, err.message);
+      throw err;
+    }
   }
 
   private turtleField(field: string, span: Span): Value {
@@ -935,4 +1092,22 @@ class Run {
     }
     throw new RuntimeError(span, `The turtle has no \`${field}\`.`);
   }
+}
+
+/** Where a gene's value is bound: the creature's top level or a part, a section, or a pattern. */
+function geneKey(g: GeneInfo): string | undefined {
+  if (g.section === "creature") return g.owner;
+  if (g.section === "pattern") return `pattern:${g.owner}`;
+  return g.section;
+}
+
+/** `l[i]` (section 8.3). */
+function itemOf(list: Value, index: Value, e: Extract<Expr, { kind: "Index" }>): Value {
+  return listItem(list, index, (atIndex, message) => {
+    throw new RuntimeError(atIndex ? e.index.span : e.object.span, message);
+  });
+}
+
+function samplePicture(p: Picture, point: number[]): number {
+  return sample(p.v, p.size, point[0]!, point[1]!);
 }
