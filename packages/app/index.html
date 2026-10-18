@@ -26,7 +26,7 @@
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "GenoCode",
-        "url": "https://genocode.piorek.co.za/",
+        "url": "https://genocode.piorek.co.za/app/",
         "description": "Make 3D creatures with code or blocks, breed and morph them, and watch them dance to music.",
         "applicationCategory": "DesignApplication",
         "operatingSystem": "Any (web browser)",
@@ -37,126 +37,224 @@
       }
     </script>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./src/style.css" />
+    <link rel="stylesheet" href="./src/landing.css" />
   </head>
   <body>
-    <header class="bar">
-      <span class="brand"
+    <header class="top">
+      <a class="brand" href="./"
         ><img src="./favicon.svg" alt="" width="28" height="28" /><span class="wordmark"
           ><b>Geno</b><span>Code</span></span
-        ></span
+        ></a
       >
-      <label class="field">
-        <span>Creature</span>
-        <select id="creatures"></select>
-      </label>
-      <button id="new" type="button">New</button>
-      <button id="open" type="button">Open file…</button>
-      <input id="file-input" type="file" accept=".genie" hidden />
-      <button id="save" type="button" title="Keep it in this browser">Save</button>
-      <button id="download" type="button">Download…</button>
-      <button id="delete" type="button" title="Delete it from this browser" hidden>Delete</button>
-      <nav class="modes" aria-label="Mode">
-        <button type="button" data-mode="view" aria-pressed="true">View</button>
-        <button type="button" data-mode="breed" aria-pressed="false">Breed</button>
-        <button type="button" data-mode="morph" aria-pressed="false">Morph</button>
-        <button type="button" data-mode="dance" aria-pressed="false">Dance</button>
-        <button type="button" data-mode="patterns" aria-pressed="false">Patterns</button>
-        <button type="button" data-mode="library" aria-pressed="false">Library</button>
+      <nav aria-label="Site">
+        <a href="./docs/">Getting started</a>
+        <a href="./docs/language.html">The language</a>
+        <a href="https://github.com/genocode-org/GenoCode">GitHub</a>
       </nav>
-      <a id="help" class="button" href="./docs/" target="_blank" rel="noopener">Help</a>
-      <span id="watching" class="hint" hidden></span>
+      <a class="button primary" href="./app/">Open the app</a>
     </header>
 
-    <main class="layout">
-      <section id="blocks" class="blocks" aria-label="Blocks" hidden></section>
-      <section id="code" class="code" aria-label="Code"></section>
-      <section class="stage">
-        <div class="tools" id="view-tools">
-          <button id="blocks-toggle" type="button" aria-pressed="false">Blocks</button>
-          <button id="code-toggle" type="button" aria-pressed="true">Code</button>
-          <button id="reset" type="button">Reset view</button>
-          <button id="picture" type="button" title="Save a picture of the creature as it's shown">
-            Picture…
-          </button>
+    <main>
+      <section class="hero">
+        <div class="pitch">
+          <h1>Code, breed and dance 3D&nbsp;creatures</h1>
+          <p class="lead">
+            GenoCode is a small language for making creatures, and an app to grow them in. Write a
+            creature as code or build it from blocks, breed it into a family of new ones, and watch
+            them dance to your music.
+          </p>
+          <p class="actions">
+            <a class="button primary big" href="./app/">Start creating</a>
+            <a class="button big" href="./docs/">Getting started</a>
+          </p>
+          <p class="small">Free, in your browser, nothing to install. Open source (MIT).</p>
         </div>
-        <div class="tools" id="breed-tools" hidden>
-          <button id="mutate" type="button">Mutate</button>
-          <label class="field" title="How far genes move when they mutate">
-            <span>Strength</span>
-            <input id="strength" type="range" min="0.05" max="1" step="0.05" value="0.25" />
-          </label>
-          <button id="breed" type="button">Breed</button>
-          <label class="field"><input id="keep" type="checkbox" checked /> Keep parents</label>
-          <button id="back" type="button">Back</button>
-          <span id="breed-hint" class="hint"></span>
-        </div>
-        <div class="tools" id="morph-tools" hidden>
-          <button id="play" type="button">Pause</button>
-          <label class="field" title="Seconds from one creature to the next">
-            <span>Speed</span>
-            <input id="speed" type="range" min="0.5" max="10" step="0.5" value="3" />
-          </label>
-          <span id="morph-hint" class="hint"></span>
-        </div>
-        <div class="tools" id="dance-tools" hidden>
-          <button id="music-file" type="button">Music file…</button>
-          <input id="music-input" type="file" accept="audio/*" hidden />
-          <button id="music-url" type="button" title="Play music from a web address">Web…</button>
-          <button id="music-mic" type="button" title="Dance to what the microphone hears">
-            Microphone
-          </button>
-          <button id="music-tab" type="button" title="Dance to the sound of another browser tab">
-            Tab…
-          </button>
-          <button id="music-play" type="button" disabled>Pause</button>
-          <label class="field" title="The creature that dances ([ and ] switch)">
-            <span>Creature</span>
-            <select id="dance-creature"></select>
-          </label>
-          <label class="field" title="How the music moves the creature (keys 1–9 switch)">
-            <span>Style</span>
-            <select id="dance-style"></select>
-          </label>
-          <div id="meters" class="meters" aria-label="What the creature hears"></div>
-          <span id="dance-hint" class="hint"></span>
-        </div>
-        <canvas id="view" aria-label="The creature"></canvas>
-        <div id="views" class="views" role="toolbar" aria-label="View">
-          <button type="button" data-side="front" title="Front">Front</button>
-          <button type="button" data-side="back" title="Back">Back</button>
-          <button type="button" data-side="left" title="Left side">Left</button>
-          <button type="button" data-side="right" title="Right side">Right</button>
-          <button type="button" data-side="top" title="Top">Top</button>
-          <button type="button" data-side="bottom" title="Bottom">Bottom</button>
-          <button type="button" id="fullscreen" title="Full screen (F)" aria-pressed="false">
-            ⛶
-          </button>
-        </div>
-        <div id="grid" class="grid" hidden></div>
-        <div id="patterns" class="patterns" hidden></div>
-        <div id="library" class="library" hidden></div>
+        <img
+          class="shot"
+          src="./landing/code.webp"
+          width="1440"
+          height="860"
+          alt="The GenoCode app: Phoenix's code on the left, the creature in 3D in the middle and its genes as sliders on the right"
+        />
       </section>
-      <aside class="panel">
-        <h1 id="name"></h1>
-        <p id="description"></p>
-        <section id="problems-section" hidden>
-          <h2>Problems</h2>
-          <ul id="problems"></ul>
-        </section>
-        <section id="inputs-section" hidden>
-          <h2>Inputs</h2>
-        </section>
-        <section>
-          <h2>Genes</h2>
-          <table id="genes"></table>
-          <p id="no-genes" class="hint" hidden>This creature has no genes.</p>
-        </section>
-        <p id="status" class="hint"></p>
-      </aside>
+
+      <section class="example">
+        <div>
+          <h2>A creature is a short program</h2>
+          <p>
+            An invisible turtle moves and turns in 3D and lays shapes where it goes: balls, cubes,
+            cones, tubes, rings. Mark a value as a <strong>gene</strong> and it gets a slider, and
+            it can mutate, be passed on to children and blend from one creature to another.
+          </p>
+          <p>
+            <a href="./docs/">Make this snowman in the getting-started guide →</a>
+          </p>
+        </div>
+        <pre><code><span class="k">creature</span> Snowman
+<span class="c">// Balls one on another, each smaller than the last.</span>
+
+<span class="k">gene</span> balls  = 3    <span class="k">in</span> 2..6 <span class="k">step</span> 1  <span class="c">// how many balls</span>
+<span class="k">gene</span> shrink = 0.75 <span class="k">in</span> 0.5..0.95    <span class="c">// how much smaller each ball is</span>
+<span class="k">gene</span> snow   = hsv(200, 0.1, 1) <span class="k">in</span> hsv(0, 0, 0.6)..hsv(360, 0.5, 1)
+
+pitch -90
+shape ball
+colour snow
+<span class="k">repeat</span> balls {
+  lay
+  forward 0.8
+  grow shrink
+}</code></pre>
+      </section>
+
+      <section class="features" aria-label="What you can do">
+        <article>
+          <img
+            src="./landing/blocks.webp"
+            width="1440"
+            height="860"
+            loading="lazy"
+            alt="Flowerball built from blocks, with its code beside the blocks"
+          />
+          <div>
+            <h2>Code or blocks</h2>
+            <p>
+              Prefer not to type? Drag blocks onto a canvas and the code is written for you. Change
+              either one and the other follows, comments and all. Gene sliders and colour pickers
+              sit right on the blocks.
+            </p>
+          </div>
+        </article>
+        <article>
+          <img
+            src="./landing/breed.webp"
+            width="1440"
+            height="860"
+            loading="lazy"
+            alt="A grid of twelve Octoplant children, each with its own genes"
+          />
+          <div>
+            <h2>Breed and mutate</h2>
+            <p>
+              Every program describes a whole family. Mutate a creature into a grid of variations,
+              pick two parents and breed them, lock the genes you like and keep going. A bred
+              creature saves as one self-contained file.
+            </p>
+          </div>
+        </article>
+        <article>
+          <img
+            src="./landing/morph.webp"
+            width="1440"
+            height="860"
+            loading="lazy"
+            alt="Jellyfish halfway through morphing from one member of its family to the next"
+          />
+          <div>
+            <h2>Morph</h2>
+            <p>
+              A creature can have named variants. Morph glides smoothly from one to the next and
+              round again, every gene blending on the way.
+            </p>
+          </div>
+        </article>
+        <article>
+          <img
+            src="./landing/dance.webp"
+            width="1440"
+            height="860"
+            loading="lazy"
+            alt="Cobra dancing in Dance mode, with the music meters at the top"
+          />
+          <div>
+            <h2>Dance to your music</h2>
+            <p>
+              Play a music file, a web address, your microphone or another browser tab. GenoCode
+              hears the bass, the middle and the highs, finds the beat, and the creature dances in
+              one of 17 styles. Dance styles are GenoCode too, so you can write your own.
+            </p>
+          </div>
+        </article>
+        <article>
+          <img
+            src="./landing/patterns.webp"
+            width="1440"
+            height="860"
+            loading="lazy"
+            alt="The pattern designer: a large pattern preview, its settings and a row of variations"
+          />
+          <div>
+            <h2>Patterns and backgrounds</h2>
+            <p>
+              Design textures with schemes and finishes like pearl, metallic and iridescent, breed
+              them like creatures, and put them on a creature or behind it. Or write your own
+              patterns, pixel by pixel, in GenoCode.
+            </p>
+          </div>
+        </article>
+        <article>
+          <img
+            src="./landing/library.webp"
+            width="1440"
+            height="860"
+            loading="lazy"
+            alt="The library of starter creatures, each with a picture and a description"
+          />
+          <div>
+            <h2>25 creatures to start from</h2>
+            <p>
+              Open a starter creature, read how it's made, change a number and see what happens.
+              Save your own in the browser or download them as <code>.genie</code> files.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <section class="more">
+        <h2>Take it further</h2>
+        <div class="cards">
+          <a
+            class="card"
+            href="https://marketplace.visualstudio.com/items?itemName=genocode.genocode"
+          >
+            <h3>VS Code</h3>
+            <p>
+              Write <code>.genie</code> files in Visual Studio Code with checking, help on hover,
+              renaming, colour pickers and a live 3D preview.
+            </p>
+          </a>
+          <a class="card" href="https://github.com/genocode-org/GenoCode-cli">
+            <h3>Command line</h3>
+            <p>Check, format, draw, mutate, breed and morph creature files without a browser.</p>
+          </a>
+          <a class="card" href="https://github.com/genocode-org/GenoCode">
+            <h3>Open source</h3>
+            <p>
+              The language, the renderer and the app are MIT licensed. The full language reference
+              is on this site.
+            </p>
+          </a>
+        </div>
+      </section>
+
+      <section class="start">
+        <h2>Grow your first creature</h2>
+        <p class="actions">
+          <a class="button primary big" href="./app/">Open GenoCode</a>
+        </p>
+      </section>
     </main>
 
-    <div id="drop" class="drop" hidden>Drop a .genie file to open it, or music to dance to</div>
-    <script type="module" src="./src/main.ts"></script>
+    <footer>
+      <p>
+        GenoCode is inspired by
+        <a href="https://github.com/genocode-org/GenoCode/blob/main/CREDITS.md">DancerDNA</a>
+        (1999) and other work in evolutionary art.
+      </p>
+      <p>
+        <a href="./docs/">Getting started</a> · <a href="./docs/language.html">The language</a> ·
+        <a href="https://github.com/genocode-org/GenoCode">GitHub</a>
+      </p>
+    </footer>
   </body>
 </html>

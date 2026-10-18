@@ -34,7 +34,7 @@ function address(file: string): string {
 
 /** The sitemap: every page of the website, so search engines find them all. */
 export function sitemap(): string {
-  const urls = [SITE, ...PAGES.map((p) => address(p.file))];
+  const urls = [SITE, `${SITE}app/`, ...PAGES.map((p) => address(p.file))];
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((u) => `  <url><loc>${u}</loc></url>`).join("\n")}
@@ -117,7 +117,7 @@ export function page(file: string): string | undefined {
 <header>
 <a class="brand" href="../"><img src="../favicon.svg" alt="" width="24" height="24">GenoCode</a>
 ${nav}
-<a href="../">Open the app</a>
+<a href="../app/">Open the app</a>
 </header>
 <main>
 ${body}

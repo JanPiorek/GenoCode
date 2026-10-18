@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GenoCode app</title>
+    <meta
+      name="description"
+      content="The GenoCode app: write 3D creatures as code or blocks, breed and morph them, give them patterns and make them dance to music."
+    />
+    <link rel="canonical" href="https://genocode.piorek.co.za/app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="GenoCode" />
+    <meta property="og:title" content="GenoCode – code, breed and dance 3D creatures" />
+    <meta
+      property="og:description"
+      content="Make 3D creatures with code or blocks, breed them and watch them dance to your music. Free, in your browser."
+    />
+    <meta property="og:url" content="https://genocode.piorek.co.za/app/" />
+    <meta property="og:image" content="https://genocode.piorek.co.za/preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../src/style.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="../" title="GenoCode's front page"
+        ><img src="../favicon.svg" alt="" width="28" height="28" /><span class="wordmark"
+          ><b>Geno</b><span>Code</span></span
+        ></a
+      >
+      <label class="field">
+        <span>Creature</span>
+        <select id="creatures"></select>
+      </label>
+      <button id="new" type="button">New</button>
+      <button id="open" type="button">Open file…</button>
+      <input id="file-input" type="file" accept=".genie" hidden />
+      <button id="save" type="button" title="Keep it in this browser">Save</button>
+      <button id="download" type="button">Download…</button>
+      <button id="delete" type="button" title="Delete it from this browser" hidden>Delete</button>
+      <nav class="modes" aria-label="Mode">
+        <button type="button" data-mode="view" aria-pressed="true">View</button>
+        <button type="button" data-mode="breed" aria-pressed="false">Breed</button>
+        <button type="button" data-mode="morph" aria-pressed="false">Morph</button>
+        <button type="button" data-mode="dance" aria-pressed="false">Dance</button>
+        <button type="button" data-mode="patterns" aria-pressed="false">Patterns</button>
+        <button type="button" data-mode="library" aria-pressed="false">Library</button>
+      </nav>
+      <a id="help" class="button" href="../docs/" target="_blank" rel="noopener">Help</a>
+      <span id="watching" class="hint" hidden></span>
+    </header>
+
+    <main class="layout">
+      <section id="blocks" class="blocks" aria-label="Blocks" hidden></section>
+      <section id="code" class="code" aria-label="Code"></section>
+      <section class="stage">
+        <div class="tools" id="view-tools">
+          <button id="blocks-toggle" type="button" aria-pressed="false">Blocks</button>
+          <button id="code-toggle" type="button" aria-pressed="true">Code</button>
+          <button id="reset" type="button">Reset view</button>
+          <button id="picture" type="button" title="Save a picture of the creature as it's shown">
+            Picture…
+          </button>
+        </div>
+        <div class="tools" id="breed-tools" hidden>
+          <button id="mutate" type="button">Mutate</button>
+          <label class="field" title="How far genes move when they mutate">
+            <span>Strength</span>
+            <input id="strength" type="range" min="0.05" max="1" step="0.05" value="0.25" />
+          </label>
+          <button id="breed" type="button">Breed</button>
+          <label class="field"><input id="keep" type="checkbox" checked /> Keep parents</label>
+          <button id="back" type="button">Back</button>
+          <span id="breed-hint" class="hint"></span>
+        </div>
+        <div class="tools" id="morph-tools" hidden>
+          <button id="play" type="button">Pause</button>
+          <label class="field" title="Seconds from one creature to the next">
+            <span>Speed</span>
+            <input id="speed" type="range" min="0.5" max="10" step="0.5" value="3" />
+          </label>
+          <span id="morph-hint" class="hint"></span>
+        </div>
+        <div class="tools" id="dance-tools" hidden>
+          <button id="music-file" type="button">Music file…</button>
+          <input id="music-input" type="file" accept="audio/*" hidden />
+          <button id="music-url" type="button" title="Play music from a web address">Web…</button>
+          <button id="music-mic" type="button" title="Dance to what the microphone hears">
+            Microphone
+          </button>
+          <button id="music-tab" type="button" title="Dance to the sound of another browser tab">
+            Tab…
+          </button>
+          <button id="music-play" type="button" disabled>Pause</button>
+          <label class="field" title="The creature that dances ([ and ] switch)">
+            <span>Creature</span>
+            <select id="dance-creature"></select>
+          </label>
+          <label class="field" title="How the music moves the creature (keys 1–9 switch)">
+            <span>Style</span>
+            <select id="dance-style"></select>
+          </label>
+          <div id="meters" class="meters" aria-label="What the creature hears"></div>
+          <span id="dance-hint" class="hint"></span>
+        </div>
+        <canvas id="view" aria-label="The creature"></canvas>
+        <div id="views" class="views" role="toolbar" aria-label="View">
+          <button type="button" data-side="front" title="Front">Front</button>
+          <button type="button" data-side="back" title="Back">Back</button>
+          <button type="button" data-side="left" title="Left side">Left</button>
+          <button type="button" data-side="right" title="Right side">Right</button>
+          <button type="button" data-side="top" title="Top">Top</button>
+          <button type="button" data-side="bottom" title="Bottom">Bottom</button>
+          <button type="button" id="fullscreen" title="Full screen (F)" aria-pressed="false">
+            ⛶
+          </button>
+        </div>
+        <div id="grid" class="grid" hidden></div>
+        <div id="patterns" class="patterns" hidden></div>
+        <div id="library" class="library" hidden></div>
+      </section>
+      <aside class="panel">
+        <h1 id="name"></h1>
+        <p id="description"></p>
+        <section id="problems-section" hidden>
+          <h2>Problems</h2>
+          <ul id="problems"></ul>
+        </section>
+        <section id="inputs-section" hidden>
+          <h2>Inputs</h2>
+        </section>
+        <section>
+          <h2>Genes</h2>
+          <table id="genes"></table>
+          <p id="no-genes" class="hint" hidden>This creature has no genes.</p>
+        </section>
+        <p id="status" class="hint"></p>
+      </aside>
+    </main>
+
+    <div id="drop" class="drop" hidden>Drop a .genie file to open it, or music to dance to</div>
+    <script type="module" src="../src/main.ts"></script>
+  </body>
+</html>

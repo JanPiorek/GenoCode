@@ -49,6 +49,7 @@ body {
   gap: 8px;
   letter-spacing: 0.02em;
   margin-right: 8px;
+  text-decoration: none;
 }
 
 /* The name as in the logo (branding/logo-lockup.svg): blue to pink, a bold "Geno" and a lighter

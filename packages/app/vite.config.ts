@@ -19,7 +19,7 @@ const TYPES: Record<string, string> = {
 
 /**
  * Blockly's own pictures and cursors (dropdown arrows and the like), served from its package at
- * `blockly-media/` and copied there in the build, so nothing is fetched from elsewhere.
+ * `app/blockly-media/` and copied there in the build, so nothing is fetched from elsewhere.
  */
 function blocklyMedia(): Plugin {
   const require = createRequire(import.meta.url);
@@ -27,7 +27,7 @@ function blocklyMedia(): Plugin {
   return {
     name: "blockly-media",
     configureServer(server) {
-      server.middlewares.use("/blockly-media", (req, res, next) => {
+      server.middlewares.use("/app/blockly-media", (req, res, next) => {
         const file = join(media, decodeURIComponent((req.url ?? "").split("?")[0]!));
         if (!file.startsWith(media)) return next();
         try {
@@ -43,7 +43,7 @@ function blocklyMedia(): Plugin {
       for (const name of readdirSync(media)) {
         this.emitFile({
           type: "asset",
-          fileName: `blockly-media/${name}`,
+          fileName: `app/blockly-media/${name}`,
           source: readFileSync(join(media, name)),
         });
       }
@@ -99,5 +99,17 @@ export default defineConfig({
   },
   server: { fs: { allow: [repo] } },
   // three.js alone is about 500 kB, CodeMirror about 400 kB and Blockly about 800 kB.
-  build: { target: "es2022", outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 2500 },
+  build: {
+    target: "es2022",
+    outDir: "dist",
+    emptyOutDir: true,
+    chunkSizeWarningLimit: 2500,
+    // The front page, and the app itself at app/.
+    rollupOptions: {
+      input: {
+        home: fileURLToPath(new URL("index.html", import.meta.url)),
+        app: fileURLToPath(new URL("app/index.html", import.meta.url)),
+      },
+    },
+  },
 });
