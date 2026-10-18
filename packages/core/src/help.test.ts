@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { EFFECT_LINES, TRIGGER_KINDS } from "./ast.js";
 import { BUILTIN_CONSTANTS, BUILTIN_FUNCTIONS } from "./builtins.js";
 import { check } from "./checker.js";
 import { geneEdits, writeGenes } from "./genetics.js";
 import {
   completionsAt,
   constantHelp,
+  EFFECT_HELP,
   FUNCTION_HELP,
   helpAt,
   KEYWORD_HELP,
@@ -82,6 +84,38 @@ describe("help", () => {
     expect(at("curl", 1)?.title).toBe("gene leaf.curl");
     expect(at("i *")?.text).toContain("counter");
     expect(at("size", 1)?.text).toBe("A global variable.");
+  });
+
+  it("explains a dance's effects and their words", () => {
+    const dance = (line: string) => `creature T\nlay\ndance {\n  ${line}\n}\n`;
+    const line = "morph follows music.mid  speed 1.2  settle 0.38";
+    const here = (word: string) =>
+      helpHere(dance(line.replace(word, `${word[0]}|${word.slice(1)}`)));
+    expect(here("morph")?.title).toBe("morph follows x  speed 1  settle 2");
+    expect(here("follows")?.title).toBe("follows x");
+    expect(here("speed")?.text).toContain("Creatures a second");
+    expect(here("settle")?.text).toContain("coast to a stop");
+    expect(here("mid")?.title).toBe("music.mid");
+    expect(helpHere(dance("zoom follows music.level  amount 0.5  se|ttle 15"))?.text).toContain(
+      "drift all the way back",
+    );
+    expect(helpHere(dance("spin follows music.bass  f|rom 45 to 170"))?.title).toBe("from a");
+    const flat = "flat on music.level drops  by 0.86  on 24 off 48";
+    expect(helpHere(dance(flat.replace("on music", "o|n music")))?.title).toBe("on x");
+    expect(helpHere(dance(flat.replace("on 24", "o|n 24")))?.title).toBe("on n  off m");
+    expect(helpHere(dance(flat.replace("drops", "dr|ops")))?.title).toBe("drops");
+    // Dance files too.
+    expect(helpHere("dance D\nsp|in follows music.bass\n")?.title).toContain("spin follows");
+  });
+
+  it("covers every effect and every word an effect line takes", () => {
+    for (const [name, line] of EFFECT_LINES) {
+      const words = EFFECT_HELP.get(name)?.words;
+      expect(words, name).toBeDefined();
+      for (const w of [line.lead, ...line.settings])
+        expect(words?.has(w), `${name} ${w}`).toBe(true);
+      if (line.lead === "on") for (const k of TRIGGER_KINDS) expect(words?.has(k)).toBe(true);
+    }
   });
 });
 

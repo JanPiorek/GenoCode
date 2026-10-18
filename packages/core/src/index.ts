@@ -45,6 +45,7 @@ export {
 export {
   completionsAt,
   constantHelp,
+  EFFECT_HELP,
   FUNCTION_HELP,
   geneRange,
   helpAt,

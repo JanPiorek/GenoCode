@@ -441,6 +441,203 @@ export const MEMBER_HELP: ReadonlyMap<string, ReadonlyMap<string, Help>> = new M
   ],
 ]);
 
+const BY = h(
+  "by d",
+  "How far the input must move since the last trigger to trigger again. Default 0.5.",
+  "17",
+);
+const changes = h(
+  "changes",
+  "The effect triggers when the input moves either way. The default.",
+  "17",
+);
+const drops = h("drops", "The effect triggers only when the input moves down.", "17");
+const rises = h("rises", "The effect triggers only when the input moves up.", "17");
+const triggerWords = (lead: Help, bursts?: Help): [string, Help][] => [
+  ["on", lead],
+  ["by", BY],
+  ["changes", changes],
+  ["drops", drops],
+  ["rises", rises],
+  ...(bursts ? ([["off", bursts]] as [string, Help][]) : []),
+];
+const followsInput = h(
+  "follows x",
+  "The effect's input, a number from 0 to 1 (values outside are clamped). It can be any " +
+    "expression of the music, `time`, `beat` and the dance's genes and variables.",
+  "17",
+);
+const onInput = h(
+  "on x",
+  "The input that triggers the effect: a number from 0 to 1, which triggers when it has moved " +
+    "by at least `by` since the last trigger.",
+  "17",
+);
+
+/** A dance block's effects (section 17): each effect's line, and the words that can follow it. */
+export const EFFECT_HELP: ReadonlyMap<string, { help: Help; words: ReadonlyMap<string, Help> }> =
+  new Map([
+    [
+      "morph",
+      {
+        help: h(
+          "morph follows x  speed 1  settle 2",
+          "Moves the creature along its morph (the loop through a set of related creatures): " +
+            "the louder the input, the faster, and it coasts to a stop when the input is quiet.",
+          "17",
+        ),
+        words: new Map([
+          ["follows", followsInput],
+          ["speed", h("speed s", "Creatures a second at full input. Default 1.", "17")],
+          [
+            "settle",
+            h(
+              "settle t",
+              "Seconds to coast to a stop from full speed once the input falls; it speeds up " +
+                "ten times faster. Default 2.",
+              "17",
+            ),
+          ],
+        ]),
+      },
+    ],
+    [
+      "zoom",
+      {
+        help: h(
+          "zoom follows x  amount 0.5  settle 15",
+          "Brings the creature towards the viewer as the input rises; it drifts back when the " +
+            "input falls.",
+          "17",
+        ),
+        words: new Map([
+          ["follows", followsInput],
+          [
+            "amount",
+            h(
+              "amount a",
+              "How much nearer the creature comes at full input, from 0 (not at all) to 1 (as " +
+                "near as it can). Default 0.5.",
+              "17",
+            ),
+          ],
+          [
+            "settle",
+            h(
+              "settle t",
+              "Seconds to drift all the way back; it comes in fifty times faster. Default 15.",
+              "17",
+            ),
+          ],
+        ]),
+      },
+    ],
+    [
+      "spin",
+      {
+        help: h(
+          "spin follows x  from 45  to 170  smooth 0.4",
+          "Sets how fast the creature spins about its spin axis. The input is read each time " +
+            "the axis turns, or all the time if there's no `turn` line.",
+          "17",
+        ),
+        words: new Map([
+          ["follows", followsInput],
+          [
+            "from",
+            h("from a", "The spin speed at input 0, in degrees a second. Default 45.", "17"),
+          ],
+          ["to", h("to b", "The spin speed at input 1, in degrees a second. Default 170.", "17")],
+          [
+            "smooth",
+            h(
+              "smooth t",
+              "Seconds to swing smoothly to a new axis and speed; 0 switches at once. Default 0.4.",
+              "17",
+            ),
+          ],
+        ]),
+      },
+    ],
+    [
+      "turn",
+      {
+        help: h(
+          "turn on x changes  by 0.5",
+          "Gives the spin a new, random axis each time the input triggers. While `flat` is on, " +
+            "only drops count.",
+          "17",
+        ),
+        words: new Map(triggerWords(onInput)),
+      },
+    ],
+    [
+      "reverse",
+      {
+        help: h(
+          "reverse on x drops  by 0.5  on 4  off 4",
+          "Reverses the direction of the morph each time the input triggers.",
+          "17",
+        ),
+        words: new Map(
+          triggerWords(
+            onInput,
+            h(
+              "on n  off m",
+              "Works in bursts: reverses for `n` triggers, then rests for `m`, starting at work. " +
+                "Without them, it always works.",
+              "17",
+            ),
+          ),
+        ),
+      },
+    ],
+    [
+      "flat",
+      {
+        help: h(
+          "flat on x drops  by 0.5  on 24  off 48",
+          "Turns the creature face-on and spins it flat, then back to tumbling in 3D, in " +
+            "bursts. Each trigger reverses the flat spin.",
+          "17",
+        ),
+        words: new Map(
+          triggerWords(
+            onInput,
+            h(
+              "on n  off m",
+              "Bursts: flat for `n` triggers, then tumbling in 3D for `m`. It starts at rest, " +
+                "tumbling. Default `on 24 off 48`.",
+              "17",
+            ),
+          ),
+        ),
+      },
+    ],
+  ]);
+
+/** Help for a word of an effect line at `offset`, if there is one there. */
+function effectHelpAt(
+  program: CheckResult,
+  offset: number,
+): { span: Span; help: Help } | undefined {
+  for (const s of program.dance ?? []) {
+    if (s.kind !== "Effect" || !contains(s.span, offset)) continue;
+    const effect = EFFECT_HELP.get(s.name);
+    if (!effect) return undefined;
+    const name = { start: s.span.start, end: s.span.start + s.name.length };
+    if (contains(name, offset)) return { span: name, help: effect.help };
+    const words = s.args.filter((a) => a.kind === "Word");
+    for (const [i, w] of words.entries()) {
+      if (!contains(w.span, offset)) continue;
+      // `on` leads a trigger line; later on, it starts the bursts, like `off`.
+      const help = w.text === "on" && i > 0 ? effect.words.get("off") : effect.words.get(w.text);
+      return help ? { span: w.span, help } : undefined;
+    }
+  }
+  return undefined;
+}
+
 /** A gene's range in words, such as `3 to 16, steps of 1`. */
 export function geneRange(g: GeneInfo): string {
   if (g.options) return `one of ${g.options.map(formatValue).join(", ")}`;
@@ -592,6 +789,10 @@ export function helpAt(
   const t = tokens[i];
   if (!t || (t.kind !== "name" && t.kind !== "keyword")) return undefined;
   const found = (help: Help | undefined) => (help ? { span: t.span, help } : undefined);
+
+  // `morph follows music.mid  speed 1.2` in a dance: the effect and its words.
+  const effect = effectHelpAt(program, offset);
+  if (effect) return effect;
 
   // A gene set in a variant, such as `whorl.petals`.
   for (const item of program.file.items) {
