@@ -1,7 +1,14 @@
 {
   "name": "@genocode/controls",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Controls for trying GenoCode creatures in a web page: a control for each gene, and sliders for time, beat and music.",
+  "keywords": [
+    "genocode",
+    "creatures",
+    "generative art",
+    "controls",
+    "sliders"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
