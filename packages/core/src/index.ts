@@ -16,6 +16,7 @@ export {
   type SymbolUses,
   type TextEdit,
 } from "./symbols.js";
+export { patternOnBall, patternsOf } from "./wearing.js";
 export { colourLiterals, writeColour, type ColourForm, type ColourLiteral } from "./swatches.js";
 export { format, formatText, type FormatResult } from "./format.js";
 export {
@@ -72,6 +73,7 @@ export * as pictures from "./picture.js";
 export {
   BUILTIN_CONSTANTS,
   BUILTIN_FUNCTIONS,
+  PICTURE_FUNCTIONS,
   isBuiltinName,
   type BuiltinFunction,
 } from "./builtins.js";

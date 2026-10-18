@@ -13,7 +13,9 @@ import {
   completionsAt,
   helpAt,
   lex,
+  PICTURE_FUNCTIONS,
   type CompletionKind,
+  type Token,
 } from "@genocode/core";
 import { basicSetup } from "codemirror";
 import { checkText } from "./creature.js";
@@ -24,26 +26,52 @@ const fromApp = Annotation.define<boolean>();
 const INPUTS = new Set(["time", "beat", "music", "turtle"]);
 
 /** Colours every token, using the core lexer and what the checker knows of the creature's names. */
-function colour(state: EditorState): DecorationSet {
+export function colour(state: EditorState): DecorationSet {
   const text = state.doc.toString();
   const program = checkText(text);
   const genes = new Set(program.genes.map((g) => g.name));
   const marks: { from: number; to: number; cls: string }[] = [];
   const { tokens, comments } = lex(text);
-  for (const t of tokens) {
+  // Pattern code (section 14.1): a pattern file, or a creature's pattern blocks. Its words
+  // `pattern`, `picture` and `value` aren't keywords, so creatures can use them as names.
+  const { file } = program;
+  const patternCode =
+    file.kind === "pattern"
+      ? [file.span]
+      : file.items.flatMap((i) => (i.kind === "Pattern" ? [i.span] : []));
+  const inPattern = (at: number) => patternCode.some((s) => s.start <= at && at < s.end);
+  // The `pattern` before a pattern's name, in a pattern file's header or a pattern block.
+  const names = new Set(
+    file.kind === "pattern"
+      ? [file.nameSpan.start]
+      : file.items.flatMap((i) => (i.kind === "Pattern" ? [i.nameSpan.start] : [])),
+  );
+  tokens.forEach((t, i) => {
     let cls: string | undefined;
+    const next = tokens[i + 1];
+    const before = tokens[i - 1];
     if (t.kind === "keyword") cls = INPUTS.has(t.text) ? "input" : "keyword";
-    else if (t.kind === "number" || t.kind === "hex") cls = "number";
+    else if (t.kind === "name" && inPattern(t.span.start) && isPatternWord(t.text, before, next)) {
+      cls = "keyword";
+    } else if (t.kind === "name" && t.text === "pattern" && names.has(next?.span.start ?? -1)) {
+      cls = "keyword";
+    } else if (t.kind === "number" || t.kind === "hex") cls = "number";
     else if (t.kind === "string") cls = "string";
     else if (t.kind === "name") {
       if (genes.has(t.text)) cls = "gene";
       else if (BUILTIN_FUNCTIONS.has(t.text) || t.text === "gradient" || t.text === "spectrum")
         cls = "function";
+      else if (PICTURE_FUNCTIONS.has(t.text) && inPattern(t.span.start)) cls = "function";
       else if (BUILTIN_CONSTANTS.has(t.text)) cls = "constant";
-      else if (program.parts.has(t.text) || program.functions.has(t.text)) cls = "part";
+      else if (
+        program.parts.has(t.text) ||
+        program.functions.has(t.text) ||
+        program.patterns.has(t.text)
+      )
+        cls = "part";
     }
     if (cls && t.span.end > t.span.start) marks.push({ from: t.span.start, to: t.span.end, cls });
-  }
+  });
   for (const c of comments) marks.push({ from: c.span.start, to: c.span.end, cls: "comment" });
   marks.sort((a, b) => a.from - b.from);
   const builder = new RangeSetBuilder<Decoration>();
@@ -51,6 +79,16 @@ function colour(state: EditorState): DecorationSet {
     if (m.to <= text.length) builder.add(m.from, m.to, Decoration.mark({ class: `g-${m.cls}` }));
   }
   return builder.finish();
+}
+
+/** Whether a name in pattern code is one of its words: `picture` before `{`, or `value` starting a
+ * statement (not one that sets a variable called `value`). */
+function isPatternWord(word: string, before: Token | undefined, next: Token | undefined): boolean {
+  if (word === "picture") return next?.text === "{";
+  if (word !== "value") return false;
+  const starts = !before || before.kind === "newline" || before.text === "{" || before.text === ";";
+  const sets = next?.kind === "op" && /^[-+*/]?=$/.test(next.text);
+  return starts && !sets && next?.kind !== "newline";
 }
 
 const colours = StateField.define<DecorationSet>({

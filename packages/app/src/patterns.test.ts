@@ -1,6 +1,7 @@
 import {
   buildBackground,
   check,
+  patternsOf,
   formatText,
   formatValue,
   NO_PATTERN,
@@ -13,6 +14,7 @@ import {
   cross,
   definitionLines,
   patternInFile,
+  usesOwnPattern,
   vary,
   withBackground,
   withDefinition,
@@ -108,5 +110,45 @@ describe("variations", () => {
       expect(v.hue).toBeGreaterThanOrEqual(0);
       expect(v.hue).toBeLessThan(360);
     }
+  });
+});
+
+describe("patterns written in GenoCode", () => {
+  const SHELL =
+    "creature Shell\n\npattern Ripples {\n  gene rings = 8 in 2..20\n\n  value picture {\n    value sin(r * rings * 180) * 0.5 + 0.5\n  }\n}\n\nshape ball\nlay\n";
+  const own: Pattern = {
+    ...recipe,
+    kind: "Ripples",
+    mix: { way: "mask", kind: "marble", amount: 0.3 },
+  };
+
+  it("can be the kinds of a background put behind the creature that defines them", () => {
+    const kinds = ["marble", "Ripples"];
+    const text = withBackground(SHELL, backgroundLines(own, kinds))!;
+    const program = check(text);
+    expect(program.diagnostics).toEqual([]);
+    const fill = buildBackground(program).fill as Pattern;
+    expect(fill.kind).toBe("Ripples");
+    expect(fill.source).toEqual(patternsOf(check(SHELL))[0]!.source);
+    expect(program.genes.find((g) => g.fullName === "background.kind")?.options).toHaveLength(2);
+  });
+
+  it("are picked by variations from the kinds given", () => {
+    const kinds = ["Ripples"];
+    for (let i = 0; i < 50; i++) {
+      const v = vary(own, 1, kinds);
+      expect(kinds).toContain(v.kind);
+      // A mix that's kept may only have a new amount.
+      if (v.mix && v.mix.way !== own.mix!.way) expect(kinds).toContain(v.mix.kind);
+    }
+  });
+
+  it("are told apart from the built-in kinds", () => {
+    expect(usesOwnPattern(recipe)).toBe(false);
+    expect(usesOwnPattern(mixed)).toBe(false);
+    expect(usesOwnPattern(own)).toBe(true);
+    expect(usesOwnPattern({ ...recipe, mix: { way: "warp", kind: "Ripples", amount: 1 } })).toBe(
+      true,
+    );
   });
 });

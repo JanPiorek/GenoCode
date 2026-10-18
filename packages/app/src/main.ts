@@ -12,6 +12,7 @@ import {
   format,
   geneEdits,
   MUSIC_FIELDS,
+  patternsOf,
   type CheckResult,
   type Diagnostic,
   type Pattern,
@@ -441,7 +442,9 @@ function setMode(next: Mode): void {
   }
   if (mode === "morph") startMorph();
   if (mode === "dance") startDance();
-  if (mode === "patterns") designer.show(creaturePattern());
+  if (mode === "patterns") {
+    designer.show(creaturePattern(), current ? patternsOf(current.program, current.values) : []);
+  }
   if (mode === "library") library.show(libraryEntries());
   enableTools();
 }

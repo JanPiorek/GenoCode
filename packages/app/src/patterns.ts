@@ -10,13 +10,14 @@ import {
   FINISHES,
   formatText,
   formatValue,
+  isBuiltinKind,
   MIX_WAYS,
   NO_PATTERN,
   PATTERN_KINDS,
   SCHEMES,
   type MixWayName,
   type Pattern,
-  type PatternKindName,
+  type PatternSource,
   valuesOf,
 } from "@genocode/core";
 import { pixelsWhenReady } from "@genocode/render";
@@ -40,6 +41,12 @@ export const DEFAULT_RECIPE: Pattern = {
   mix: { way: "blend", kind: "lightning", amount: 0.5 },
 };
 
+/** A pattern written in GenoCode that the open file defines, which recipes can use as a kind. */
+export interface OwnPattern {
+  name: string;
+  source: PatternSource;
+}
+
 export interface PatternActions {
   /** Puts this background source (the block's contents, one line each) behind the creature. */
   useAsBackground(lines: string[]): void;
@@ -50,22 +57,22 @@ const wrapHue = (h: number) => Math.round(((h % 360) + 360) % 360);
 
 /**
  * A variation on a recipe: each part may change, the hue only a little. A smaller `strength` makes
- * smaller, rarer changes.
+ * smaller, rarer changes. New kinds are picked from `kinds`.
  */
-export function vary(p: Pattern, strength = 1): Pattern {
+export function vary(p: Pattern, strength = 1, kinds: readonly string[] = PATTERN_KINDS): Pattern {
   const chance = (c: number) => Math.random() < c * strength;
   let mix = p.mix;
   if (chance(0.25)) {
     mix = chance(0.3)
       ? undefined
-      : { way: pick(MIX_WAYS), kind: pick(PATTERN_KINDS), amount: round2(Math.random()) };
+      : { way: pick(MIX_WAYS), kind: pick(kinds), amount: round2(Math.random()) };
   } else if (mix && chance(0.5)) {
     const nudge = (Math.random() - 0.5) * strength;
     mix = { ...mix, amount: round2(Math.min(1, Math.max(0, mix.amount + nudge))) };
   }
   return {
     ...p,
-    kind: chance(0.25) ? pick(PATTERN_KINDS) : p.kind,
+    kind: chance(0.25) ? pick(kinds) : p.kind,
     hue: wrapHue(p.hue + (Math.random() * 2 - 1) * 60 * strength),
     seed: chance(0.5) ? Math.floor(Math.random() * 100) : p.seed,
     scheme: chance(0.3) ? pick(SCHEMES) : p.scheme,
@@ -105,12 +112,14 @@ function round2(x: number): number {
 
 /**
  * A background holding a recipe, with each part of it a gene, so it can mutate and breed with
- * the creature: the lines of the block's contents.
+ * the creature: the lines of the block's contents. The kind genes choose from `kinds`, and the
+ * recipe's own kinds.
  */
-export function backgroundLines(p: Pattern): string[] {
+export function backgroundLines(p: Pattern, kinds: readonly string[] = PATTERN_KINDS): string[] {
   const list = (options: readonly string[]) => `[${options.join(", ")}]`;
+  const kindList = list([...new Set([...kinds, p.kind ?? "aurora", p.mix?.kind ?? "vortex"])]);
   const lines = [
-    `gene kind   = ${p.kind} from ${list(PATTERN_KINDS)}`,
+    `gene kind   = ${p.kind} from ${kindList}`,
     `gene hue    = ${p.hue} in 0..360`,
     `gene layout = ${p.seed} in 0..99 step 1`,
     `gene scheme = ${p.scheme} from ${list(SCHEMES)}`,
@@ -120,7 +129,7 @@ export function backgroundLines(p: Pattern): string[] {
   if (p.mix) {
     lines.push(
       `gene mixing = ${p.mix.way} from ${list(MIX_WAYS)}`,
-      `gene other  = ${p.mix.kind} from ${list(PATTERN_KINDS)}`,
+      `gene other  = ${p.mix.kind} from ${kindList}`,
       `gene amount = ${p.mix.amount} in 0..1`,
     );
     fill = `mixed(${fill}, mixing, other, amount)`;
@@ -144,6 +153,11 @@ export function patternInFile(text: string): { pattern?: Pattern; problem?: stri
     return { problem: `${name}'s background is a colour or gradient, not a pattern.` };
   }
   return { pattern: fill };
+}
+
+/** Whether a recipe uses a pattern written in GenoCode, which a background file can't hold. */
+export function usesOwnPattern(p: Pattern): boolean {
+  return [p.kind, p.mix?.kind].some((k) => k != null && !isBuiltinKind(k));
 }
 
 /** A name for a recipe, such as Dusk_Aurora. */
@@ -253,6 +267,15 @@ function choice<T extends string>(options: readonly T[], extra?: string): HTMLSe
   return select;
 }
 
+/** Fills a kind menu: the built-in kinds, then the file's own patterns in a group of their own. */
+function kindOptions(select: HTMLSelectElement, own: readonly string[]): void {
+  const option = (o: string) => element("option", { value: o, textContent: o });
+  select.replaceChildren(...PATTERN_KINDS.map(option));
+  if (own.length > 0) {
+    select.append(element("optgroup", { label: "Written in GenoCode" }, ...own.map(option)));
+  }
+}
+
 function slider(min: number, max: number, step: number): HTMLInputElement {
   return element("input", {
     type: "range",
@@ -277,6 +300,10 @@ export class PatternDesigner {
   private readonly fileInput = element("input", { type: "file", accept: ".genie", hidden: true });
 
   private readonly kind = choice(PATTERN_KINDS);
+  /** The open file's own patterns, and every pattern source seen, by name. */
+  private own: string[] = [];
+  private readonly sources = new Map<string, PatternSource>();
+  private readonly exportButton: HTMLButtonElement;
   private readonly hue = slider(0, 359, 1);
   private readonly seed = slider(0, 99, 1);
   private readonly scheme = choice(SCHEMES);
@@ -324,14 +351,18 @@ export class PatternDesigner {
       { className: "pattern-actions" },
       button("Copy code", "Copy the recipe, for `texture` or `fill`", () => void this.copy()),
       button("Use as background", "Put this recipe behind the creature, with genes", () =>
-        this.actions.useAsBackground(backgroundLines(this.recipe)),
+        this.actions.useAsBackground(backgroundLines(this.recipe, this.kinds())),
       ),
       button(
         "Open .genie…",
         "Load the pattern of a background file, or a creature's background",
         () => this.fileInput.click(),
       ),
-      button("Export .genie", "Save the recipe as a background file", () => void this.exportFile()),
+      (this.exportButton = button(
+        "Export .genie",
+        "Save the recipe as a background file",
+        () => void this.exportFile(),
+      )),
       button("Export PNG", "Save the pattern as a picture", () => void this.exportPicture()),
       this.hint,
     );
@@ -382,24 +413,57 @@ export class PatternDesigner {
       this.hint.textContent = problem ?? "";
       return;
     }
+    this.learn(pattern);
     this.recipe = pattern;
     this.toControls();
     this.draw(PREVIEW_SIZE);
     this.mutate();
   }
 
-  show(start?: Pattern): void {
-    if (start && start.kind !== null) this.recipe = start;
+  /** Starts designing, from a recipe such as the creature's background if there is one. `own`
+   * are the open file's patterns, offered as kinds beside the built-in ones. */
+  show(start?: Pattern, own: readonly OwnPattern[] = []): void {
+    this.own = own.map((o) => o.name);
+    for (const o of own) this.sources.set(o.name, o.source);
+    kindOptions(this.kind, this.own);
+    kindOptions(this.second, this.own);
+    if (start && start.kind !== null) {
+      this.learn(start);
+      this.recipe = start;
+    }
+    // A recipe of the file's patterns draws as the file now defines them.
+    this.recipe = this.withSources(this.recipe);
+    this.tiles = this.tiles.map((t) => ({ ...t, p: this.withSources(t.p) }));
     this.toControls();
     this.draw(PREVIEW_SIZE);
     if (this.tiles.length === 0) this.mutate();
   }
 
+  /** The kinds new recipes are made of: the built-in ones and the file's own patterns. */
+  private kinds(): string[] {
+    return [...PATTERN_KINDS, ...this.own];
+  }
+
+  /** Remembers the sources of a recipe's patterns written in GenoCode. */
+  private learn(p: Pattern): void {
+    if (p.kind !== null && p.source) this.sources.set(p.kind, p.source);
+    if (p.mix?.source) this.sources.set(p.mix.kind, p.mix.source);
+  }
+
+  /** The recipe with the source of each of its patterns written in GenoCode, and no other. */
+  private withSources(p: Pattern): Pattern {
+    const source = (kind: string | null) =>
+      kind === null || isBuiltinKind(kind) ? undefined : this.sources.get(kind);
+    const out: Pattern = { ...p, source: source(p.kind) };
+    if (p.mix) out.mix = { ...p.mix, source: source(p.mix.kind) };
+    return out;
+  }
+
   private fromControls(size: number, settled = false): void {
     const way = this.way.value as MixWayName | "";
-    this.recipe = {
+    this.recipe = this.withSources({
       ...this.recipe,
-      kind: this.kind.value as PatternKindName,
+      kind: this.kind.value,
       hue: Number(this.hue.value),
       seed: Number(this.seed.value),
       scheme: this.scheme.value as Pattern["scheme"],
@@ -409,10 +473,10 @@ export class PatternDesigner {
           ? undefined
           : {
               way,
-              kind: this.second.value as PatternKindName,
+              kind: this.second.value,
               amount: Number(this.amount.value),
             },
-    };
+    });
     this.showMixRows();
     this.draw(size);
     if (settled) this.hint.textContent = "";
@@ -420,6 +484,15 @@ export class PatternDesigner {
 
   private toControls(): void {
     const p = this.recipe;
+    // A recipe from another file may use patterns this file doesn't have.
+    for (const [select, kind] of [
+      [this.kind, p.kind],
+      [this.second, p.mix?.kind],
+    ] as const) {
+      if (kind && ![...select.options].some((o) => o.value === kind)) {
+        select.append(element("option", { value: kind, textContent: kind }));
+      }
+    }
     this.kind.value = p.kind ?? "aurora";
     this.hue.value = String(wrapHue(p.hue));
     this.seed.value = String(p.seed);
@@ -439,6 +512,11 @@ export class PatternDesigner {
     void drawInto(this.preview, this.recipe, size);
     this.code.textContent = formatValue(this.recipe);
     this.hint.textContent = "";
+    const own = usesOwnPattern(this.recipe);
+    this.exportButton.disabled = own;
+    this.exportButton.title = own
+      ? "A background file can't hold patterns written in GenoCode: use it as the creature's background instead"
+      : "Save the recipe as a background file";
   }
 
   /** The parents: the recipe above, which is always one, and the chosen recipes. */
@@ -449,7 +527,7 @@ export class PatternDesigner {
   /** Fills the grid with variations of the parents. */
   private mutate(): void {
     const parents = this.parents();
-    this.fill(() => vary(pick(parents)));
+    this.fill(() => vary(pick(parents), 1, this.kinds()));
   }
 
   /** Fills the grid with children of two of the parents at a time. */
@@ -461,7 +539,7 @@ export class PatternDesigner {
       const b = pick(parents.filter((p) => p !== a));
       // A little mutation too, as in breeding creatures: parents that share most of their parts
       // would otherwise have children that are all much the same.
-      return vary(cross(a, b), 0.6);
+      return vary(cross(a, b), 0.6, this.kinds());
     });
   }
 
@@ -474,8 +552,10 @@ export class PatternDesigner {
     // No two the same: a recipe already in the grid is made again, a few times at most.
     const seen = new Set<string>();
     const fresh = () => {
-      let p = make();
-      for (let tries = 0; tries < 20 && seen.has(formatValue(p)); tries++) p = make();
+      let p = this.withSources(make());
+      for (let tries = 0; tries < 20 && seen.has(formatValue(p)); tries++) {
+        p = this.withSources(make());
+      }
       seen.add(formatValue(p));
       return p;
     };

@@ -6,6 +6,7 @@ import {
   build,
   buildBackground,
   check,
+  patternOnBall,
   valuesOf,
   type BuildOptions,
   type BuildResult,
@@ -65,20 +66,11 @@ export function buildCreature(
 
 const previews = new Map<string, CheckResult>();
 
-/** A creature that's a ball wearing a pattern file's pattern, so it can be shown and bred. */
+/** A pattern file as a creature: a ball wearing it, so it can be shown and bred. */
 function previewOf(program: CheckResult): CheckResult {
   let ball = previews.get(program.text);
   if (ball === undefined) {
-    const { name, items } = program.file;
-    const first = items[0];
-    const body = first ? program.text.slice(first.span.start).trimEnd() : "";
-    const block = body
-      .split("\n")
-      .map((l) => (l ? `  ${l}` : ""))
-      .join("\n");
-    ball = check(
-      `creature ${name}\n\npattern ${name} {\n${block}\n}\n\nshine 0.3\ntexture pattern(${name}, 200, 1)\nlay\n`,
-    );
+    ball = patternOnBall(program);
     if (previews.size > 32) previews.clear();
     previews.set(program.text, ball);
   }

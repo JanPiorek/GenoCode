@@ -8,6 +8,7 @@ import { completionsAt, helpAt } from "./help.js";
 import { build, buildBackground, buildPattern, patternFileText } from "./interpreter.js";
 import { Canvas } from "./picture.js";
 import { applyEdits, rename } from "./symbols.js";
+import { patternOnBall, patternsOf } from "./wearing.js";
 import type { Pattern } from "./values.js";
 
 const errors = (text: string) =>
@@ -159,6 +160,33 @@ pattern P {
     expect(
       errors("creature C\npart P {\n  lay\n}\npattern P {\n  value clouds()\n}\nP\n"),
     ).toContainEqual(expect.stringMatching(/already/));
+  });
+});
+
+describe("a pattern file on a ball", () => {
+  it("is a creature wearing the pattern, with the file's genes", () => {
+    const ball = patternOnBall(check(RIPPLES));
+    expect(ball.diagnostics).toEqual([]);
+    expect(ball.file.kind).toBe("creature");
+    expect(ball.genes.map((g) => g.fullName)).toEqual(["Ripples.rings", "Ripples.wobble"]);
+    const { shapes } = build(ball, { genes: new Map([["Ripples.rings", 12]]) });
+    expect(shapes[0]!.texture!.kind).toBe("Ripples");
+    expect(shapes[0]!.texture!.source?.genes).toContainEqual(["Ripples.rings", 12]);
+  });
+});
+
+describe("patternsOf", () => {
+  it("gives a file's patterns with the sources their recipes carry", () => {
+    const program = check(SHELL);
+    const [ripples, ...rest] = patternsOf(program, new Map([["Ripples.rings", 12]]));
+    expect(rest).toEqual([]);
+    expect(ripples!.name).toBe("Ripples");
+    expect(ripples!.source.genes).toEqual([["Ripples.rings", 12]]);
+    // The same source a texture of the creature carries, at the same gene values.
+    const built = build(program, { genes: new Map([["Ripples.rings", 12]]) });
+    expect(built.shapes[0]!.texture!.source).toEqual(ripples!.source);
+    expect(patternsOf(check(RIPPLES)).map((p) => p.name)).toEqual(["Ripples"]);
+    expect(patternsOf(check("creature C\nlay\n"))).toEqual([]);
   });
 });
 
