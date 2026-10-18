@@ -23,8 +23,8 @@ gene twist  = 29  in 0..180         // how far each ring turns from the last
 **Status:** early development, heading for a first public release. The web app works: write,
 view, breed, morph and dance creatures, as code or as blocks.
 
-New to GenoCode? Start with [Getting started](docs/GETTING_STARTED.md). The language is defined in
-[docs/LANGUAGE.md](docs/LANGUAGE.md).
+New to GenoCode? Start with [Getting started](https://genocode-org.github.io/GenoCode/docs/). The
+language is defined in [the language reference](https://genocode-org.github.io/GenoCode/docs/language.html).
 
 ## Repository layout
 
