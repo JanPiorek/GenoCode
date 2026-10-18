@@ -6,11 +6,41 @@ import { Marked } from "marked";
 
 const docs = new URL("../../docs/", import.meta.url);
 
-/** The pages: where each is published, and the Markdown it's made from. */
-export const PAGES: { file: string; source: string; title: string }[] = [
-  { file: "index.html", source: "GETTING_STARTED.md", title: "Getting started" },
-  { file: "language.html", source: "LANGUAGE.md", title: "The language" },
+/** Where the website lives, for search engines and link previews, which need full addresses. */
+export const SITE = "https://genocode.piorek.co.za/";
+
+/** The pages: where each is published, the Markdown it's made from, and what search results say. */
+export const PAGES: { file: string; source: string; title: string; description: string }[] = [
+  {
+    file: "index.html",
+    source: "GETTING_STARTED.md",
+    title: "Getting started",
+    description:
+      "Build your first GenoCode creature step by step: a snowman made of code, then breed it, morph it and make it dance.",
+  },
+  {
+    file: "language.html",
+    source: "LANGUAGE.md",
+    title: "The language",
+    description:
+      "The GenoCode language reference: shapes, the turtle, genes, variants, colours, patterns, backgrounds and dances.",
+  },
 ];
+
+/** The address of a documentation page, as search engines should list it. */
+function address(file: string): string {
+  return `${SITE}docs/${file === "index.html" ? "" : file}`;
+}
+
+/** The sitemap: every page of the website, so search engines find them all. */
+export function sitemap(): string {
+  const urls = [SITE, ...PAGES.map((p) => address(p.file))];
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.map((u) => `  <url><loc>${u}</loc></url>`).join("\n")}
+</urlset>
+`;
+}
 
 /** A heading's anchor, as GitHub makes them, so the documents' own links keep working. */
 function slug(text: string): string {
@@ -71,6 +101,15 @@ export function page(file: string): string | undefined {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${p.title} · GenoCode</title>
+<meta name="description" content="${p.description}">
+<link rel="canonical" href="${address(p.file)}">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="GenoCode">
+<meta property="og:title" content="${p.title} · GenoCode">
+<meta property="og:description" content="${p.description}">
+<meta property="og:url" content="${address(p.file)}">
+<meta property="og:image" content="${SITE}preview.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <style>${STYLE}</style>
 </head>

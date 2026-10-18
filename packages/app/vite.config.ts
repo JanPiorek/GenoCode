@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
-import { page, PAGES } from "./docs.js";
+import { page, PAGES, sitemap } from "./docs.js";
 
 const repo = fileURLToPath(new URL("../..", import.meta.url));
 const src = (name: string) => fileURLToPath(new URL(`../${name}/src/index.ts`, import.meta.url));
@@ -51,7 +51,7 @@ function blocklyMedia(): Plugin {
   };
 }
 
-/** The documentation pages, made from docs/ (see docs.ts), served at `docs/`. */
+/** The documentation pages, made from docs/ (see docs.ts), served at `docs/`, and the sitemap. */
 function documentation(): Plugin {
   return {
     name: "documentation",
@@ -74,6 +74,7 @@ function documentation(): Plugin {
       for (const p of PAGES) {
         this.emitFile({ type: "asset", fileName: `docs/${p.file}`, source: page(p.file)! });
       }
+      this.emitFile({ type: "asset", fileName: "sitemap.xml", source: sitemap() });
     },
   };
 }
