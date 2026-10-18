@@ -1,6 +1,7 @@
 // Names and where they're declared, for editors: go to definition, find references and rename.
 // The checker ties every name it can to its declaration (CheckResult.references).
 
+import type { PatternDecl } from "./ast.js";
 import { isBuiltinName } from "./builtins.js";
 import { check, type CheckResult } from "./checker.js";
 import { KEYWORDS } from "./lexer.js";
@@ -101,7 +102,8 @@ function sameMeanings(
   return expected.size === got.size && [...expected].every((p) => got.has(p));
 }
 
-/** Genes match other creatures' genes by full name, so renaming a gene or its part breaks that. */
+/** Genes match other creatures' genes by full name, so renaming a gene or its part, function or
+ * pattern breaks that. */
 function fullNameWarning(program: CheckResult, uses: SymbolUses): string | undefined {
   const gene = program.genes.find((g) => g.decl && same(g.span, uses.declaration));
   if (gene) {
@@ -111,7 +113,10 @@ function fullNameWarning(program: CheckResult, uses: SymbolUses): string | undef
     );
   }
   const owned = program.genes.filter((g) => g.decl && g.owner === uses.name);
-  const owner = program.parts.get(uses.name) ?? program.functions.get(uses.name);
+  const owner =
+    program.parts.get(uses.name) ??
+    program.functions.get(uses.name) ??
+    program.file.items.find((i): i is PatternDecl => i.kind === "Pattern" && i.name === uses.name);
   if (owner && same(owner.nameSpan, uses.declaration) && owned.length > 0) {
     const names = owned.map((g) => `\`${g.fullName}\``).join(", ");
     return (

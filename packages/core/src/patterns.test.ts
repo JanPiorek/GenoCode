@@ -6,6 +6,7 @@ import { check } from "./checker.js";
 import { formatText } from "./format.js";
 import { build, buildBackground, buildPattern, patternFileText } from "./interpreter.js";
 import { Canvas } from "./picture.js";
+import { applyEdits, rename } from "./symbols.js";
 import type { Pattern } from "./values.js";
 
 const errors = (text: string) =>
@@ -112,6 +113,17 @@ describe("pattern blocks in creatures", () => {
     const many = program.variants.find((v) => v.name === "Many")!;
     const { shapes } = build(program, { genes: many.values });
     expect(shapes[0]!.texture!.source?.genes).toEqual([["Ripples.rings", 18]]);
+  });
+
+  it("rename with their genes' full names in variants, with a warning", () => {
+    const program = check(SHELL);
+    const result = rename(program, SHELL.indexOf("Ripples {"), "Waves");
+    if ("error" in result) throw new Error(result.error);
+    expect(result.warning).toMatch(/Ripples\.rings/);
+    const renamed = applyEdits(SHELL, result.edits);
+    expect(renamed).toContain("variant Many { Waves.rings = 18 }");
+    expect(renamed).not.toContain("Ripples");
+    expect(check(renamed).diagnostics).toEqual([]);
   });
 
   it("convert into pattern files that check and draw the same", () => {

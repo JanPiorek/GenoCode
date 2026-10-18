@@ -403,17 +403,22 @@ class Checker {
     }
   }
 
-  /** `whorl.petals` in a variant: `petals` means the gene, and `whorl` the part it's in. */
+  /** `whorl.petals` in a variant: `petals` means the gene, and `whorl` the part, function or
+   * pattern it's in. */
   private referToGene(gene: GeneInfo, span: Span): void {
     if (!gene.decl) return;
     const end = span.end;
     this.references.push({ span: { start: end - gene.name.length, end }, declaration: gene.span });
-    const owner = gene.owner && (this.parts.get(gene.owner) ?? this.functions.get(gene.owner));
+    if (!gene.owner) return;
+    const owner =
+      this.parts.get(gene.owner)?.nameSpan ??
+      this.functions.get(gene.owner)?.nameSpan ??
+      this.patternDecls.get(gene.owner);
     if (owner) {
       const start = span.start;
       this.references.push({
-        span: { start, end: start + owner.name.length },
-        declaration: owner.nameSpan,
+        span: { start, end: start + gene.owner.length },
+        declaration: owner,
       });
     }
   }
