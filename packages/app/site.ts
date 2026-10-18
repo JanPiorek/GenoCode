@@ -7,7 +7,7 @@ export const SITE = "https://genocode.piorek.co.za/";
 
 /** The footer's copyright line, for a page whose way up to the website's root is `up`. */
 const copyright = (up: string) =>
-  `© 2026 Jan Piorek · <a href="https://github.com/genocode-org/GenoCode/blob/main/LICENSE">MIT License</a> · <a href="${up}licenses.txt">Third-party licences</a>`;
+  `© 2026 Jan Piorek · <a href="${up}license.txt">MIT License</a> · <a href="${up}licenses.txt">Third-party licences</a>`;
 
 /** A file of the website: where it's published, and how to make it. */
 export interface SiteFile {

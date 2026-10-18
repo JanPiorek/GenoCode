@@ -1,5 +1,5 @@
-// The pages of the website made from Markdown: the getting-started guide, the language reference
-// and the credits.
+// The pages of the website made from the repository's documents: the getting-started guide, the
+// language reference and the credits from Markdown, and GenoCode's licence as it is.
 
 import { readFileSync } from "node:fs";
 import { posix } from "node:path";
@@ -65,9 +65,14 @@ function render(markdown: string, from: (typeof PAGES)[number]): string {
   return marked.parse(markdown) as string;
 }
 
-/** The documentation pages and the credits, in the website's colours. */
+/** The documentation pages and the credits, in the website's colours, and the licence. */
 export function docs(): SiteFile[] {
-  return PAGES.map((p) => ({
+  const licence: SiteFile = {
+    path: "license.txt",
+    type: "text/plain; charset=utf-8",
+    make: () => readFileSync(new URL("LICENSE", repo), "utf8"),
+  };
+  const pages = PAGES.map((p) => ({
     path: p.path,
     type: "text/html; charset=utf-8",
     make: () =>
@@ -78,4 +83,5 @@ export function docs(): SiteFile[] {
         body: render(readFileSync(new URL(p.source, repo), "utf8"), p),
       }),
   }));
+  return [...pages, licence];
 }
