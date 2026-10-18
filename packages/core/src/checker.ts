@@ -59,6 +59,17 @@ export interface CheckResult {
   usesRandom: boolean;
   /** The creature's variants (section 6.6), in the order they're written. */
   variants: Variant[];
+  /**
+   * Every name the checker could tie to its declaration: genes, parts, functions and variables,
+   * where they're declared and wherever they're used, in no particular order.
+   */
+  references: NameReference[];
+}
+
+/** A name in the text, and the name in its declaration (the same span for the declaration). */
+export interface NameReference {
+  span: Span;
+  declaration: Span;
 }
 
 /** Another set of gene values for the creature: only the genes it sets, by full name. */
@@ -89,6 +100,7 @@ export function check(text: string): CheckResult {
     backgroundLive: checker.backgroundLive,
     usesRandom: checker.usesRandom,
     variants: checker.variants,
+    references: checker.references,
   };
 }
 
@@ -102,6 +114,8 @@ interface Sym {
   type: StaticType;
   /** Parts, functions and part genes. */
   paramCount?: number;
+  /** The name in its declaration. Undefined for `side`, which has none. */
+  decl?: Span;
 }
 
 class Scope {
@@ -258,6 +272,7 @@ class Checker {
   backgroundLive = false;
   usesRandom = false;
   variants: Variant[] = [];
+  references: NameReference[] = [];
   private randomSpan: Span | undefined;
   private readonly fullNames = new Set<string>();
 
@@ -272,6 +287,17 @@ class Checker {
 
   private warn(span: Span, message: string): void {
     this.diagnostics.push({ severity: "warning", message, span });
+  }
+
+  /** Notes that the name at `span` means `sym`. */
+  private refer(sym: Sym | undefined, span: Span): void {
+    if (sym?.decl) this.references.push({ span, declaration: sym.decl });
+  }
+
+  /** Defines a name in a scope, and notes the declaration itself as a reference. */
+  private define(scope: Scope, name: string, sym: Sym): void {
+    scope.symbols.set(name, sym);
+    this.refer(sym, sym.decl!);
   }
 
   run(): void {
@@ -320,6 +346,7 @@ class Checker {
           this.error(s.geneSpan, `There's no gene called \`${s.gene}\`.`);
           continue;
         }
+        this.referToGene(gene, s.geneSpan);
         if (values.has(s.gene)) {
           this.error(s.geneSpan, `\`${s.gene}\` is already set in this variant.`);
           continue;
@@ -332,6 +359,21 @@ class Checker {
         }
       }
       this.variants.push({ name: item.name, values, decl: item });
+    }
+  }
+
+  /** `whorl.petals` in a variant: `petals` means the gene, and `whorl` the part it's in. */
+  private referToGene(gene: GeneInfo, span: Span): void {
+    if (!gene.decl) return;
+    const end = span.end;
+    this.references.push({ span: { start: end - gene.name.length, end }, declaration: gene.span });
+    const owner = gene.owner && (this.parts.get(gene.owner) ?? this.functions.get(gene.owner));
+    if (owner) {
+      const start = span.start;
+      this.references.push({
+        span: { start, end: start + owner.name.length },
+        declaration: owner.nameSpan,
+      });
     }
   }
 
@@ -403,10 +445,11 @@ class Checker {
         )
       )
         continue;
-      module.symbols.set(item.name, {
+      this.define(module, item.name, {
         kind: item.kind === "Part" ? "part" : "function",
         type: "unknown",
         paramCount: item.params.length,
+        decl: item.nameSpan,
       });
       if (item.kind === "Part") this.parts.set(item.name, item);
       else this.functions.set(item.name, item);
@@ -423,7 +466,7 @@ class Checker {
       if (all.symbols.has(item.name)) continue;
       const existing = module.lookup(item.name);
       if (existing || isBuiltinName(item.name)) continue; // reported when the let is checked
-      all.symbols.set(item.name, { kind: "global", type: "unknown" });
+      all.symbols.set(item.name, { kind: "global", type: "unknown", decl: item.nameSpan });
     }
 
     const top = new Scope(module);
@@ -621,7 +664,7 @@ class Checker {
 
   private declareVariable(p: Param, scope: Scope, kind: SymbolKind, type: StaticType): void {
     if (this.checkNewName(p.name, p.span, scope, "variable"))
-      scope.symbols.set(p.name, { kind, type });
+      this.define(scope, p.name, { kind, type, decl: p.span });
   }
 
   // ---------- genes ----------
@@ -648,7 +691,7 @@ class Checker {
     this.fullNames.add(fullName);
     const info = this.geneInfo(decl, fullName, section, owner, scope);
     if (info === undefined) {
-      scope.symbols.set(decl.name, { kind: "gene", type: "unknown" });
+      this.define(scope, decl.name, { kind: "gene", type: "unknown", decl: decl.nameSpan });
       return;
     }
     this.genes.push(info);
@@ -658,13 +701,18 @@ class Checker {
         first && typeof first === "object" && first.type === "part"
           ? this.parts.get(first.name)
           : undefined;
-      scope.symbols.set(decl.name, {
+      this.define(scope, decl.name, {
         kind: "partGene",
         type: "unknown",
         paramCount: part?.params.length ?? 0,
+        decl: decl.nameSpan,
       });
     } else {
-      scope.symbols.set(decl.name, { kind: "gene", type: typeOf(info.value) });
+      this.define(scope, decl.name, {
+        kind: "gene",
+        type: typeOf(info.value),
+        decl: decl.nameSpan,
+      });
     }
   }
 
@@ -856,14 +904,21 @@ class Checker {
       }
       count = n;
       options.push({ type: "part", name: o.name });
+      this.referToPart(o.name, o.span);
     }
     if (options.length < 2)
       throw new ConstError(decl.nameSpan, "A part gene needs at least two parts.");
     const name = (decl.value as { name: string }).name;
+    this.referToPart(name, decl.value.span);
     if (!options.some((o) => typeof o === "object" && o.type === "part" && o.name === name)) {
       throw new ConstError(decl.value.span, "The gene's value must be one of its parts.");
     }
     return { kind: "part", value: { type: "part", name }, options };
+  }
+
+  private referToPart(name: string, span: Span): void {
+    const part = this.parts.get(name);
+    if (part) this.references.push({ span, declaration: part.nameSpan });
   }
 
   /** A hue bound as written, before wrapping (section 6.4). */
@@ -1043,6 +1098,7 @@ class Checker {
       case "Assign": {
         this.checkExpr(stmt.value, ctx);
         const sym = ctx.scope.lookup(stmt.name);
+        this.refer(sym, stmt.nameSpan);
         if (sym === undefined) {
           if (BUILTIN_CONSTANTS.has(stmt.name) || BUILTIN_FUNCTIONS.has(stmt.name)) {
             this.error(stmt.nameSpan, `\`${stmt.name}\` is built in and can't be changed.`);
@@ -1071,6 +1127,7 @@ class Checker {
       case "PartCall": {
         for (const a of stmt.args) this.checkExpr(a, ctx);
         const sym = ctx.scope.lookup(stmt.name);
+        this.refer(sym, stmt.nameSpan);
         if (sym?.kind === "part" || sym?.kind === "partGene") {
           if (ctx.where === "function") {
             this.error(stmt.span, "A function can't call parts.");
@@ -1441,6 +1498,7 @@ class Checker {
 
   private checkName(name: string, span: Span, ctx: Ctx): StaticType {
     const sym = ctx.scope.lookup(name);
+    this.refer(sym, span);
     if (sym) {
       if (sym.kind === "part" || sym.kind === "partGene") {
         this.error(
@@ -1498,6 +1556,7 @@ class Checker {
         }
       }
       if (sym?.kind === "function") {
+        this.refer(sym, callee.span);
         if (sym.paramCount !== expr.args.length) {
           this.error(
             callee.span,
@@ -1507,6 +1566,7 @@ class Checker {
         return "unknown";
       }
       if (sym?.kind === "part" || sym?.kind === "partGene") {
+        this.refer(sym, callee.span);
         this.error(
           callee.span,
           `\`${callee.name}\` is ${describeSym(sym.kind)}, which draws. Call it as a statement on its own line.`,
