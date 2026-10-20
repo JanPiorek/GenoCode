@@ -2,7 +2,8 @@
 
 GenoCode is a small language for making creatures, and an app where you write them, see them in 3D,
 breed them, morph them and watch them dance to music. This guide takes you from a first ball to a
-creature with genes and parts. The full rules are in [the language reference](LANGUAGE.md).
+creature with genes and parts. The full rules are in [the language](LANGUAGE.md), and every statement and function is in
+[the reference](REFERENCE.md).
 
 ## The app
 

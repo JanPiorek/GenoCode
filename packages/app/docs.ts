@@ -1,5 +1,5 @@
 // The pages of the website made from the repository's documents: the getting-started guide, the
-// language reference and the credits from Markdown, and GenoCode's licence as it is.
+// language, the reference and the credits from Markdown, and GenoCode's licence as it is.
 
 import { readFileSync } from "node:fs";
 import { posix } from "node:path";
@@ -22,7 +22,14 @@ const PAGES: { path: string; source: string; title: string; description: string 
     source: "docs/LANGUAGE.md",
     title: "The language",
     description:
-      "The GenoCode language reference: shapes, the turtle, genes, variants, colours, patterns, backgrounds and dances.",
+      "How the GenoCode language works: shapes, the turtle, genes, variants, colours, patterns, backgrounds and dances.",
+  },
+  {
+    path: "docs/reference.html",
+    source: "docs/REFERENCE.md",
+    title: "Reference",
+    description:
+      "Every GenoCode statement, function, input and constant: its syntax, parameters, what it returns, and an example.",
   },
   {
     path: "credits.html",

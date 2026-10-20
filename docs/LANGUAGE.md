@@ -4,7 +4,8 @@ Version 0.9, as built by `@genocode/core` 0.9.
 
 This document is the definition of GenoCode. When the implementation and this document disagree,
 this document is right and the implementation is fixed, unless the document is changed first.
-Parts marked **provisional** may still change.
+Parts marked **provisional** may still change. [The reference](REFERENCE.md) lists every statement,
+function, input and constant on its own, with its parameters and an example.
 
 ## Contents
 
@@ -170,7 +171,7 @@ allowed as arguments to `print`.
 creature  gene  part  function  return  let  if  else  repeat  as  for  from  to  by  while
 branch  lay  reshape  symmetric  shape  colour  color  shine  sharpness  texture  wear
 background  fill  dance  forward  back  move  pitch  yaw  roll  rotate  around  grow  mirror  in  step  log
-at  and  or  not  true  false  print  turtle  time  beat  music  variant
+at  and  or  not  true  false  print  turtle  time  beat  music  variant  breed
 ```
 
 Some words are only special in one place, and are ordinary names elsewhere:
@@ -344,7 +345,8 @@ variant Striker {
 
 - `variant Name { … }` sets genes by their **full names** ([6.3](#63-full-names)), one per line
   (or separated by `;`): `petals = 9`, `whorl.petals = 9`, `background.hue = 200`, `seed = 42`.
-  Genes it doesn't mention keep the values written in their declarations.
+  A variant only lists the genes it changes. Every other gene keeps the value on its own `gene`
+  line, and follows that line if it's changed later.
 - Variants can only be at the top level of a creature file. Their names must be different from one
   another; they don't clash with any other names.
 - Each value is a constant expression ([6.1](#61-declaring-genes)) that would be allowed as the

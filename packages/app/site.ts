@@ -96,6 +96,7 @@ export function shell(page: {
   const links: [string, string][] = [
     ["docs/index.html", "Getting started"],
     ["docs/language.html", "The language"],
+    ["docs/reference.html", "Reference"],
     ["creatures/index.html", "Creatures"],
   ];
   const nav = links
