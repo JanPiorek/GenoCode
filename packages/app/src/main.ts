@@ -884,7 +884,7 @@ let faceOn = (() => {
   }
 })();
 
-/** Shows the Front button's state; the side buttons can't move a locked camera. */
+/** Shows the 2D view button's state; the side buttons can't move a locked camera. */
 function showFaceOn(): void {
   $("face-on").setAttribute("aria-pressed", String(faceOn));
   const locked = mode === "dance" && faceOn;
