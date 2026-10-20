@@ -14,6 +14,12 @@ import { geneControl, type GeneEditing } from "@genocode/controls";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
+// Padlocks drawn in the button's colour: open and hollow, or shut and solid.
+const PADLOCK = (shackle: string, body: string) =>
+  `<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="${shackle}"/><rect x="3" y="7" width="10" height="7.5" rx="1.5" ${body}/></svg>`;
+const UNLOCKED_ICON = PADLOCK("M5 7V4.8a3 3 0 0 1 5.8-1.1", "");
+const LOCKED_ICON = PADLOCK("M5 7V5a3 3 0 0 1 6 0v2", 'fill="currentColor"');
+
 /** Full names of the genes the user has locked. */
 export const locked = new Set<string>();
 
@@ -115,8 +121,11 @@ function geneRow(
   const setLock = () => {
     const on = locked.has(g.fullName);
     lock.setAttribute("aria-pressed", String(on));
-    lock.textContent = on ? "🔒" : "🔓";
-    lock.title = on ? "Locked: breeding keeps this gene as it is" : "Lock this gene";
+    lock.innerHTML = on ? LOCKED_ICON : UNLOCKED_ICON;
+    row.classList.toggle("locked", on);
+    lock.title = on
+      ? "Locked: Mutate and Breed leave this gene as it is (you can still change it)"
+      : "Lock: Mutate and Breed won't change this gene";
   };
   setLock();
   lock.addEventListener("click", () => {

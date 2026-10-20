@@ -11,6 +11,7 @@ import {
   check,
   format,
   geneEdits,
+  KEYWORDS,
   MUSIC_FIELDS,
   patternsOf,
   variantEdits,
@@ -34,6 +35,7 @@ import {
   type Creature,
 } from "./creature.js";
 import { DanceFloor, type DanceFrame } from "./dance.js";
+import { ask, askText, choose, tell } from "./dialog.js";
 import { CodeEditor } from "./editor.js";
 import { drawFieldsInWorkers } from "./fields.js";
 import { kindOf, LibraryView, type LibraryEntry } from "./libraryview.js";
@@ -358,8 +360,12 @@ function report(buildProblems: Diagnostic[], shapeCount: number, live: boolean):
 const dirty = () => editor.text !== savedAs;
 
 /** Asks before losing changes. */
-function mayDiscard(): boolean {
-  return !dirty() || confirm("Your changes to this creature aren't saved. Lose them?");
+async function mayDiscard(): Promise<boolean> {
+  if (!dirty()) return true;
+  return ask("Your changes to this creature aren't saved.", "Lose them", {
+    no: "Keep editing",
+    danger: true,
+  });
 }
 
 /** Puts new code in the editor and shows it. */
@@ -446,17 +452,17 @@ function openListed(kind: "example" | "mine", name: string): boolean {
 }
 
 /** Opens a creature picked from a menu (`kind:name`), unless that would lose changes. */
-function openPicked(value: string): void {
+async function openPicked(value: string): Promise<void> {
   const [kind, ...rest] = value.split(":");
-  if (!mayDiscard()) {
+  if (!(await mayDiscard())) {
     showSource();
     return;
   }
   openListed(kind as "example" | "mine", rest.join(":"));
 }
 
-creatureSelect.addEventListener("change", () => openPicked(creatureSelect.value));
-danceCreatureSelect.addEventListener("change", () => openPicked(danceCreatureSelect.value));
+creatureSelect.addEventListener("change", () => void openPicked(creatureSelect.value));
+danceCreatureSelect.addEventListener("change", () => void openPicked(danceCreatureSelect.value));
 
 /** Dances the next (or previous) creature in the dance's menu. */
 function stepCreature(by: number): void {
@@ -464,15 +470,11 @@ function stepCreature(by: number): void {
   if (options.length === 0) return;
   const at = options.findIndex((o) => o.value === danceCreatureSelect.value);
   const next = options[(at + by + options.length) % options.length]!;
-  openPicked(next.value);
+  void openPicked(next.value);
 }
 
-$("new").addEventListener("click", () => {
-  if (mayDiscard()) load(NEW_CREATURE, { kind: "other" });
-});
-
-window.addEventListener("beforeunload", (e) => {
-  if (dirty()) e.preventDefault();
+$("new").addEventListener("click", async () => {
+  if (await mayDiscard()) load(NEW_CREATURE, { kind: "other" });
 });
 
 // ---------- modes ----------
@@ -726,8 +728,8 @@ function creaturePattern(): Pattern | undefined {
 
 const librarySection = $("library");
 const library = new LibraryView(librarySection, {
-  open(entry) {
-    if (!mayDiscard()) return;
+  async open(entry) {
+    if (!(await mayDiscard())) return;
     const from: Source = entry.yours
       ? { kind: "mine", name: entry.name }
       : entry.kind === "creature"
@@ -736,12 +738,12 @@ const library = new LibraryView(librarySection, {
     load(entry.text, from);
     setMode("view");
   },
-  dance(entry) {
+  async dance(entry) {
     const key = entry.yours ? `mine:${entry.name}` : entry.name;
     if (entry.yours) yourStyles.set(key, check(entry.text));
     // A style needs a creature to dance: the one on show, or else Geno.
     if (current?.program.file.kind !== "creature") {
-      if (!mayDiscard()) return;
+      if (!(await mayDiscard())) return;
       openListed("example", "Geno");
     }
     wantedStyle = key;
@@ -750,8 +752,8 @@ const library = new LibraryView(librarySection, {
   putIn(entry) {
     if (putIn(entry.text)) setMode(entry.kind === "dance" ? "dance" : "view");
   },
-  remove(entry) {
-    if (!confirm(`Delete ${entry.name} from this browser?`)) return;
+  async remove(entry) {
+    if (!(await ask(`Delete ${entry.name} from this browser?`, "Delete", { danger: true }))) return;
     deleteCreature(entry.name);
     if (source.kind === "mine" && source.name === entry.name) {
       source = { kind: "other" };
@@ -941,7 +943,7 @@ async function playMusic(start: () => Promise<void>): Promise<void> {
   try {
     await start();
   } catch (e) {
-    alert(`That music can't be played: ${e instanceof Error ? e.message : String(e)}`);
+    await tell(`That music can't be played: ${e instanceof Error ? e.message : String(e)}`);
   }
   showDanceHint();
 }
@@ -953,8 +955,12 @@ musicInput.addEventListener("change", () => {
   if (file) void playMusic(() => player.playFile(file));
   musicInput.value = "";
 });
-$("music-url").addEventListener("click", () => {
-  const url = prompt("The web address of some music (the site must allow it to be played here):");
+$("music-url").addEventListener("click", async () => {
+  const url = await askText(
+    "The web address of some music. The site must allow it to be played here.",
+    "Play",
+    { placeholder: "https://…" },
+  );
   if (url) void playMusic(() => player.playUrl(url));
 });
 $("music-mic").addEventListener("click", () => void playMusic(() => player.listen()));
@@ -981,14 +987,53 @@ const isMusic = (f: File) =>
 /** The name to save under: the one in the code's header. */
 const creatureName = () => checkText(editor.text).file.name || "Untitled";
 
-$("save").addEventListener("click", () => {
-  const name = creatureName();
-  const replacing = source.kind !== "mine" || source.name !== name;
-  if (replacing && savedText(name) !== undefined && !confirm(`Replace your saved ${name}?`)) return;
+/** Whether a name can be a creature's: letters, digits and _, not starting with a digit. */
+const isName = (name: string) => /^[\p{L}_][\p{L}\p{N}_]*$/u.test(name) && !KEYWORDS.has(name);
+
+/**
+ * Asks what to save as, offering the name in the code's header. A name already saved in this
+ * browser is only replaced when the user says so, except by the creature that was saved under it.
+ */
+function askSaveName(): Promise<string | undefined> {
+  const { kind } = checkText(editor.text).file;
+  return askText(`Save this ${kind} in this browser as:`, "Save", {
+    value: creatureName(),
+    check(name) {
+      if (name === "") return { problem: "Give it a name." };
+      if (!isName(name)) {
+        return KEYWORDS.has(name)
+          ? { problem: `${name} is one of GenoCode's own words: pick another name.` }
+          : { problem: "Use letters, digits and _ only, and don't start with a digit." };
+      }
+      const resaving = source.kind === "mine" && source.name === name;
+      if (savedText(name) !== undefined && !resaving) {
+        return {
+          warning: `You already have one called ${name}. Saving replaces it.`,
+          ok: "Replace",
+        };
+      }
+      return undefined;
+    },
+  });
+}
+
+$("save").addEventListener("click", async () => {
+  const name = await askSaveName();
+  if (name === undefined) return;
+  // A new name goes into the code's header too, so the file says what it's called.
+  const { file } = checkText(editor.text);
+  if (file.name !== "" && file.name !== name) {
+    const { start, end } = file.nameSpan;
+    const text = editor.text.slice(0, start) + name + editor.text.slice(end);
+    editor.setText(text);
+    show(text, true);
+  }
   try {
     saveCreature(name, editor.text);
   } catch {
-    alert("This browser won't keep it (its storage is full or turned off). Use Download instead.");
+    await tell(
+      "This browser won't keep it (its storage is full or turned off). Use Download instead.",
+    );
     return;
   }
   source = { kind: "mine", name };
@@ -996,8 +1041,9 @@ $("save").addEventListener("click", () => {
   showSource();
 });
 
-$("delete").addEventListener("click", () => {
-  if (source.kind !== "mine" || !confirm(`Delete ${source.name} from this browser?`)) return;
+$("delete").addEventListener("click", async () => {
+  if (source.kind !== "mine") return;
+  if (!(await ask(`Delete ${source.name} from this browser?`, "Delete", { danger: true }))) return;
   deleteCreature(source.name);
   savedAs = "";
   source = { kind: "other" };
@@ -1051,7 +1097,7 @@ function stopWatching(): void {
 async function openHandle(handle: FileHandleLike): Promise<void> {
   let file = await handle.getFile();
   const text = await file.text();
-  if (offerDefinition(text) || !mayDiscard()) return;
+  if ((await offerDefinition(text)) || !(await mayDiscard())) return;
   load(text, { kind: "other" });
   let modified = file.lastModified;
   watching.textContent = `Watching ${handle.name} for changes`;
@@ -1074,27 +1120,32 @@ async function openHandle(handle: FileHandleLike): Promise<void> {
 
 async function openFile(file: File): Promise<void> {
   const text = await file.text();
-  if (offerDefinition(text) || !mayDiscard()) return;
+  if ((await offerDefinition(text)) || !(await mayDiscard())) return;
   load(text, { kind: "other" });
 }
 
 /**
  * Offers to put a background or dance file into the creature on show, replacing its background or
- * dance block (docs/LANGUAGE.md sections 15 and 17). Says whether it did; if not, the file is
- * opened on its own.
+ * dance block (docs/LANGUAGE.md sections 15 and 17). Says whether that's all: true when it was put
+ * in or the user cancelled, false when the file is to be opened on its own.
  */
-function offerDefinition(text: string): boolean {
+async function offerDefinition(text: string): Promise<boolean> {
   const file = checkText(text).file;
   const creature = current?.program.file;
   if (file.kind === "creature" || creature?.kind !== "creature") return false;
-  const ask =
+  const question =
     file.kind === "background"
       ? `Put the background ${file.name} behind ${creature.name}?`
       : file.kind === "pattern"
         ? `Give ${creature.name} the pattern ${file.name}, to use in its textures?`
         : `Give ${creature.name} the dance ${file.name}?`;
-  if (!confirm(`${ask}\n\nCancel opens the ${file.kind} on its own.`)) return false;
-  return putIn(text);
+  const answer = await choose(question, [
+    { label: "Cancel" },
+    { label: `Open the ${file.kind} on its own` },
+    { label: file.kind === "background" ? "Put it behind" : "Give it", main: true },
+  ]);
+  if (answer === 1) return false;
+  return answer === 2 ? putIn(text) : true;
 }
 
 /** Puts a background or dance file into the creature on show. Says whether it could. */
@@ -1209,7 +1260,8 @@ window.addEventListener("keydown", (e) => {
   const typing =
     e.target instanceof HTMLElement &&
     (e.target.isContentEditable || ["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName));
-  if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+  const asking = document.querySelector("dialog[open]") !== null;
+  if (typing || asking || e.ctrlKey || e.metaKey || e.altKey) return;
   if ((e.key === "f" || e.key === "F") && mode !== "breed" && mode !== "patterns") {
     e.preventDefault();
     toggleFullscreen();

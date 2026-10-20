@@ -371,17 +371,28 @@ body.with-blocks.with-code .layout {
 }
 
 .lock {
-  padding: 0 4px;
+  display: inline-flex;
+  padding: 2px 4px;
   border: none;
   background: none;
   color: var(--muted);
+  opacity: 0.55;
   cursor: pointer;
-  font-size: 0.95em;
+}
+
+.lock:hover {
+  opacity: 1;
 }
 
 .lock[aria-pressed="true"] {
   color: var(--accent);
   background: none;
+  opacity: 1;
+}
+
+/* A locked gene's row is marked down its left edge, so locks show at a glance. */
+tr.locked > td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .panel {
@@ -833,4 +844,86 @@ input[type="color"].gene-control {
 
 a.button {
   text-decoration: none;
+}
+
+/* The app's own dialogs (dialog.ts), in place of alert, confirm and prompt. */
+dialog.ask {
+  width: min(440px, calc(100vw - 32px));
+  padding: 18px 20px 16px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 55%);
+}
+
+dialog.ask[open] {
+  animation: ask-in 140ms ease-out;
+}
+
+dialog.ask::backdrop {
+  background: rgb(5 7 12 / 60%);
+  backdrop-filter: blur(2px);
+}
+
+@keyframes ask-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+dialog.ask p {
+  margin: 0 0 14px;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+dialog.ask input[type="text"] {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 7px 9px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+dialog.ask input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.ask-note {
+  min-height: 1.45em;
+  font-size: 0.9em;
+  color: var(--warning);
+}
+
+.ask-note.problem {
+  color: var(--error);
+}
+
+.ask-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ask-buttons button.main {
+  background: #2a3350;
+  border-color: var(--accent);
+}
+
+.ask-buttons button.danger {
+  background: #3a1d26;
+  border-color: var(--error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.ask[open] {
+    animation: none;
+  }
 }
