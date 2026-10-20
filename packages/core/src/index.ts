@@ -49,6 +49,7 @@ export {
   morph,
   mutate,
   valuesOf,
+  variantEdits,
   writeGenes,
   type GeneSet,
   type GeneticsOptions,

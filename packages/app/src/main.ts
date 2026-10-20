@@ -13,6 +13,7 @@ import {
   geneEdits,
   MUSIC_FIELDS,
   patternsOf,
+  variantEdits,
   type CheckResult,
   type Diagnostic,
   type Pattern,
@@ -46,7 +47,7 @@ import {
   withBackground,
   withDefinition,
 } from "./patterns.js";
-import { showGenes, showInfo, showProblems, showStatus } from "./panel.js";
+import { showGenes, showInfo, showProblems, showStatus, type VariantGenes } from "./panel.js";
 
 // The starter creatures in the repository's creatures/ folder.
 const examples = import.meta.glob("../../../creatures/*.genie", {
@@ -102,23 +103,35 @@ let savedAs = "";
 
 /** The latest text, as checked, whether or not it has errors. */
 let program: CheckResult | undefined;
-/** The creature in the full view: the last version without errors, with its gene values. */
+/** The creature: the last version without errors, with its gene values. */
 let current: Creature | undefined;
+/** The variant chosen to be on show, by name; none for the creature itself. */
+let variant: string | undefined;
+/** What the full view and the panel show: the creature, or the chosen variant of it. */
+let shown: Creature | undefined;
 let liveFrame = 0;
 let watchTimer = 0;
 
-const editor = new CodeEditor(codeSection, (text) => {
-  // Typed here, so the browser has the latest version now, not the file on disk.
-  stopWatching();
-  show(text, true);
-});
+const editor = new CodeEditor(
+  codeSection,
+  (text) => {
+    // Typed here, so the browser has the latest version now, not the file on disk.
+    stopWatching();
+    show(text, true);
+  },
+  cursorMoved,
+);
 const blocksSection = $("blocks");
-const blocks = new BlocksView(blocksSection, (text) => {
-  // Built with blocks: the code is written for them.
-  stopWatching();
-  editor.setText(text);
-  show(text, true);
-});
+const blocks = new BlocksView(
+  blocksSection,
+  (text) => {
+    // Built with blocks: the code is written for them.
+    stopWatching();
+    editor.setText(text);
+    show(text, true);
+  },
+  (name) => chooseVariant(name, false),
+);
 
 // The background and dance blocks' export buttons save each as its own file (section 15).
 hooks.exportDefinition = (kind) => {
@@ -173,7 +186,9 @@ function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Val
       if (g.decl === undefined && v !== undefined) current.values.set(g.fullName, v);
     }
   } else if (!keepView) current = undefined;
-  showInfo(program);
+  pickShown();
+  fillVariantMenu();
+  showInfo(program, shown?.variant);
   enableTools();
   if (mode === "breed" && current) breeder.start(familyOf(current), strength());
   if (mode === "morph" && current) startMorph();
@@ -182,18 +197,105 @@ function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Val
   if (mode === "view") showCurrent(keepView);
 }
 
-/** Gene controls write into the code, so they're only offered while the code is what's on show. */
+/**
+ * Gene controls write into the code, so they're only offered while the code is what's on show:
+ * into the gene's line for the creature itself, or into the variant's block for a variant.
+ */
 const geneEditing: GeneEditing = {
   input(g, v) {
-    current?.values.set(g.fullName, v);
+    shown?.values.set(g.fullName, v);
     showCurrent(true, false);
   },
   change(g, v) {
-    if (!current || current.program.text !== editor.text) return;
-    current.values.set(g.fullName, v);
-    editor.applyEdits(geneEdits(current.program, new Map([[g.fullName, v]])));
+    if (!current || !shown || current.program.text !== editor.text) return;
+    shown.values.set(g.fullName, v);
+    const values = new Map([[g.fullName, v]]);
+    editor.applyEdits(
+      shown.variant === undefined
+        ? geneEdits(current.program, values)
+        : variantEdits(current.program, shown.variant, values),
+    );
   },
 };
+
+/** The genes the variant on show sets itself, which the panel marks and can put back. */
+function variantGenes(): VariantGenes | undefined {
+  const own = current?.program.variants.find((v) => v.name === shown?.variant);
+  if (!current || !own) return undefined;
+  return {
+    sets: new Set(own.values.keys()),
+    reset(g) {
+      if (!current || current.program.text !== editor.text) return;
+      editor.applyEdits(variantEdits(current.program, own.name, new Map(), [g.fullName]));
+    },
+  };
+}
+
+// ---------- variants ----------
+
+const variantSelect = $<HTMLSelectElement>("variant");
+
+/** Works out what's on show: the chosen variant, while the creature still has it. */
+function pickShown(): void {
+  shown = current && familyOf(current).find((c) => c.variant === variant);
+  shown ??= current;
+}
+
+/** Lists the creature and its variants in the View's menu, which is hidden when it has none. */
+function fillVariantMenu(): void {
+  const variants = current?.program.variants ?? [];
+  $("variant-field").hidden = variants.length === 0;
+  const option = (value: string, label: string) => {
+    const o = document.createElement("option");
+    o.value = value;
+    o.textContent = label;
+    return o;
+  };
+  variantSelect.replaceChildren(
+    option("", `${current?.program.file.name ?? "The creature"} itself`),
+    ...variants.map((v) => option(`:${v.name}`, v.name)),
+  );
+  variantSelect.value = shown?.variant === undefined ? "" : `:${shown.variant}`;
+}
+
+/**
+ * Shows a variant (by name) or the creature itself (none) in the view and the panel. With
+ * `reveal`, the code's cursor goes to its block, or to the creature's first gene.
+ */
+function chooseVariant(name: string | undefined, reveal: boolean): void {
+  if (reveal && current) {
+    const p = current.program;
+    const at =
+      name === undefined
+        ? p.genes.find((g) => g.decl)?.decl?.span.start
+        : p.variants.find((v) => v.name === name)?.decl.nameSpan.end;
+    if (at !== undefined && p.text === editor.text) editor.moveTo(at);
+  }
+  if (name === variant) return;
+  variant = name;
+  pickShown();
+  variantSelect.value = shown?.variant === undefined ? "" : `:${shown.variant}`;
+  if (program) showInfo(program, shown?.variant);
+  if (mode === "view") showCurrent(true);
+}
+
+variantSelect.addEventListener("change", () => {
+  const name = variantSelect.value === "" ? undefined : variantSelect.value.slice(1);
+  chooseVariant(name, true);
+});
+
+/**
+ * The cursor in a variant's block shows that variant; on a gene's line, the creature itself.
+ * Anywhere else, what's on show stays, so the drawing code can be changed while a variant is shown.
+ */
+function cursorMoved(at: number): void {
+  if (!current) return;
+  const p = checkText(editor.text);
+  const inside = (span: { start: number; end: number }) => span.start <= at && at <= span.end;
+  const found = p.variants.find((v) => inside(v.decl.span));
+  if (found) chooseVariant(found.name, false);
+  else if (p.genes.some((g) => g.decl && inside(g.decl.span))) chooseVariant(undefined, false);
+}
 
 /**
  * Shows the current creature in the full view. Creatures that read time are rebuilt every frame.
@@ -201,7 +303,7 @@ const geneEditing: GeneEditing = {
  */
 function showCurrent(keepView: boolean, panel = true): void {
   cancelAnimationFrame(liveFrame);
-  if (!current) {
+  if (!shown) {
     view.setCreature([]);
     view.setBackground(undefined);
     showProblems(program!, program!.diagnostics);
@@ -210,10 +312,16 @@ function showCurrent(keepView: boolean, panel = true): void {
     showStatus("");
     return;
   }
-  const c = current;
+  const c = shown;
   const live = c.program.live || c.program.backgroundLive;
   if (panel) {
-    showGenes(c.program.genes, c.values, c.program === program ? geneEditing : undefined);
+    const editable = c.program === program;
+    showGenes(
+      c.program.genes,
+      c.values,
+      editable ? geneEditing : undefined,
+      editable ? variantGenes() : undefined,
+    );
     inputs.show(live);
   }
   const frame = (keep: boolean) => {
@@ -252,6 +360,7 @@ function mayDiscard(): boolean {
 /** Puts new code in the editor and shows it. */
 function load(text: string, from: Source): void {
   stopWatching();
+  variant = undefined;
   source = from;
   savedAs = text;
   editor.setText(text);
@@ -375,6 +484,8 @@ const breeder = new Breeder(grid, {
       text = text.slice(0, e.start) + e.text + text.slice(e.end);
     }
     editor.setText(text);
+    // Its values are now the creature's own.
+    variant = undefined;
     show(text, false, c.values);
     setMode("view");
   },
@@ -444,7 +555,7 @@ function setMode(next: Mode): void {
   if (mode === "morph") startMorph();
   if (mode === "dance") startDance();
   if (mode === "patterns") {
-    const own = current ? patternsOf(current.program, current.values) : [];
+    const own = shown ? patternsOf(shown.program, shown.values) : [];
     designer.show(creaturePattern(), own, libraryPatterns());
   }
   if (mode === "library") library.show(libraryEntries());
@@ -574,8 +685,8 @@ function libraryPatterns(): OwnPattern[] {
 
 /** The creature's background, when it's a pattern, to start designing from. */
 function creaturePattern(): Pattern | undefined {
-  if (!current) return undefined;
-  const { background } = buildCreature(current);
+  if (!shown) return undefined;
+  const { background } = buildCreature(shown);
   return typeof background === "object" && background.type === "pattern" ? background : undefined;
 }
 

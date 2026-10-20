@@ -55,10 +55,14 @@ export class BlocksView {
   private name = "";
   private readonly stale: HTMLElement;
 
-  /** `onEdit` is given the code, as the formatter writes it, after the blocks change. */
+  /**
+   * `onEdit` is given the code, as the formatter writes it, after the blocks change. `onPick` is
+   * given a variant's name when one of its blocks is clicked, or nothing when a gene's is.
+   */
   constructor(
     private readonly parent: HTMLElement,
     private readonly onEdit: (text: string) => void,
+    private readonly onPick?: (variant: string | undefined) => void,
   ) {
     Blockly.setLocale(En as unknown as Record<string, string>);
     // Darker, calmer block colours than Blockly's, for the dark page (see style.css too).
@@ -175,13 +179,24 @@ export class BlocksView {
   }
 
   private changed(e: Blockly.Events.Abstract): void {
-    if (this.loading || e.isUiEvent) return;
+    if (this.loading) return;
+    if (e.type === Blockly.Events.SELECTED)
+      this.picked((e as Blockly.Events.Selected).newElementId);
+    if (e.isUiEvent) return;
     if (e.type === Blockly.Events.BLOCK_MOVE) {
       clearTimeout(this.layoutTimer);
       this.layoutTimer = window.setTimeout(() => this.saveLayout(), 500);
     }
     clearTimeout(this.timer);
     this.timer = window.setTimeout(() => this.write(), 250);
+  }
+
+  /** A block was clicked: a variant, or a gene, says which of the family to show. */
+  private picked(id: string | undefined): void {
+    let b = id ? this.ws.getBlockById(id) : null;
+    while (b && b.type !== "g_variant" && b.type !== "g_gene") b = b.getSurroundParent();
+    if (b?.type === "g_variant") this.onPick?.(b.getFieldValue("NAME") as string);
+    else if (b?.type === "g_gene") this.onPick?.(undefined);
   }
 
   /** Writes the blocks as code, unless a slot is empty, which its block then says. */

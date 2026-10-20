@@ -396,6 +396,11 @@ body.with-blocks.with-code .layout {
   font-size: 1.4em;
 }
 
+.panel h1 .variant-name {
+  color: var(--muted);
+  font-weight: normal;
+}
+
 .panel h2 {
   margin: 20px 0 8px;
   font-size: 0.85em;
@@ -446,6 +451,33 @@ body.with-blocks.with-code .layout {
 
 #genes tr.in-group td.gene-name {
   padding-left: 14px;
+}
+
+/* With a variant on show: the genes it sets itself, and those it takes from the creature. */
+#genes tr.variant-own td.gene-name {
+  color: var(--accent);
+}
+
+#genes tr.variant-inherited td.gene-name > :not(.gene-control),
+#genes tr.variant-inherited td.gene-value {
+  opacity: 0.55;
+}
+
+#genes tr.variant-inherited td.gene-name {
+  color: var(--muted);
+}
+
+.reset {
+  display: block;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.reset:hover {
+  color: var(--text);
 }
 
 .gene-about {

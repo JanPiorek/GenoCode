@@ -32,9 +32,17 @@ function problemItem(p: CheckResult, d: Diagnostic): HTMLLIElement {
   return li;
 }
 
-export function showInfo(p: CheckResult): void {
+/** The creature's name, and the variant on show, if one is. */
+export function showInfo(p: CheckResult, variant?: string): void {
   const file = p.file;
-  $("name").textContent = file.name || "Untitled";
+  const name = $("name");
+  name.textContent = file.name || "Untitled";
+  if (variant !== undefined) {
+    const which = document.createElement("span");
+    which.className = "variant-name";
+    which.textContent = ` · ${variant}`;
+    name.append(which);
+  }
   $("description").textContent = file.description
     .map((c) => c.text.replace(/^\/\/\s?/, ""))
     .join(" ");
@@ -81,14 +89,25 @@ function groupOf(g: GeneInfo): string | undefined {
   return g.owner;
 }
 
+/** A variant on show in the panel: the genes it sets itself, and a way to unset one. */
+export interface VariantGenes {
+  sets: ReadonlySet<string>;
+  /** Takes the gene's line out of the variant, so it has the gene's own value again. */
+  reset(g: GeneInfo): void;
+}
+
 function geneRow(
   g: GeneInfo,
   values: ReadonlyMap<string, Value>,
   inGroup: boolean,
   edit: GeneEditing | undefined,
+  variant: VariantGenes | undefined,
 ): HTMLElement {
   const row = document.createElement("tr");
-  if (inGroup) row.className = "in-group";
+  if (inGroup) row.classList.add("in-group");
+  // A variant's own genes stand out; the rest are the creature's.
+  const own = variant?.sets.has(g.fullName);
+  if (variant) row.classList.add(own ? "variant-own" : "variant-inherited");
   const lockCell = document.createElement("td");
   const lock = document.createElement("button");
   lock.type = "button";
@@ -119,6 +138,15 @@ function geneRow(
   const v = values.get(g.fullName) ?? g.value;
   const showValue = (x: Value) => value.replaceChildren(swatch(x), shortValue(x));
   showValue(v);
+  if (own && edit) {
+    const reset = document.createElement("button");
+    reset.type = "button";
+    reset.className = "reset";
+    reset.textContent = "↺";
+    reset.title = "Back to the creature's own value";
+    reset.addEventListener("click", () => variant!.reset(g));
+    lockCell.append(reset);
+  }
   if (edit) {
     const control = geneControl(g, v, {
       input: (gene, x) => {
@@ -167,12 +195,14 @@ function groupRow(group: string, count: number, rows: HTMLElement[]): HTMLElemen
 
 /**
  * Shows the genes with their current values: top-level genes first, then each part's under its
- * name. With `edit`, each gene gets a control for trying other values.
+ * name. With `edit`, each gene gets a control for trying other values. With `variant`, the genes
+ * the variant sets are marked, and can be put back to the creature's own values.
  */
 export function showGenes(
   genes: readonly GeneInfo[],
   values: ReadonlyMap<string, Value>,
   edit?: GeneEditing,
+  variant?: VariantGenes,
 ): void {
   const groups = new Map<string | undefined, GeneInfo[]>([[undefined, []]]);
   // A pattern file's genes are all its own, so they aren't put in a group.
@@ -185,10 +215,10 @@ export function showGenes(
   const rows: HTMLElement[] = [];
   for (const [group, members] of groups) {
     if (group === undefined) {
-      rows.push(...members.map((g) => geneRow(g, values, false, edit)));
+      rows.push(...members.map((g) => geneRow(g, values, false, edit, variant)));
       continue;
     }
-    const children = members.map((g) => geneRow(g, values, true, edit));
+    const children = members.map((g) => geneRow(g, values, true, edit, variant));
     rows.push(groupRow(group, members.length, children), ...children);
   }
   $("genes").replaceChildren(...rows);

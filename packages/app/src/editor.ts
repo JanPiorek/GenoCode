@@ -194,8 +194,15 @@ export class CodeEditor {
   readonly view: EditorView;
   private timer = 0;
 
-  /** `onEdit` is called a moment after the text is typed or changed by `applyEdits`. */
-  constructor(parent: HTMLElement, onEdit: (text: string) => void) {
+  /**
+   * `onEdit` is called a moment after the text is typed or changed by `applyEdits`, and `onCursor`
+   * whenever the cursor is moved by the user, with where it is.
+   */
+  constructor(
+    parent: HTMLElement,
+    onEdit: (text: string) => void,
+    onCursor?: (at: number) => void,
+  ) {
     this.view = new EditorView({
       parent,
       state: EditorState.create({
@@ -210,7 +217,9 @@ export class CodeEditor {
           help,
           theme,
           EditorView.updateListener.of((u) => {
-            if (!u.docChanged || u.transactions.some((t) => t.annotation(fromApp))) return;
+            const byApp = u.transactions.some((t) => t.annotation(fromApp));
+            if (u.selectionSet && !byApp) onCursor?.(u.state.selection.main.head);
+            if (!u.docChanged || byApp) return;
             clearTimeout(this.timer);
             this.timer = window.setTimeout(() => onEdit(this.text), 150);
           }),
@@ -229,6 +238,15 @@ export class CodeEditor {
     clearTimeout(this.timer);
     this.view.dispatch({
       changes: { from: 0, to: this.view.state.doc.length, insert: text },
+      annotations: fromApp.of(true),
+    });
+  }
+
+  /** Puts the cursor at `at` and scrolls to it. Doesn't call `onCursor`. */
+  moveTo(at: number): void {
+    this.view.dispatch({
+      selection: { anchor: Math.min(at, this.view.state.doc.length) },
+      scrollIntoView: true,
       annotations: fromApp.of(true),
     });
   }

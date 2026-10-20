@@ -2,6 +2,7 @@
 // gene values back into its program, which is how a bred creature is saved.
 
 import type { CheckResult } from "./checker.js";
+import type { Stmt } from "./ast.js";
 import { hueDelta, mixHue, wrapHue } from "./colour.js";
 import { formatText } from "./format.js";
 import { inHueArc, type GeneInfo, type HueArc } from "./genes.js";
@@ -277,6 +278,103 @@ export function geneEdits(
     if (g.decl === undefined || v === undefined || valuesEqual(v, g.value)) continue;
     const span = g.decl.value.span;
     edits.push({ start: span.start, end: span.end, text: geneLiteral(g, v) });
+  }
+  return edits.sort((p, q) => p.start - q.start);
+}
+
+/**
+ * The edits that write gene values into a variant (section 6.6), in order, without laying anything
+ * else out. A gene the variant already sets gets its new value; one it doesn't gets a line of its
+ * own, unless the value is the gene's own. Each gene in `unset` loses its line, so the variant
+ * goes back to the gene's own value.
+ */
+export function variantEdits(
+  program: CheckResult,
+  variant: string,
+  values: GeneValues,
+  unset: readonly string[] = [],
+): { start: number; end: number; text: string }[] {
+  const found = program.variants.find((v) => v.name === variant);
+  if (!found) return [];
+  const text = program.text;
+  const body = found.decl.body;
+  const settings = body.items.flatMap((s) => (s.kind === "GeneSetting" ? [s] : []));
+  const edits: { start: number; end: number; text: string }[] = [];
+  const added: [name: string, value: string][] = [];
+  for (const g of program.genes) {
+    const v = values.get(g.fullName);
+    if (v === undefined || unset.includes(g.fullName)) continue;
+    const setting = settings.find((s) => s.gene === g.fullName);
+    if (setting) {
+      const old = found.values.get(g.fullName);
+      if (old === undefined || !valuesEqual(v, old)) {
+        edits.push({
+          start: setting.value.span.start,
+          end: setting.value.span.end,
+          text: geneLiteral(g, v),
+        });
+      }
+    } else if (!valuesEqual(v, g.value)) added.push([g.fullName, geneLiteral(g, v)]);
+  }
+  const removed = new Set<Stmt>(settings.filter((s) => unset.includes(s.gene)));
+  const kept = body.items.filter((s) => !removed.has(s));
+  const inside = text.slice(body.span.start + 1, body.span.end - 1);
+  const close = body.span.end - 1;
+  const lineStart = (at: number) => text.lastIndexOf("\n", at - 1) + 1;
+  const ownLine = (s: { span: { start: number; end: number } }) => {
+    const after = text.indexOf("\n", s.span.end);
+    const rest = text.slice(s.span.end, after < 0 ? text.length : after);
+    return (
+      text.slice(lineStart(s.span.start), s.span.start).trim() === "" && /^\s*(\/\/.*)?$/.test(rest)
+    );
+  };
+  if (inside.includes("\n") && text.slice(lineStart(close), close).trim() === "") {
+    // Laid out one setting to a line: lines are removed and added whole.
+    for (const s of settings.filter((s) => removed.has(s))) {
+      if (!ownLine(s)) continue;
+      const after = text.indexOf("\n", s.span.end);
+      edits.push({
+        start: lineStart(s.span.start),
+        end: after < 0 ? text.length : after + 1,
+        text: "",
+      });
+    }
+    if (added.length > 0) {
+      const first = settings[0];
+      const indent = first
+        ? text.slice(lineStart(first.span.start), first.span.start)
+        : `${text.slice(lineStart(found.decl.span.start), found.decl.span.start)}  `;
+      // Lined up with the settings already there, as the formatter does.
+      const width = first ? text.indexOf("=", first.geneSpan.end) - first.span.start : 0;
+      const line = ([name, value]: [string, string]) =>
+        `${indent}${name.padEnd(width - 1)} = ${value}\n`;
+      const at = lineStart(close);
+      edits.push({ start: at, end: at, text: added.map(line).join("") });
+    }
+  } else if (kept.length === 0) {
+    // On one line, and nothing left of it but what's added.
+    if (removed.size > 0 || added.length > 0) {
+      const all = added.map(([name, value]) => `${name} = ${value}`).join("; ");
+      edits.push({ start: body.span.start, end: body.span.end, text: all ? `{ ${all} }` : "{}" });
+    }
+  } else {
+    // On one line, separated by `;`: each removed setting goes with the `;` before it, or with the
+    // one after it while nothing before it is kept.
+    const firstKept = body.items.indexOf(kept[0]!);
+    body.items.forEach((s, i) => {
+      if (!removed.has(s)) return;
+      if (i > firstKept)
+        edits.push({ start: body.items[i - 1]!.span.end, end: s.span.end, text: "" });
+      else edits.push({ start: s.span.start, end: body.items[i + 1]!.span.start, text: "" });
+    });
+    const last = kept[kept.length - 1]!;
+    if (added.length > 0) {
+      edits.push({
+        start: last.span.end,
+        end: last.span.end,
+        text: added.map(([name, value]) => `; ${name} = ${value}`).join(""),
+      });
+    }
   }
   return edits.sort((p, q) => p.start - q.start);
 }

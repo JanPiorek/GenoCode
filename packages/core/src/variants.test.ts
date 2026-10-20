@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import { check } from "./checker.js";
 import { formatText } from "./format.js";
 import { completionsAt, helpAt } from "./help.js";
+import { variantEdits } from "./genetics.js";
 import { build } from "./interpreter.js";
 import { checked } from "./test-helpers.js";
 import { hsv } from "./colour.js";
+import type { Value } from "./values.js";
 
 const CREATURE = `creature T
 
@@ -99,5 +101,64 @@ describe("variants", () => {
     expect(names).toEqual(expect.arrayContaining(["leg.reach", "background.hue", "size"]));
     expect(helpAt(p, text.indexOf("reach = 3"))?.help.title).toBe("gene leg.reach");
     expect(helpAt(p, text.indexOf("variant A"))?.help.section).toBe("6.6");
+  });
+});
+
+describe("variantEdits", () => {
+  const edited = (variants: string, values: Record<string, Value>, unset: string[] = []) => {
+    const p = checked(CREATURE + variants);
+    let text = p.text;
+    for (const e of variantEdits(p, "V", new Map(Object.entries(values)), unset).reverse()) {
+      text = text.slice(0, e.start) + e.text + text.slice(e.end);
+    }
+    expect(check(text).diagnostics).toEqual([]);
+    return text.slice(CREATURE.length);
+  };
+
+  it("changes a value the variant sets", () => {
+    expect(edited("\nvariant V { size = 2; n = 6 }\n", { n: 4 })).toBe(
+      "\nvariant V { size = 2; n = 4 }\n",
+    );
+    expect(edited("\nvariant V {\n  size = 2  // big\n}\n", { size: 1.5 })).toBe(
+      "\nvariant V {\n  size = 1.5  // big\n}\n",
+    );
+  });
+
+  it("adds a line for a gene it doesn't set, unless the value is the gene's own", () => {
+    expect(edited("\nvariant V { size = 2 }\n", { "leg.reach": 3, n: 3 })).toBe(
+      "\nvariant V { size = 2; leg.reach = 3 }\n",
+    );
+    expect(
+      edited("\nvariant V {\n    size = 2\n}\n", {
+        skin: hsv(70, 1, 1),
+        limb: { type: "part", name: "fin" },
+      }),
+    ).toBe("\nvariant V {\n    size = 2\n    skin = hsv(70, 1, 1)\n    limb = fin\n}\n");
+    expect(edited("\nvariant V {\n  plump  = false\n  n      = 2\n}\n", { size: 2 })).toBe(
+      "\nvariant V {\n  plump  = false\n  n      = 2\n  size   = 2\n}\n",
+    );
+    expect(edited("\nvariant V {}\n", { n: 2 })).toBe("\nvariant V { n = 2 }\n");
+    expect(edited("\nvariant V {\n}\n", { n: 2 })).toBe("\nvariant V {\n  n = 2\n}\n");
+  });
+
+  it("removes the lines of genes to unset", () => {
+    expect(edited("\nvariant V {\n  size = 2\n  n = 6  // many\n}\n", {}, ["n"])).toBe(
+      "\nvariant V {\n  size = 2\n}\n",
+    );
+    expect(edited("\nvariant V { size = 2; n = 6; plump = false }\n", {}, ["size", "n"])).toBe(
+      "\nvariant V { plump = false }\n",
+    );
+    expect(edited("\nvariant V { size = 2; n = 6; plump = false }\n", {}, ["n"])).toBe(
+      "\nvariant V { size = 2; plump = false }\n",
+    );
+    expect(edited("\nvariant V { size = 2 }\n", {}, ["size"])).toBe("\nvariant V {}\n");
+  });
+
+  it("leaves other variants and unknown names alone", () => {
+    const p = checked(CREATURE + "\nvariant A { n = 2 }\n\nvariant V { n = 4 }\n");
+    expect(variantEdits(p, "Missing", new Map([["n", 5]]))).toEqual([]);
+    const [e] = variantEdits(p, "V", new Map([["n", 5]]));
+    expect(p.text.slice(e!.start, e!.end)).toBe("4");
+    expect(e!.start).toBeGreaterThan(p.text.indexOf("variant V"));
   });
 });
