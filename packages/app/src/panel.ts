@@ -108,6 +108,7 @@ function geneRow(
   inGroup: boolean,
   edit: GeneEditing | undefined,
   variant: VariantGenes | undefined,
+  valueShowers: Map<string, (v: Value) => void>,
 ): HTMLElement {
   const row = document.createElement("tr");
   if (inGroup) row.classList.add("in-group");
@@ -145,8 +146,16 @@ function geneRow(
   const value = document.createElement("td");
   value.className = "gene-value";
   const v = values.get(g.fullName) ?? g.value;
-  const showValue = (x: Value) => value.replaceChildren(swatch(x), shortValue(x));
+  let shownText: string | undefined;
+  const showValue = (x: Value) => {
+    // Only touched when the value looks different, so a playing morph doesn't churn the page.
+    const text = shortValue(x) || formatValue(x);
+    if (text === shownText) return;
+    shownText = text;
+    value.replaceChildren(swatch(x), shortValue(x));
+  };
   showValue(v);
+  valueShowers.set(g.fullName, showValue);
   if (own && edit) {
     const reset = document.createElement("button");
     reset.type = "button";
@@ -202,6 +211,14 @@ function groupRow(group: string, count: number, rows: HTMLElement[]): HTMLElemen
   return row;
 }
 
+/** What the panel last showed, so a call with the same genes only updates the values. */
+let lastShown: {
+  genes: readonly GeneInfo[];
+  edit: GeneEditing | undefined;
+  variant: VariantGenes | undefined;
+  showers: Map<string, (v: Value) => void>;
+} = { genes: [], edit: undefined, variant: undefined, showers: new Map() };
+
 /**
  * Shows the genes with their current values: top-level genes first, then each part's under its
  * name. With `edit`, each gene gets a control for trying other values. With `variant`, the genes
@@ -213,6 +230,21 @@ export function showGenes(
   edit?: GeneEditing,
   variant?: VariantGenes,
 ): void {
+  // Values that change while the same genes are on show (a morph or a dance playing) are updated
+  // in place: rebuilding the rows each time would reset the hover and focus on every one.
+  if (
+    !edit &&
+    !variant &&
+    !lastShown.edit &&
+    !lastShown.variant &&
+    genes === lastShown.genes &&
+    genes.length > 0
+  ) {
+    for (const g of genes) lastShown.showers.get(g.fullName)?.(values.get(g.fullName) ?? g.value);
+    return;
+  }
+  const showers = new Map<string, (v: Value) => void>();
+  lastShown = { genes, edit, variant, showers };
   const groups = new Map<string | undefined, GeneInfo[]>([[undefined, []]]);
   // A pattern file's genes are all its own, so they aren't put in a group.
   const onePattern = genes.every((g) => g.section === "pattern" && g.owner === genes[0]?.owner);
@@ -224,10 +256,10 @@ export function showGenes(
   const rows: HTMLElement[] = [];
   for (const [group, members] of groups) {
     if (group === undefined) {
-      rows.push(...members.map((g) => geneRow(g, values, false, edit, variant)));
+      rows.push(...members.map((g) => geneRow(g, values, false, edit, variant, showers)));
       continue;
     }
-    const children = members.map((g) => geneRow(g, values, true, edit, variant));
+    const children = members.map((g) => geneRow(g, values, true, edit, variant, showers));
     rows.push(groupRow(group, members.length, children), ...children);
   }
   $("genes").replaceChildren(...rows);
