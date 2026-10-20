@@ -88,6 +88,26 @@ describe("Dancer", () => {
     expect(flips).toEqual([false, true, true, true, true, false]);
   });
 
+  it("stays face-on, spinning only about the line of sight, when kept face-on", () => {
+    const d = new Dancer(() => 0.9);
+    d.faceOn = true;
+    let input = 0;
+    for (let i = 0; i < 200; i++) {
+      input = i % 7 === 0 ? 1 - input : input;
+      d.step(
+        {
+          spin: { input: 0.5, from: 90, to: 360, smooth: 0.3 },
+          turn: { input, when: "changes", by: 0.5 },
+          flat: { input, when: "changes", by: 0.5, bursts: { on: 1, off: 1 } },
+        },
+        0.05,
+      );
+      const [x, y] = d.orientation;
+      expect(d.flat).toBe(true);
+      expect(Math.hypot(x, y)).toBeLessThan(1e-9);
+    }
+  });
+
   it("starts in 3D, goes flat after its rest, and comes out after its burst", () => {
     const d = new Dancer();
     const style = (input: number): DanceStyle => ({

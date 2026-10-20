@@ -27,6 +27,8 @@ export class DanceFloor {
   private frame = 0;
   private started = 0;
   private last = 0;
+  private faceOn = false;
+  private dancing = false;
 
   constructor(
     private readonly view: CreatureView,
@@ -39,10 +41,26 @@ export class DanceFloor {
     this.members = members;
     this.style = style;
     this.dancer = new Dancer();
+    this.dancer.faceOn = this.faceOn;
     this.started = performance.now();
     this.last = this.started;
     this.stop();
+    this.dancing = true;
     this.draw(true);
+  }
+
+  /**
+   * Keeps the creature face-on, seen from straight in front with the camera locked, as the
+   * original's dances were: it only spins flat. Otherwise it tumbles in 3D and the viewer can look
+   * round.
+   */
+  setFaceOn(on: boolean): void {
+    this.faceOn = on;
+    this.dancer.faceOn = on;
+    if (!this.dancing) return;
+    this.view.lockCamera(on);
+    if (on) this.view.viewFrom("front");
+    else this.view.resetView();
   }
 
   /** Changes style while dancing; the dance carries on from where it is. */
@@ -52,7 +70,9 @@ export class DanceFloor {
 
   stop(): void {
     cancelAnimationFrame(this.frame);
+    this.dancing = false;
     this.view.setPose([0, 0, 0, 1], 0);
+    this.view.lockCamera(false);
   }
 
   get count(): number {
@@ -85,6 +105,10 @@ export class DanceFloor {
     const { built, background } = buildCreature(f.creature, inputs);
     f.problems = built.diagnostics;
     this.view.setCreature(built.shapes, !first);
+    if (first && this.faceOn) {
+      this.view.lockCamera(true);
+      this.view.viewFrom("front");
+    }
     this.view.setBackground(background);
     this.view.setPose(this.dancer.orientation, this.dancer.nearness);
     this.onFrame({ ...f, music, beat, styleOk });

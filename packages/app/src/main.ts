@@ -566,6 +566,7 @@ function setMode(next: Mode): void {
     designer.show(creaturePattern(), own, libraryPatterns());
   }
   if (mode === "library") library.show(libraryEntries());
+  showFaceOn();
   enableTools();
 }
 
@@ -874,9 +875,37 @@ function chosenStyle(): CheckResult | undefined {
   return styleSelect.value === OWN_STYLE ? current?.program : libraryStyle(styleSelect.value);
 }
 
+/** Whether the creature dances face-on, seen from the front (remembered in this browser). */
+let faceOn = (() => {
+  try {
+    return localStorage.getItem("genocode.faceOn") === "on";
+  } catch {
+    return false;
+  }
+})();
+
+/** Shows the Front button's state; the side buttons can't move a locked camera. */
+function showFaceOn(): void {
+  $("face-on").setAttribute("aria-pressed", String(faceOn));
+  const locked = mode === "dance" && faceOn;
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-side]")) b.disabled = locked;
+}
+
+$("face-on").addEventListener("click", () => {
+  faceOn = !faceOn;
+  try {
+    localStorage.setItem("genocode.faceOn", faceOn ? "on" : "off");
+  } catch {
+    // Not remembered, then.
+  }
+  floor.setFaceOn(faceOn);
+  showFaceOn();
+});
+
 function startDance(keepStyle = false): void {
   if (!current) return;
   fillStyleMenu(keepStyle);
+  floor.setFaceOn(faceOn);
   floor.start(loopMembers(current), chosenStyle());
 }
 

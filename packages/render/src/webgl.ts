@@ -584,6 +584,11 @@ export class CreatureView {
     this.requestFrame();
   }
 
+  /** Stops the viewer turning, moving and zooming the camera with the mouse, or lets them again. */
+  lockCamera(locked: boolean): void {
+    this.controls.enabled = !locked;
+  }
+
   /**
    * Turns the creature as a whole about its middle (`turn` is a quaternion: x, y, z, w) and brings
    * it `nearness` of the way (0 to 1) towards the camera, as a dance does. The camera stays put, so

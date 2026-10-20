@@ -67,6 +67,11 @@ export class Dancer {
   orientation: Quaternion = [0, 0, 0, 1];
   /** Whether it's in a flat, face-on spin. */
   flat = false;
+  /**
+   * Keeps the creature face-on, as the original's dances were seen: it only ever spins flat, as if
+   * the style's `flat` were always on.
+   */
+  faceOn = false;
 
   // The spin swings from the old axis and speed (degrees a second) to the new over `smooth` seconds.
   private fromAxis: Vector = VIEW_AXIS;
@@ -110,18 +115,16 @@ export class Dancer {
 
   private stepFlat(style: DanceStyle): void {
     const f = style.flat;
-    if (f === undefined) {
-      if (this.flat) this.flat = false;
-      return;
-    }
-    if (this.flatSwitch.fires(f)) this.flatBursts.trigger(f.bursts);
-    const flat = this.flatBursts.working;
+    if (f !== undefined && this.flatSwitch.fires(f)) this.flatBursts.trigger(f.bursts);
+    const flat = this.faceOn || (f !== undefined && this.flatBursts.working);
     if (flat === this.flat) return;
     this.flat = flat;
     if (flat) {
       // Snap face-on, and spin flat about the line of sight.
       this.orientation = [0, 0, 0, 1];
       this.newAxis(style, VIEW_AXIS);
+      // Kept face-on, it doesn't swing over from a tumbling axis either.
+      if (this.faceOn) this.fromAxis = VIEW_AXIS;
     }
   }
 
