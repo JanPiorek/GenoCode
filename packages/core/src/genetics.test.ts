@@ -2,7 +2,15 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { check } from "./checker.js";
 import { wrapHue } from "./colour.js";
-import { breed, morph, mutate, valuesOf, writeGenes } from "./genetics.js";
+import {
+  breed,
+  familySpread,
+  geneDistance,
+  morph,
+  mutate,
+  valuesOf,
+  writeGenes,
+} from "./genetics.js";
 import { inHueArc } from "./genes.js";
 import { mulberry32 } from "./noise.js";
 import { checked } from "./test-helpers.js";
@@ -117,6 +125,53 @@ describe("mutate", () => {
     expect(swaps).toBeLessThan(360);
   });
 
+  it("changes about four genes at a time unless a rate is given", () => {
+    const genes = genesOf(
+      Array.from({ length: 40 }, (_, i) => `gene g${i} = 5 in 0..10`).join("\n"),
+    );
+    let changed = 0;
+    trials((random) => {
+      const v = mutate(genes, undefined, { strength: 0.5, random });
+      changed += [...v.values()].filter((x) => x !== 5).length;
+    }, 500);
+    expect(changed / 500).toBeGreaterThan(3.5);
+    expect(changed / 500).toBeLessThan(4.5);
+  });
+
+  it("takes small steps more often than big ones", () => {
+    const genes = genesOf("gene n = 5 in 0..10");
+    let small = 0;
+    trials((random) => {
+      const v = mutate(genes, undefined, { strength: 0.5, rate: 1, random }).get("n") as number;
+      if (Math.abs(v - 5) < 2.5) small++;
+    }, 1000);
+    // Three quarters for a triangular step, half for a uniform one.
+    expect(small).toBeGreaterThan(700);
+  });
+
+  it("steps by the family's spread when it's given", () => {
+    const genes = genesOf(
+      "gene n = 5 in 0..100\ngene same = 50 in 0..100\ngene c = hsv(10, 0.5, 0.5) in hsv(0, 0, 0)..hsv(360, 1, 1)",
+    );
+    const family = [
+      new Map<string, Value>([["n", 0]]),
+      new Map<string, Value>([
+        ["n", 20],
+        ["c", { type: "colour", h: 350, s: 0.5, v: 0.5, a: 1 }],
+      ]),
+    ];
+    const spread = familySpread(genes, family);
+    expect(spread.get("n")).toEqual([0.2]);
+    expect(spread.get("same")).toEqual([0]);
+    expect(spread.get("c")![0]).toBeCloseTo(20 / 360);
+    trials((random) => {
+      const v = mutate(genes, undefined, { strength: 1, rate: 1, random, spread });
+      expect(Math.abs((v.get("n") as number) - 5)).toBeLessThanOrEqual(40);
+      // Genes the family agrees on still move a little.
+      expect(Math.abs((v.get("same") as number) - 50)).toBeLessThanOrEqual(10);
+    });
+  });
+
   it("gives the seed gene a new whole number", () => {
     const genes = check("creature T\nforward random(0, 1)\nlay\n").genes;
     trials((random) => {
@@ -174,6 +229,28 @@ describe("breed", () => {
     expect([...seen].sort()).toEqual([false, true]);
   });
 
+  it("takes a vector or colour whole, every channel the same way", () => {
+    const g = genesOf(
+      "gene c = hsv(0, 0, 0) in hsv(0, 0, 0)..hsv(360, 1, 1)\ngene v = (0, 0, 0) in (0, 0, 0)..(1, 1, 1)",
+    );
+    const q = {
+      genes: g,
+      values: new Map<string, Value>([
+        ["c", { type: "colour", h: 100, s: 1, v: 1, a: 1 }],
+        ["v", { type: "vector", x: 1, y: 1, z: 1 }],
+      ]),
+    };
+    trials((random) => {
+      const child = breed({ genes: g }, q, { random });
+      const c = child.get("c") as Colour;
+      const v = child.get("v") as Vec;
+      expect(c.s).toBeCloseTo(c.v);
+      expect(c.h / 100).toBeCloseTo(c.s);
+      expect(v.x).toBe(v.y);
+      expect(v.y).toBe(v.z);
+    });
+  });
+
   it("blends hues the short way round", () => {
     const g = genesOf("gene c = hsv(350, 1, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)");
     const p = { genes: g };
@@ -185,6 +262,15 @@ describe("breed", () => {
       const h = (breed(p, q, { random }).get("c") as Colour).h;
       expect(h >= 350 || h <= 10).toBe(true);
     });
+  });
+});
+
+describe("geneDistance", () => {
+  it("is 0 for the same values and grows with the difference", () => {
+    const genes = genesOf("gene n = 0 in 0..10\ngene on = true");
+    expect(geneDistance(genes, undefined, undefined)).toBe(0);
+    expect(geneDistance(genes, undefined, new Map([["n", 5]]))).toBeCloseTo(0.25);
+    expect(geneDistance(genes, undefined, new Map<string, Value>([["on", false]]))).toBe(0.5);
   });
 });
 

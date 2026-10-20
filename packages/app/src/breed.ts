@@ -1,8 +1,8 @@
 // The breeding grid: a generation of creatures shown as tiles. Select parents, then mutate or
 // breed them into the next generation (docs/LANGUAGE.md section 19).
 
-import { breed, mutate } from "@genocode/core";
-import { onFieldReady, Thumbnails } from "@genocode/render";
+import { breed, familySpread, geneDistance, mutate, type GeneSpread } from "@genocode/core";
+import { creatureBounds, onFieldReady, Thumbnails } from "@genocode/render";
 import { buildCreature, type Creature } from "./creature.js";
 import { locked } from "./panel.js";
 
@@ -10,6 +10,12 @@ const GRID_SIZE = 12;
 /** Kept parents fill at most half the grid, so every generation has new creatures. */
 const MAX_KEPT = GRID_SIZE / 2;
 const HISTORY = 30;
+/** How many children are tried for each tile, to find ones worth showing. */
+const TRIES = 3;
+/** A child is too big or too small next to its parent beyond this factor. */
+const MAX_GROWTH = 4;
+/** Children closer than this to a parent or another tile (`geneDistance`) look the same. */
+const MIN_DISTANCE = 0.004;
 
 export interface BreederEvents {
   /** A tile was clicked: show its genes. */
@@ -24,6 +30,10 @@ export class Breeder {
   private parents = new Set<number>();
   private readonly selected = new Set<number>();
   private readonly history: { generation: Creature[]; parents: Set<number> }[] = [];
+  /** How far apart the genes of the family the grid started from are; mutations keep to it. */
+  private spread: GeneSpread | undefined;
+  /** Each creature's size, from its bounds, once worked out. */
+  private readonly sizes = new WeakMap<Creature, number | undefined>();
   private readonly thumbnails = new Thumbnails();
   private drawing = 0;
   /** The tiles on show, to draw again when a texture's picture is ready. */
@@ -66,18 +76,23 @@ export class Breeder {
     this.history.length = 0;
     this.selected.clear();
     this.selected.add(0);
+    const first = family[0]!.program;
+    this.spread =
+      family.length > 1
+        ? familySpread(
+            first.genes,
+            family.map((c) => c.values),
+          )
+        : undefined;
     if (family.length === 1) {
       this.next(family, strength, true);
       return;
     }
     const kept = family.slice(0, GRID_SIZE);
-    const children: Creature[] = [];
-    while (kept.length + children.length < GRID_SIZE) {
-      const p = kept[Math.floor(Math.random() * kept.length)]!;
-      const values = mutate(p.program.genes, p.values, { strength, random: Math.random, locked });
-      children.push({ program: p.program, values });
-    }
-    this.show(kept, children);
+    this.show(
+      kept,
+      this.children(kept, () => this.mutant(kept, strength)),
+    );
   }
 
   /** The next generation: mutations of the selected creatures. */
@@ -96,8 +111,7 @@ export class Breeder {
     this.remember();
     this.selected.clear();
     const kept = keepParents ? parents.slice(0, MAX_KEPT) : [];
-    const children: Creature[] = [];
-    while (kept.length + children.length < GRID_SIZE) {
+    const children = this.children(kept, () => {
       const i = Math.floor(Math.random() * parents.length);
       let j = Math.floor(Math.random() * (parents.length - 1));
       if (j >= i) j++;
@@ -108,8 +122,8 @@ export class Breeder {
         { genes: b.program.genes, values: b.values },
         { random: Math.random, locked },
       );
-      children.push({ program: a.program, values });
-    }
+      return { child: { program: a.program, values }, parents: [a, b] };
+    });
     this.show(kept, children);
   }
 
@@ -130,17 +144,73 @@ export class Breeder {
 
   private next(parents: Creature[], strength: number, keepParents: boolean): void {
     const kept = keepParents ? parents.slice(0, MAX_KEPT) : [];
-    const children: Creature[] = [];
-    while (kept.length + children.length < GRID_SIZE) {
-      const p = parents[Math.floor(Math.random() * parents.length)]!;
-      const values = mutate(p.program.genes, p.values, {
-        strength,
-        random: Math.random,
-        locked,
-      });
-      children.push({ program: p.program, values });
+    this.show(
+      kept,
+      this.children(kept, () => this.mutant(parents, strength)),
+    );
+  }
+
+  /** A mutation of one of the parents, chosen at random. */
+  private mutant(parents: Creature[], strength: number): { child: Creature; parents: Creature[] } {
+    const p = parents[Math.floor(Math.random() * parents.length)]!;
+    const values = mutate(p.program.genes, p.values, {
+      strength,
+      random: Math.random,
+      locked,
+      spread: this.spread,
+    });
+    return { child: { program: p.program, values }, parents: [p] };
+  }
+
+  /**
+   * Children to fill the grid after the kept parents. Several are tried for each tile, and broken
+   * ones, ones far bigger or smaller than their parents and ones that look the same as a tile are
+   * left out. If too few are left, the least bad of the rest fill the grid.
+   */
+  private children(
+    kept: Creature[],
+    make: () => { child: Creature; parents: Creature[] },
+  ): Creature[] {
+    const wanted = GRID_SIZE - kept.length;
+    const good: Creature[] = [];
+    const rest: { child: Creature; fault: number }[] = [];
+    for (let tries = 0; good.length < wanted && tries < wanted * TRIES; tries++) {
+      const { child, parents } = make();
+      const fault = this.fault(child, parents, [...kept, ...good]);
+      if (fault === 0) good.push(child);
+      else rest.push({ child, fault });
     }
-    this.show(kept, children);
+    rest.sort((a, b) => a.fault - b.fault);
+    return [...good, ...rest.slice(0, wanted - good.length).map((r) => r.child)];
+  }
+
+  /** What's wrong with a child, worst first: 3 broken, 2 the wrong size, 1 a look-alike, 0 nothing. */
+  private fault(child: Creature, parents: Creature[], tiles: Creature[]): number {
+    if (child.program.file.kind === "creature") {
+      const size = this.size(child);
+      if (size === undefined) return 3;
+      const near = parents.some((p) => {
+        const s = this.size(p);
+        return s === undefined || (size < s * MAX_GROWTH && size > s / MAX_GROWTH);
+      });
+      if (!near) return 2;
+    }
+    const genes = child.program.genes;
+    const alike = [...parents, ...tiles].some(
+      (t) =>
+        t.program === child.program && geneDistance(genes, t.values, child.values) < MIN_DISTANCE,
+    );
+    return alike ? 1 : 0;
+  }
+
+  /** How big a creature is, or undefined if it doesn't build or has no shapes. */
+  private size(c: Creature): number | undefined {
+    if (!this.sizes.has(c)) {
+      const { built } = buildCreature(c);
+      const ok = built.ok && built.shapes.length > 0;
+      this.sizes.set(c, ok ? creatureBounds(built.shapes).radius : undefined);
+    }
+    return this.sizes.get(c);
   }
 
   private show(kept: Creature[], children: Creature[]): void {

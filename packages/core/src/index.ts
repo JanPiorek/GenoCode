@@ -44,6 +44,8 @@ export {
 export type { GeneInfo, GeneKind, GeneSection, HueArc } from "./genes.js";
 export {
   breed,
+  familySpread,
+  geneDistance,
   geneEdits,
   geneLiteral,
   morph,
@@ -52,6 +54,7 @@ export {
   variantEdits,
   writeGenes,
   type GeneSet,
+  type GeneSpread,
   type GeneticsOptions,
   type GeneValues,
   type MutateOptions,
