@@ -1139,22 +1139,43 @@ values, and strings in double quotes.
 This section defines what the app does to genes. The app chooses _when_ to do it, for example when
 the user presses Mutate.
 
+A creature whose children don't keep its look can say so with a line at its top level:
+
+```
+breed off
+```
+
+The app then won't mutate or breed it. It can still be morphed and danced. `breed on` is the
+default, and a creature can say either only once.
+
 ### 19.1 Mutation
 
-Mutation has a **strength** from 0 to 1, chosen by the user, and a **gene rate**, which is ½ unless
-the app lets the user change it. Each gene is considered separately: with probability equal to the
+Mutation has a **strength** from 0 to 1, chosen by the user, and a **gene rate**. Unless the app
+lets the user change it, the gene rate is `4 / n` for `n` genes that aren't locked, and at most ½, so
+about four genes change at a time. Each gene is considered separately: with probability equal to the
 gene rate it's changed, as follows. Otherwise it's left alone. Locked genes are never changed.
 
-| Gene                | Change                                                                                                                                                                                                                              |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| number              | Let `r = strength × (max − min)`. The new value is uniformly random between `max(min, v − r)` and `min(max, v + r)`                                                                                                                 |
-| stepped number      | as a number, then rounded to the nearest `min + k·step` that lies within the range                                                                                                                                                  |
-| log number          | as a number, but on the natural logarithms of the value and bounds, then converted back                                                                                                                                             |
-| vector              | each axis as a number, using its own range (and `log`, if declared)                                                                                                                                                                 |
-| colour              | saturation, value and alpha as numbers. Hue: the window `v ± r` is taken round the circle and limited to the range's arc, where `r` is `strength` times the arc's length. A whole-circle range wraps round instead of being limited |
-| bool                | flipped with probability `strength`                                                                                                                                                                                                 |
-| choice, part choice | with probability `strength`, replaced by one of the other options, chosen uniformly                                                                                                                                                 |
-| `seed`              | with probability `strength`, replaced by a new uniformly random seed                                                                                                                                                                |
+A **step** of up to `r` is `r × (u₁ − u₂)` for two uniformly random numbers `u₁` and `u₂` from 0 to 1:
+small steps are more likely than big ones. The new value is `v` plus the step, or `v` minus it if
+that would leave the range, and then kept within the range.
+
+| Gene                | Change                                                                                                                                                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| number              | a step of up to `r = strength × (max − min)`                                                                                                                                                 |
+| stepped number      | as a number, then rounded to the nearest `min + k·step` that lies within the range                                                                                                           |
+| log number          | as a number, but on the natural logarithms of the value and bounds, then converted back                                                                                                      |
+| vector              | each axis as a number, using its own range (and `log`, if declared)                                                                                                                          |
+| colour              | saturation, value and alpha as numbers. Hue: a step of up to `r = strength × the arc's length`, taken round the circle and kept on the range's arc. A whole-circle range wraps round instead |
+| bool                | flipped with probability `strength`                                                                                                                                                          |
+| choice, part choice | with probability `strength`, replaced by one of the other options, chosen uniformly                                                                                                          |
+| `seed`              | with probability `strength`, replaced by a new uniformly random seed                                                                                                                         |
+
+An app may mutate a creature **within its family**: its variants ([6.6](#66-variants)) show how far
+apart each gene's values are meant to be. The **spread** of each number, axis or channel is the width
+of the values the creature and its variants have, as a part of the range (on the logarithms for a
+`log` gene; for a hue, the widest gap between two of them the short way round, as a part of the arc).
+Each `r` above is then multiplied by twice the spread, or by 1/10 if that's smaller, so genes the
+family agrees on move only a little.
 
 ### 19.2 Breeding
 
@@ -1162,13 +1183,13 @@ A child has exactly two parents, **A** and **B**. The child's program is A's pro
 set as follows. A gene of A's is **matched** if B has a gene with the same full name and the same
 kind; unmatched genes keep A's value.
 
-| Gene                              | Matched value                                                                                                                               |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| number                            | with probability ½, a uniformly random point between A's and B's values; otherwise A's or B's value with equal probability (¼ each overall) |
-| stepped number                    | as a number, then rounded to the nearest step within the range                                                                              |
-| log number                        | as a number, with the random point taken between the logarithms                                                                             |
-| vector, colour                    | each axis or channel separately as a number. A random point between two hues is taken along the short way round                             |
-| bool, choice, part choice, `seed` | A's or B's value, with equal probability                                                                                                    |
+| Gene                              | Matched value                                                                                                                                                  |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| number                            | with probability ½, a uniformly random point between A's and B's values; otherwise A's or B's value with equal probability (¼ each overall)                    |
+| stepped number                    | as a number, then rounded to the nearest step within the range                                                                                                 |
+| log number                        | as a number, with the random point taken between the logarithms                                                                                                |
+| vector, colour                    | as a number, the whole value at once: every axis or channel comes from the same parent, or the same part of the way between them. Hue goes the short way round |
+| bool, choice, part choice, `seed` | A's or B's value, with equal probability                                                                                                                       |
 
 Every result is kept within A's range for that gene.
 

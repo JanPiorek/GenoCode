@@ -542,6 +542,7 @@ class Run {
       case "Background":
       case "Dance":
       case "Variant":
+      case "Breed":
       case "GeneSetting":
       case "Pattern":
       case "ErrorStmt":

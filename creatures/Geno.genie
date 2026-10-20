@@ -3,7 +3,10 @@ creature Geno
 // little further round the colour wheel. Its form genes bend the chain into other shapes: a sea
 // turtle, whose shell, head, eyes, flippers and tail are each one of the G's balls, swelling and
 // stretching into place as the rest spiral over the shell, and a double helix with rungs in four
-// colours. Morph it through its variants, or breed it for hybrids. It has a dance of its own.
+// colours. Morph it through its variants; it isn't bred, as its children lose the logo's look. It
+// has a dance of its own.
+
+breed off
 
 gene logo       = 1 in 0..1  // how much the chain keeps the shape of the G
 gene sea_turtle = 0 in 0..1  // how much it curls into a turtle

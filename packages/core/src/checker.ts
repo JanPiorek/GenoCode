@@ -66,6 +66,8 @@ export interface CheckResult {
   usesRandom: boolean;
   /** The creature's variants (section 6.6), in the order they're written. */
   variants: Variant[];
+  /** The app may mutate and breed the creature: false when it says `breed off` (section 19). */
+  breedable: boolean;
   /**
    * Every name the checker could tie to its declaration: genes, parts, functions and variables,
    * where they're declared and wherever they're used, in no particular order.
@@ -108,6 +110,7 @@ export function check(text: string): CheckResult {
     backgroundLive: checker.backgroundLive,
     usesRandom: checker.usesRandom,
     variants: checker.variants,
+    breedable: checker.breedable,
     references: checker.references,
   };
 }
@@ -310,6 +313,8 @@ class Checker {
   backgroundLive = false;
   usesRandom = false;
   variants: Variant[] = [];
+  breedable = true;
+  private breedSpan: Span | undefined;
   references: NameReference[] = [];
   private randomSpan: Span | undefined;
   private readonly fullNames = new Set<string>();
@@ -1205,6 +1210,16 @@ class Checker {
       case "Variant":
         if (!creatureTop || ctx.section !== "creature")
           this.error(stmt.span, "A variant can only be at the top level of a creature.");
+        return;
+      case "Breed":
+        if (!creatureTop) {
+          this.error(stmt.span, "`breed` can only be at the top level of a creature.");
+        } else if (this.breedSpan) {
+          this.error(stmt.span, "The creature already says whether it can be bred.");
+        } else {
+          this.breedSpan = stmt.span;
+          this.breedable = stmt.on;
+        }
         return;
       case "GeneSetting":
         return;

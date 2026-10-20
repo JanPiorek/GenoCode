@@ -299,6 +299,16 @@ export function defineBlocks(): void {
     },
   });
 
+  define("g_breed", {
+    init(this: GBlock) {
+      this.extra = {};
+      this.appendDummyInput()
+        .appendField("breed")
+        .appendField(new Blockly.FieldDropdown(options(["off", "on"])), "ON");
+      statement(this, HUES.genes, "Whether the app may mutate and breed the creature.");
+    },
+  });
+
   define("g_setting", {
     init(this: GBlock) {
       this.extra = {};

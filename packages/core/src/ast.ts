@@ -211,6 +211,7 @@ export type Stmt =
   | BackgroundDecl
   | DanceDecl
   | VariantDecl
+  | BreedSetting
   | GeneSetting
   | Let
   | Assign
@@ -279,6 +280,12 @@ export interface VariantDecl extends StmtBase {
   name: string;
   nameSpan: Span;
   body: Block;
+}
+
+/** `breed off`: whether the app may mutate and breed the creature (section 19). */
+export interface BreedSetting extends StmtBase {
+  kind: "Breed";
+  on: boolean;
 }
 
 /** `whorl.petals = 9` inside a variant: a gene, by its full name, and its value. */

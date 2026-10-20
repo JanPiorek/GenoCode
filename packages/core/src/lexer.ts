@@ -58,6 +58,7 @@ export const KEYWORDS: ReadonlySet<string> = new Set([
   "beat",
   "music",
   "variant",
+  "breed",
 ]);
 
 export type TokenKind =

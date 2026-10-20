@@ -227,6 +227,8 @@ function simpleText(s: Stmt): string | undefined {
       return s.args.length > 0 ? `${s.name}(${s.args.map(expr).join(", ")})` : s.name;
     case "Return":
       return s.value ? `return ${expr(s.value)}` : "return";
+    case "Breed":
+      return `breed ${s.on ? "on" : "off"}`;
     case "Print":
       return `print(${s.args.map(expr).join(", ")})`;
     case "Lay":

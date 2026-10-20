@@ -43,7 +43,7 @@
       <button id="delete" type="button" title="Delete it from this browser" hidden>Delete</button>
       <nav class="modes" aria-label="Mode">
         <button type="button" data-mode="view" aria-pressed="true">View</button>
-        <button type="button" data-mode="breed" aria-pressed="false">Breed</button>
+        <button id="mode-breed" type="button" data-mode="breed" aria-pressed="false">Breed</button>
         <button type="button" data-mode="morph" aria-pressed="false">Morph</button>
         <button type="button" data-mode="dance" aria-pressed="false">Dance</button>
         <button type="button" data-mode="patterns" aria-pressed="false">Patterns</button>
@@ -78,7 +78,7 @@
           <button id="mutate" type="button">Mutate</button>
           <label class="field" title="How far genes move when they mutate">
             <span>Strength</span>
-            <input id="strength" type="range" min="0.05" max="1" step="0.05" value="0.25" />
+            <input id="strength" type="range" min="1" max="100" step="1" value="50" />
           </label>
           <button id="breed" type="button">Breed</button>
           <label class="field"><input id="keep" type="checkbox" checked /> Keep parents</label>

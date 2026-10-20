@@ -446,6 +446,15 @@ class Parser {
         const body = this.parseBlock("dance", "dance");
         return this.endCompound({ kind: "Dance", ...this.base(start), body });
       }
+      case "breed": {
+        this.next();
+        const w = this.peek();
+        if (w.kind !== "name" || (w.text !== "on" && w.text !== "off")) {
+          this.fail(w.span, "Expected `on` or `off` after `breed`.");
+        }
+        this.next();
+        return this.endSimple({ kind: "Breed", ...this.base(start), on: w.text === "on" });
+      }
       case "variant": {
         this.next();
         const name = this.expectName("the variant's name");

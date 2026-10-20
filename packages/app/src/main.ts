@@ -190,6 +190,11 @@ function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Val
   fillVariantMenu();
   showInfo(program, shown?.variant);
   enableTools();
+  // A creature that says `breed off` can't be bred: it's shown instead.
+  if (mode === "breed" && current && !current.program.breedable) {
+    setMode("view");
+    return;
+  }
   if (mode === "breed" && current) breeder.start(familyOf(current), strength());
   if (mode === "morph" && current) startMorph();
   // A new creature while dancing keeps the style it's danced to.
@@ -583,8 +588,26 @@ function startMorph(): void {
   if (current) morpher.start(loopMembers(current));
 }
 
+/** The slider bent like DancerDNA's, so its low half gives fine control: 50 is 0.25. */
 function strength(): number {
-  return Number($<HTMLInputElement>("strength").value);
+  return strengthOf(Number($<HTMLInputElement>("strength").value));
+}
+
+/** Strength from a slider at 0 to 100: a smooth curve through 0, 0.125, 0.25, 0.5 and 1. */
+function strengthOf(slider: number): number {
+  const points = [0, 0, 0.125, 0.25, 0.5, 1, 1];
+  const at = Math.min(Math.max(slider, 0), 100) / 25;
+  const i = Math.min(Math.floor(at), 3);
+  const t = at - i;
+  const [p0, p1, p2, p3] = points.slice(i, i + 4) as [number, number, number, number];
+  // Catmull-Rom through the points, with the ends repeated.
+  return (
+    0.5 *
+    (2 * p1 +
+      (p2 - p0) * t +
+      (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t +
+      (3 * p1 - p0 - 3 * p2 + p3) * t * t * t)
+  );
 }
 
 function enableTools(): void {
@@ -594,7 +617,14 @@ function enableTools(): void {
   )) {
     b.disabled = !ok;
   }
-  const chosen = breeder.selection.length;
+  const breedMode = $<HTMLButtonElement>("mode-breed");
+  const unbred = current !== undefined && !current.program.breedable;
+  if (unbred) breedMode.disabled = true;
+  breedMode.title = unbred
+    ? "This creature says `breed off`: its children don't keep its look"
+    : "";
+  // `breed off` rules out mutating as well as breeding.
+  const chosen = unbred ? 0 : breeder.selection.length;
   $<HTMLButtonElement>("mutate").disabled = chosen < 1;
   $<HTMLButtonElement>("breed").disabled = chosen < 2;
   $<HTMLButtonElement>("back").disabled = !breeder.canGoBack;
@@ -633,10 +663,12 @@ $("blocks-toggle").addEventListener("click", () => {
 $("blocks-toggle").setAttribute("aria-pressed", String(showBlocks()));
 
 $("mutate").addEventListener("click", () => {
+  if (current && !current.program.breedable) return;
   breeder.mutateSelection(strength(), keepParents());
   enableTools();
 });
 $("breed").addEventListener("click", () => {
+  if (current && !current.program.breedable) return;
   breeder.breedSelection(keepParents());
   enableTools();
 });

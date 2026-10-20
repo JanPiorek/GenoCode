@@ -270,6 +270,14 @@ export function constantHelp(name: string): Help | undefined {
 export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
   ["creature", h("creature Name", "Starts a creature file.", "3")],
   [
+    "breed",
+    h(
+      "breed off",
+      "The app won't mutate or breed this creature: its children don't keep its look.",
+      "19",
+    ),
+  ],
+  [
     "gene",
     h(
       "gene name = value in min..max",

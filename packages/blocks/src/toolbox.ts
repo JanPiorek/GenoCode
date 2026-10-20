@@ -146,6 +146,7 @@ export const TOOLBOX = {
         inputs: { VALUE: { block: { type: "g_bool", fields: { BOOL: "true" } } } },
       }),
       block({ type: "g_variant", fields: { NAME: "Big" } }),
+      block({ type: "g_breed", fields: { ON: "off" } }),
       block({ type: "g_setting", fields: { GENE: "size" }, inputs: { VALUE: n("2") } }),
     ]),
     category("Patterns", HUES.look, [

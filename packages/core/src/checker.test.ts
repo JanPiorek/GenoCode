@@ -158,6 +158,24 @@ describe("checker: genes", () => {
   });
 });
 
+describe("checker: breed", () => {
+  it("is breedable unless it says `breed off`", () => {
+    expect(check("creature T\nlay\n").breedable).toBe(true);
+    expect(check("creature T\nbreed off\nlay\n").breedable).toBe(false);
+    expect(check("creature T\nbreed on\nlay\n").breedable).toBe(true);
+  });
+
+  it("allows `breed` once, at the top level", () => {
+    expect(errors("breed off\nbreed on")).toEqual([
+      "The creature already says whether it can be bred.",
+    ]);
+    expect(errors("part p {\n  breed off\n}\np")).toEqual([
+      "`breed` can only be at the top level of a creature.",
+    ]);
+    expect(errors("breed maybe")).toEqual(["Expected `on` or `off` after `breed`."]);
+  });
+});
+
 describe("checker: statements and types", () => {
   it("checks where statements go", () => {
     rejects("reshape {\n  lay\n}", "Inside `reshape` and `lay` blocks");

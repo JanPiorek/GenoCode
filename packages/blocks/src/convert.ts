@@ -267,6 +267,10 @@ function stmtBlock(s: Stmt): BlockState {
       fields["NAME"] = s.name;
       body("BODY", s.body);
       break;
+    case "Breed":
+      type = "g_breed";
+      fields["ON"] = s.on ? "on" : "off";
+      break;
     case "GeneSetting":
       type = "g_setting";
       fields["GENE"] = s.gene;
@@ -706,6 +710,8 @@ class Reader {
         return { ...base, kind: "Value", value: this.value(b, "VALUE") };
       case "g_variant":
         return { ...base, ...name, kind: "Variant", body: this.block(b, "BODY") };
+      case "g_breed":
+        return { ...base, kind: "Breed", on: field("ON") === "on" };
       case "g_setting":
         return {
           ...base,

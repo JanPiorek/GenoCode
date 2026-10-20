@@ -1,6 +1,8 @@
 creature Flapper
 // A little bird that beats its wings and bobs as time goes by.
 
+breed off
+
 gene body  = hsv(200, 0.7, 0.9) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
 gene tips  = hsv(320, 0.7, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
 gene flap  = 35  in 0..70         // how far the wings beat
