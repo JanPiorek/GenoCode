@@ -1262,19 +1262,25 @@ function toggleFullscreen(): void {
 const stage = canvas.parentElement!;
 
 // In full screen the tools only show while the mouse moves (not while it drags the creature
-// round), and fade a moment after it stops, unless it's resting on them.
+// round), or for a moment after a tap, and fade a moment after, unless the mouse is resting on
+// them. A touch screen keeps whatever was last tapped "hovered", so there hovering doesn't count.
 const TOOLS_SHOW_MS = 2000;
+const canHover = matchMedia("(hover: hover)");
 let toolsTimer = 0;
 function showTools(): void {
   stage.classList.add("awake");
   clearTimeout(toolsTimer);
   toolsTimer = window.setTimeout(() => {
-    if (stage.querySelector(".tools:hover, .views:hover")) showTools();
+    if (canHover.matches && stage.querySelector(".tools:hover, .views:hover")) showTools();
     else stage.classList.remove("awake");
   }, TOOLS_SHOW_MS);
 }
 stage.addEventListener("pointermove", (e) => {
-  if (document.fullscreenElement === stage && e.buttons === 0) showTools();
+  if (document.fullscreenElement === stage && e.pointerType === "mouse" && e.buttons === 0)
+    showTools();
+});
+stage.addEventListener("pointerdown", (e) => {
+  if (document.fullscreenElement === stage && e.pointerType !== "mouse") showTools();
 });
 
 $("fullscreen").addEventListener("click", toggleFullscreen);

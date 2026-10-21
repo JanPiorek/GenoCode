@@ -627,8 +627,25 @@ input[type="color"].gene-control {
     grid-template-rows: none;
   }
 
-  .stage {
+  /* The tools wrap onto several rows here, so the stage grows round them and the picture gets its
+     own height, rather than both sharing one that the picture overflowed. svh is the screen with
+     the browser's address bar showing, so the picture doesn't change size as the bar comes and
+     goes. */
+  .stage:not(:fullscreen) #view {
+    flex: none;
     height: 60vh;
+    height: 60svh;
+  }
+
+  .stage:not(:fullscreen) .grid {
+    flex: none;
+    height: 70vh;
+    height: 70svh;
+  }
+
+  .stage:not(:fullscreen) .patterns,
+  .stage:not(:fullscreen) .library {
+    flex: none;
   }
 
   .blocks {
