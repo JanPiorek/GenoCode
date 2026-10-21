@@ -993,6 +993,8 @@ $("music-url").addEventListener("click", async () => {
   if (url) void playMusic(() => player.playUrl(url));
 });
 $("music-mic").addEventListener("click", () => void playMusic(() => player.listen()));
+// Phone browsers can't share another tab, so they don't get the button.
+$("music-tab").hidden = typeof navigator.mediaDevices?.getDisplayMedia !== "function";
 $("music-tab").addEventListener(
   "click",
   () =>

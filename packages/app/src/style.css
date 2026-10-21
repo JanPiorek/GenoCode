@@ -905,6 +905,7 @@ dialog.ask p {
   margin: 0 0 14px;
   line-height: 1.45;
   white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 dialog.ask input[type="text"] {

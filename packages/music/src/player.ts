@@ -97,8 +97,10 @@ export class MusicPlayer {
   async togglePause(): Promise<void> {
     if (this.live || this.source === undefined) return;
     if (this.audio.paused) {
+      // play() first, while it's still part of the tap: phones refuse it after anything is awaited.
+      const playing = this.audio.play();
       await this.context?.resume();
-      await this.audio.play();
+      await playing;
     } else {
       this.audio.pause();
     }
@@ -147,16 +149,27 @@ export class MusicPlayer {
     return { beat: this.analyser.beat(), music: this.analyser.music };
   }
 
+  /**
+   * Plays music from an address. If the browser won't start it without a tap (phones, after the
+   * file picker), it's left ready and paused for the Play button.
+   */
   private async playAddress(src: string, name: string, source: MusicSource): Promise<void> {
     this.stop();
+    // play() first, while it's still part of what the user did: phones refuse it once the audio
+    // graph has been awaited. The graph is joined up just after.
+    this.audio.src = src;
+    const playing = this.audio.play();
     const ctx = await this.connect();
     this.element ??= ctx.createMediaElementSource(this.audio);
     this.element.connect(this.node!);
     this.node!.disconnect();
     this.node!.connect(ctx.destination);
-    this.audio.src = src;
     this.begin(name, source);
-    await this.audio.play();
+    try {
+      await playing;
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "NotAllowedError")) throw e;
+    }
   }
 
   private async listenTo(stream: MediaStream, name: string, source: MusicSource): Promise<void> {
