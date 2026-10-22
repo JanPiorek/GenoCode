@@ -201,6 +201,8 @@ function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Val
   if (mode === "morph" && current) startMorph();
   // A new creature while dancing keeps the style it's danced to.
   if (mode === "dance" && current) startDance(true);
+  // The kind menus offer the file's own patterns. The same creature keeps the recipe being designed.
+  if (mode === "patterns") showPatterns(keepView ? undefined : creaturePattern());
   if (mode === "view") showCurrent(keepView);
 }
 
@@ -561,10 +563,7 @@ function setMode(next: Mode): void {
   }
   if (mode === "morph") startMorph();
   if (mode === "dance") startDance();
-  if (mode === "patterns") {
-    const own = shown ? patternsOf(shown.program, shown.values) : [];
-    designer.show(creaturePattern(), own, libraryPatterns());
-  }
+  if (mode === "patterns") showPatterns(creaturePattern());
   if (mode === "library") library.show(libraryEntries());
   showFaceOn();
   enableTools();
@@ -707,6 +706,12 @@ const designer = new PatternDesigner(patternsSection, {
     setMode("view");
   },
 });
+
+/** Shows the designer, from `start` if given, offering the file's patterns and the library's as kinds. */
+function showPatterns(start?: Pattern): void {
+  const own = shown ? patternsOf(shown.program, shown.values) : [];
+  designer.show(start, own, libraryPatterns());
+}
 
 /** The pattern files kept in this browser's library, for the designer to offer as kinds. */
 function libraryPatterns(): OwnPattern[] {
