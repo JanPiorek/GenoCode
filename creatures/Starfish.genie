@@ -3,6 +3,8 @@ creature Starfish
 // end of each.
 // Inspired by Starfish, a DancerDNA creature.
 
+gene swirl = 0 in 0..1  // how much it wears its swirling texture, as the Swirled variant does
+
 gene stem_start   = -1.961  in -15..15       // how far from the middle the stems start
 gene stride       = 0.5112  in -1.5..2       // how far apart the stem's rings are
 gene ring_stretch = 3.633   in 2..5          // how long the rings are drawn out along the stem
@@ -35,6 +37,8 @@ let blooms = spectrum(petal_1, petal_2 at petal_gaps.x, petal_3 at petal_gaps.x 
 
 shine 1
 sharpness 1
+texture pattern(vortex, 0, 96, split, iridescent)
+wear swirl
 pitch -90
 // The arms in the original's order: ahead, behind, then to each side.
 arm
@@ -456,3 +460,5 @@ variant member_15 {
   petal_4      = hsv(259.8, 0.64, 1)
   petal_gaps   = (0.8628, 0.9302, 0.4369)
 }
+
+variant Swirled { swirl = 1 }
