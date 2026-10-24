@@ -52,6 +52,14 @@ function checkExamples(blocks: string[]): void {
 }
 
 describe("docs/LANGUAGE.md examples", () => {
+  it("names the version of core that builds it", () => {
+    const { version } = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { version: string };
+    const minor = version.split(".").slice(0, 2).join(".");
+    expect(spec).toContain(`Version ${minor}, as built by \`@genocode/core\` ${minor}.`);
+  });
+
   it("has the examples this test expects", () => {
     expect(blocks.filter(isFile).length).toBeGreaterThanOrEqual(2);
   });
