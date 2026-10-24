@@ -147,7 +147,7 @@ pattern P {
   }
 }
 `),
-    ).toContainEqual(expect.stringMatching(/size/));
+    ).toContainEqual("A pattern can't use the creature's `size`; it must be self-contained.");
     expect(errors("creature C\nshape ball\nlay\nlet p = picture {\n  value 1\n}\n")).toContainEqual(
       expect.stringMatching(/only be used in a pattern|There's nothing called `picture`/),
     );

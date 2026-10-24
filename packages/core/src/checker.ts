@@ -1715,7 +1715,7 @@ class Checker {
     } else if (ctx.section !== "creature" && this.fullNames.has(name)) {
       this.error(
         span,
-        `A ${ctx.section === "background" ? "background" : "dance block"} can't use the creature's \`${name}\`; it must be self-contained.`,
+        `${sectionName(ctx.section)} can't use the creature's \`${name}\`; it must be self-contained.`,
       );
     } else {
       this.error(span, `There's nothing called \`${name}\`.`);
