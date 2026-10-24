@@ -1,10 +1,10 @@
 // The library: the starter creatures and dance styles, and everything kept in this browser, as
-// tiles with small pictures. A creature or background tile opens its file, and a dance style
-// dances the creature on show to it. A background or dance can also be put into the creature, a
-// style opened to edit it, and your own deleted.
+// tiles with small pictures, one shelf at a time. A creature or background tile opens its file, and
+// a dance style dances the creature on show to it. A background or dance can also be put into the
+// creature, a style opened to edit it, and your own deleted.
 
-import { onFieldReady, Thumbnails } from "@genocode/render";
-import { buildCreature, checkText, fromProgram } from "./creature.js";
+import { checkText } from "./creature.js";
+import { drawPicturesIn, onPicturesStale } from "./pictures.js";
 
 export type EntryKind = "creature" | "background" | "dance" | "pattern";
 
@@ -32,71 +32,96 @@ export function kindOf(text: string): EntryKind {
   return checkText(text).file.kind;
 }
 
-const TILE = { width: 200, height: 150 };
+type Shelf = "yours" | "creatures" | "backgrounds" | "patterns" | "dances";
 
 export class LibraryView {
-  private readonly thumbnails = new Thumbnails();
-  /** Pictures already drawn, by text, so the library opens quickly the next time. */
-  private readonly pictures = new Map<string, string>();
+  private shelf: Shelf | undefined;
+  private entries: LibraryEntry[] = [];
   private drawing = 0;
-
-  private redraw = 0;
 
   constructor(
     private readonly root: HTMLElement,
     private readonly actions: LibraryActions,
   ) {
-    // Textures are drawn elsewhere and arrive later: draw the pictures again with them.
-    onFieldReady(() => {
-      clearTimeout(this.redraw);
-      this.redraw = window.setTimeout(() => {
-        if (this.root.hidden) return;
-        this.pictures.clear();
-        this.drawPictures();
-      }, 200);
+    onPicturesStale(() => {
+      if (!this.root.hidden) this.drawPictures();
     });
   }
 
   show(entries: LibraryEntry[]): void {
-    const section = (title: string, hint: string, list: LibraryEntry[]) => {
-      if (list.length === 0) return [];
-      const head = document.createElement("h2");
-      head.textContent = title;
-      const note = document.createElement("p");
-      note.className = "hint";
-      note.textContent = hint;
-      const grid = document.createElement("div");
-      grid.className = "library-grid";
-      grid.append(...list.map((e) => this.tile(e)));
-      return [head, note, grid];
-    };
-    const yours = entries.filter((e) => e.yours);
-    const starters = entries.filter((e) => !e.yours);
+    this.entries = entries;
     const creature = this.actions.creature();
     const into = creature ? `, or put it into ${creature}` : "";
-    this.root.replaceChildren(
-      ...section("Yours", "Kept in this browser. Click one to open it.", yours),
-      ...section(
-        "Starter creatures",
-        "The creatures that come with GenoCode. Click one to open it.",
-        starters.filter((e) => e.kind === "creature"),
-      ),
-      ...section(
-        "Starter backgrounds",
-        `Click one to open it${into}.`,
-        starters.filter((e) => e.kind === "background"),
-      ),
-      ...section(
-        "Patterns",
-        `Pattern kinds written in GenoCode, to read and change. Click one to open it${creature ? `, or give it to ${creature}` : ""}.`,
-        starters.filter((e) => e.kind === "pattern"),
-      ),
-      ...section(
-        "Dance styles",
-        `How music moves a creature. Click one to dance ${creature ?? "Geno"} to it.`,
-        starters.filter((e) => e.kind === "dance"),
-      ),
-    );
+    const starters = entries.filter((e) => !e.yours);
+    const shelves: { id: Shelf; label: string; hint: string; list: LibraryEntry[] }[] = [
+      {
+        id: "yours",
+        label: "Yours",
+        hint: "Kept in this browser. Click one to open it.",
+        list: entries.filter((e) => e.yours),
+      },
+      {
+        id: "creatures",
+        label: "Starter creatures",
+        hint: "The creatures that come with GenoCode. Click one to open it.",
+        list: starters.filter((e) => e.kind === "creature"),
+      },
+      {
+        id: "backgrounds",
+        label: "Backgrounds",
+        hint: `Click one to open it${into}.`,
+        list: starters.filter((e) => e.kind === "background"),
+      },
+      {
+        id: "patterns",
+        label: "Patterns",
+        hint: `Pattern kinds written in GenoCode, to read and change. Click one to open it${creature ? `, or give it to ${creature}` : ""}.`,
+        list: starters.filter((e) => e.kind === "pattern"),
+      },
+      {
+        id: "dances",
+        label: "Dance styles",
+        hint: `How music moves a creature. Click one to dance ${creature ?? "Geno"} to it.`,
+        list: starters.filter((e) => e.kind === "dance"),
+      },
+    ].filter((s) => s.list.length > 0) as {
+      id: Shelf;
+      label: string;
+      hint: string;
+      list: LibraryEntry[];
+    }[];
+    if (!shelves.some((s) => s.id === this.shelf)) {
+      this.shelf = shelves.find((s) => s.id === "yours")?.id ?? shelves[0]?.id;
+    }
+    const current = shelves.find((s) => s.id === this.shelf);
+
+    const head = document.createElement("div");
+    head.className = "library-head";
+    const title = document.createElement("h2");
+    title.textContent = "Library";
+    const tabs = document.createElement("div");
+    tabs.className = "seg";
+    tabs.setAttribute("role", "group");
+    tabs.setAttribute("aria-label", "Shelf");
+    for (const s of shelves) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = s.label;
+      b.setAttribute("aria-pressed", String(s.id === this.shelf));
+      b.addEventListener("click", () => {
+        this.shelf = s.id;
+        this.show(this.entries);
+      });
+      tabs.append(b);
+    }
+    head.append(title, tabs);
+    const note = document.createElement("p");
+    note.className = "hint";
+    note.textContent = current?.hint ?? "";
+    const grid = document.createElement("div");
+    grid.className = "library-grid";
+    grid.append(...(current?.list ?? []).map((e) => this.tile(e)));
+    this.root.replaceChildren(head, note, grid);
     this.drawPictures();
   }
 
@@ -112,14 +137,14 @@ export class LibraryView {
     if (entry.kind === "dance") {
       const icon = document.createElement("div");
       icon.className = "library-dance";
-      icon.textContent = "♫";
+      icon.innerHTML =
+        '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>';
       tile.append(icon);
     } else {
-      const canvas = document.createElement("canvas");
-      canvas.dataset["text"] = entry.text;
-      const src = this.pictures.get(entry.text);
-      if (src) canvas.style.backgroundImage = `url(${src})`;
-      tile.append(canvas);
+      const picture = document.createElement("div");
+      picture.className = "library-picture";
+      picture.dataset["text"] = entry.text;
+      tile.append(picture);
     }
     const label = document.createElement("div");
     label.className = "library-name";
@@ -179,38 +204,8 @@ export class LibraryView {
     return tile;
   }
 
-  /** Draws the tiles' pictures a few at a time, so the page stays responsive. */
   private drawPictures(): void {
-    const canvases = [...this.root.querySelectorAll<HTMLCanvasElement>("canvas[data-text]")].filter(
-      (c) => !this.pictures.has(c.dataset["text"]!),
-    );
     const run = ++this.drawing;
-    let k = 0;
-    const step = () => {
-      if (run !== this.drawing || this.root.hidden) return;
-      const started = performance.now();
-      while (k < canvases.length && performance.now() - started < 30) {
-        const canvas = canvases[k++]!;
-        const src = this.picture(canvas.dataset["text"]!);
-        if (src) canvas.style.backgroundImage = `url(${src})`;
-      }
-      if (k < canvases.length) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }
-
-  /** A small picture of a creature or background, in its rest pose. */
-  private picture(text: string): string | undefined {
-    const program = checkText(text);
-    if (!program.ok) return undefined;
-    const ratio = window.devicePixelRatio || 1;
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(TILE.width * ratio);
-    canvas.height = Math.round(TILE.height * ratio);
-    const { built, background } = buildCreature(fromProgram(program));
-    this.thumbnails.draw(canvas, built.shapes, background);
-    const src = canvas.toDataURL();
-    this.pictures.set(text, src);
-    return src;
+    drawPicturesIn(this.root, () => run === this.drawing && !this.root.hidden);
   }
 }

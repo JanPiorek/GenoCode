@@ -389,18 +389,29 @@ export class PatternDesigner {
     this.breedButton.title = "Children of the recipe above and the chosen ones";
     this.mutateButton.addEventListener("click", () => this.mutate());
     this.breedButton.addEventListener("click", () => this.breed());
+    // The picture and its variations on the left; what it's made of, and what to do with it, in a
+    // card on the right (below, on a phone).
     root.append(
-      element("div", { className: "pattern-top" }, this.preview, controls),
       element(
         "div",
-        { className: "pattern-actions" },
-        this.mutateButton,
-        this.breedButton,
-        this.gridHint,
+        { className: "pattern-main" },
+        element("div", { className: "pattern-stage" }, this.preview),
+        element(
+          "div",
+          { className: "pattern-actions" },
+          this.mutateButton,
+          this.breedButton,
+          this.gridHint,
+        ),
+        this.variations,
       ),
-      this.variations,
-      element("div", { className: "pattern-code" }, this.code),
-      actionsBar,
+      element(
+        "div",
+        { className: "pattern-side glass" },
+        controls,
+        element("div", { className: "pattern-code" }, this.code),
+        actionsBar,
+      ),
     );
 
     // Hue and amount only recolour or reblend, but drawing a new picture takes a moment, so the

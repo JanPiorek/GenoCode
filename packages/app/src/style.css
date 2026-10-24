@@ -1,15 +1,42 @@
+/* The GenoCode app. The creature fills the window; the modes sit in a rail on the left (a tab bar
+   along the bottom on a phone), the code and blocks in a dock beside it, the genes in a panel on
+   the right, and each mode's tools float in a bar over the creature. */
+
 :root {
   color-scheme: dark;
-  --bg: #0b0e17;
-  --panel: #121725;
-  --line: #222a3d;
-  --text: #dfe5f2;
-  --muted: #8a93a8;
+  --bg: #090c14;
+  --surface: #0d111c;
+  --panel: #10141f;
+  --raised: #171c2b;
+  --glass: rgb(20 25 40 / 0.74);
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.15);
+  --text: #e6eaf4;
+  --muted: #9aa3b8;
+  --faint: #5d6680;
   --accent: #f06bc0;
+  --accent-soft: rgb(240 107 192 / 0.15);
+  --accent-line: rgb(240 107 192 / 0.5);
+  --blue: #40cfff;
   --error: #ff7a7a;
   --warning: #f2c46b;
-  font-family: system-ui, sans-serif;
-  font-size: 15px;
+  --good: #5fe3a1;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --bar-h: 56px;
+  --rail-w: 80px;
+  --tabs-h: 64px;
+  --dock-w: 480px;
+  --panel-w: 340px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  font-size: 14px;
 }
 
 * {
@@ -26,42 +53,396 @@ body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
+  overflow: hidden;
 }
 
-body {
-  display: flex;
-  flex-direction: column;
+button,
+select,
+input {
+  font: inherit;
+  color: inherit;
 }
 
-.bar {
-  display: flex;
-  flex-wrap: wrap;
+button,
+select,
+a.button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+.grow {
+  flex: 1;
+}
+
+.ico {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ico.sm {
+  width: 16px;
+  height: 16px;
+}
+
+/* Frosted glass, for what floats over the creature. */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    0 12px 40px rgb(0 0 0 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+/* ---------- buttons ---------- */
+
+.ibtn {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.ibtn:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.07);
+  color: var(--text);
+}
+
+.ibtn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: #ffd3ee;
+}
+
+.ibtn.solid {
+  background: rgb(255 255 255 / 0.06);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.ibtn.primary {
+  background: linear-gradient(135deg, #ff5fb5, #c76bff);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgb(240 107 192 / 0.32);
+}
+
+.ibtn.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff74c0, #d283ff);
+  color: #fff;
+}
+
+.ibtn.icon {
+  width: 36px;
+  padding: 0;
+}
+
+.ibtn.glass {
+  width: 42px;
+  height: 42px;
+  color: var(--text);
+  border-radius: 13px;
+}
+
+.ibtn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+/* Play and pause in one button: data-state says which it offers. */
+.play .when-play,
+.play .when-pause,
+.play .when-live {
+  display: none;
+}
+
+.play[data-state="play"] .when-play,
+.play[data-state="pause"] .when-pause,
+.play[data-state="live"] .when-live {
+  display: block;
+}
+
+.ibtn.play {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+/* A segmented switch: one of a few buttons pressed. */
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 11px;
+  background: rgb(255 255 255 / 0.05);
+  border: 1px solid var(--line);
+}
+
+.seg button {
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.9em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.seg button:hover {
+  color: var(--text);
+}
+
+.seg button[aria-pressed="true"] {
+  background: rgb(255 255 255 / 0.11);
+  color: #fff;
+}
+
+/* A native menu dressed as a chip, with an icon or a word before it. */
+.chip-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  color: var(--muted);
+}
+
+.chip-select:hover {
+  background: rgb(255 255 255 / 0.07);
+}
+
+.chip-select select {
+  appearance: none;
+  max-width: 180px;
+  padding: 0 18px 0 0;
+  border: none;
+  background: transparent
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa3b8' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+    right center / 14px no-repeat;
+  color: var(--text);
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+.chip-select select option,
+.chip-select select optgroup {
+  background: var(--raised);
+  color: var(--text);
+}
+
+/* A labelled slider in a tool bar. */
+.range {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.range input {
+  width: 110px;
+}
+
+/* A checkbox shown as a button that stays pressed. */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--muted);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle .ico {
+  opacity: 0;
+}
+
+.toggle:has(input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: #ffd3ee;
+}
+
+.toggle:has(input:checked) .ico {
+  opacity: 1;
+}
+
+.toggle:has(input:focus-visible) {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+/* ---------- menus ---------- */
+
+.pop {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  min-width: 230px;
+  max-height: min(70vh, 620px);
+  overflow: auto;
+  padding: 6px;
+  border-radius: 14px;
+  animation: menu-in 120ms var(--ease);
+}
+
+.menu.up {
+  top: auto;
+  bottom: calc(100% + 10px);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+.menu > button,
+.menu > a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  text-decoration: none;
+  font-size: 0.95em;
+}
+
+.menu > button:hover,
+.menu > a:hover,
+.menu > button:focus-visible {
+  background: rgb(255 255 255 / 0.08);
+  outline: none;
+}
+
+.menu > button .ico,
+.menu > a .ico {
+  color: var(--muted);
+}
+
+.menu > button.danger {
+  color: #ff9a9a;
+}
+
+.menu hr {
+  height: 1px;
+  margin: 6px 4px;
+  border: none;
+  background: var(--line);
+}
+
+.menu-head {
+  padding: 8px 10px 4px;
+  color: var(--muted);
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------- the frame ---------- */
+
+.app {
+  display: grid;
+  height: 100vh;
+  height: 100dvh;
+  grid-template-columns: var(--rail-w) auto minmax(0, 1fr) auto;
+  grid-template-rows: var(--bar-h) minmax(0, 1fr);
+  grid-template-areas:
+    "bar bar bar bar"
+    "rail dock stage panel";
+}
+
+.appbar {
+  grid-area: bar;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 0 18px;
   border-bottom: 1px solid var(--line);
-  background: var(--panel);
+  background: rgb(12 15 24 / 0.94);
+  position: relative;
+  z-index: 20;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  letter-spacing: 0.02em;
-  margin-right: 8px;
+  gap: 10px;
+  margin-right: 14px;
   text-decoration: none;
 }
 
 /* The name as in the logo (branding/logo-lockup.svg): blue to pink, a bold "Geno" and a lighter
-   "Code". It's larger than the rest of the bar and glows a little, so it holds its own on the dark
-   background. */
+   "Code". */
 .wordmark {
   font-size: 1.35em;
   background: linear-gradient(90deg, #40cfff, #ff408f);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 6px rgb(64 207 255 / 0.35)) drop-shadow(0 0 10px rgb(255 64 143 / 0.25));
+  filter: drop-shadow(0 0 6px rgb(64 207 255 / 0.3)) drop-shadow(0 0 10px rgb(255 64 143 / 0.2));
 }
 
 .wordmark b {
@@ -72,76 +453,452 @@ body {
   font-weight: 400;
 }
 
-.field {
-  display: flex;
+/* The creature on show, as a button that opens the creature menu. */
+.picker {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: var(--muted);
-}
-
-button,
-select,
-a.button {
-  font: inherit;
-  color: var(--text);
-  background: #1b2133;
+  gap: 9px;
+  height: 42px;
+  max-width: 340px;
+  padding: 0 12px 0 5px;
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 5px 10px;
+  border-radius: 13px;
+  background: rgb(255 255 255 / 0.05);
+  color: var(--text);
 }
 
-button:hover,
-select:hover,
-a.button:hover {
-  border-color: #3a4560;
+.picker:hover {
+  background: rgb(255 255 255 / 0.09);
 }
 
-.hint {
+.picker-picture {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--raised) center / cover no-repeat;
+}
+
+.picker-name {
+  font-weight: 600;
+  font-size: 1.05em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-kind {
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.picker-menu {
+  width: min(380px, calc(100vw - 24px));
+}
+
+.pick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+}
+
+.pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85em;
+}
+
+.pick:hover,
+.pick:focus-visible {
+  background: rgb(255 255 255 / 0.07);
+  border-color: var(--line-strong);
+  outline: none;
+}
+
+.pick-picture {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: var(--surface) center / cover no-repeat;
+}
+
+.pick-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick-what {
+  margin-top: -4px;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.saved-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 6px;
   color: var(--muted);
   font-size: 0.9em;
 }
 
-button:disabled {
-  opacity: 0.45;
+.saved-state::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--good);
+}
+
+.saved-state.changed::before {
+  background: var(--warning);
+}
+
+/* The modes: a rail of icons with their names. */
+.modes {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 0;
+  border-right: 1px solid var(--line);
+  background: rgb(12 15 24 / 0.94);
+  z-index: 10;
+}
+
+.modes button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 64px;
+  padding: 10px 0 8px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8em;
+  font-weight: 500;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.modes button:hover:not(:disabled) {
+  color: var(--text);
+  background: rgb(255 255 255 / 0.05);
+}
+
+.modes button[aria-pressed="true"] {
+  color: #fff;
+  background: rgb(240 107 192 / 0.12);
+}
+
+.modes button[data-mode][aria-pressed="true"]::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(var(--blue), var(--accent));
+}
+
+.modes button:disabled {
+  opacity: 0.35;
   cursor: default;
 }
 
-button[aria-pressed="true"] {
-  background: #2a3350;
-  border-color: var(--accent);
+#code-toggle {
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 14px 14px;
+  padding-top: 14px;
 }
 
-.modes {
-  display: flex;
-  gap: 4px;
-  margin-left: 8px;
+#code-toggle[aria-pressed="true"] {
+  border-radius: 14px;
 }
 
-.layout {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  min-height: 0;
-}
-
-body.with-code .layout {
-  grid-template-columns: minmax(320px, 42%) 1fr 320px;
-}
-
-body.with-blocks .layout {
-  grid-template-columns: minmax(360px, 48%) 1fr 320px;
-}
-
-body.with-blocks.with-code .layout {
-  grid-template-columns: minmax(340px, 36%) minmax(260px, 24%) 1fr 320px;
-}
-
-/* The blocks: Blockly's workspace fills the pane. Out of date, they're dimmed and can't be used. */
-.blocks {
+/* The creature's stage. */
+.stage {
+  grid-area: stage;
   position: relative;
   min-width: 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(42% 36% at 50% 46%, rgb(240 107 192 / 0.08), transparent 70%),
+    radial-gradient(120% 90% at 50% 38%, #221d3a 0%, #121527 48%, #080a12 100%);
+}
+
+#view {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: block;
+  cursor: grab;
+}
+
+#view:active {
+  cursor: grabbing;
+}
+
+.stage-title {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  right: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.stage-name {
+  font-size: 1.55em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.stage-name .variant-name {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Turning the camera, and full screen, in the stage's top right corner. */
+.corner {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 6;
+}
+
+.corner .menu {
+  top: 0;
+  left: auto;
+  right: calc(100% + 8px);
+}
+
+.camera-menu {
+  min-width: 0;
+  width: 210px;
+}
+
+.sides {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+}
+
+.sides button {
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgb(255 255 255 / 0.05);
+  color: var(--text);
+  font-size: 0.88em;
+}
+
+.sides button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.11);
+}
+
+.sides button:disabled {
+  opacity: 0.4;
+}
+
+/* The sheet holds the tools, code and genes on a phone; on a wide screen it's only a wrapper, its
+   parts laid out in the frame's grid. */
+.sheet {
+  display: contents;
+}
+
+.sheet-handle,
+.sheet-tabs {
+  display: none;
+}
+
+/* The mode's tools: one glass bar floating over the bottom of the creature. */
+.modebar {
+  grid-area: stage;
+  align-self: end;
+  justify-self: center;
+  max-width: calc(100% - 32px);
+  margin-bottom: 22px;
+  padding: 7px;
+  border-radius: var(--radius-lg);
+  z-index: 8;
+  transition: opacity 0.3s;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* A long music name doesn't stretch the bar. */
+.modebar .label {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sep {
+  width: 1px;
+  height: 22px;
+  margin: 0 2px;
+  background: var(--line-strong);
+}
+
+/* What the creature hears: a slim bar for each music input and the beat. */
+.meters {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 24px;
+  padding: 0 6px;
+}
+
+.meter {
+  position: relative;
+  width: 5px;
+  height: 100%;
+  background: rgb(255 255 255 / 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.meter > div {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 0;
+  border-radius: 3px;
+  background: linear-gradient(var(--accent), #c76bff);
+}
+
+.meter.hit > div {
+  background: var(--blue);
+}
+
+/* The code and blocks dock. */
+.dock {
+  --bg: #0b0e18;
+  grid-area: dock;
+  position: relative;
+  display: none;
+  flex-direction: column;
+  width: var(--dock-w);
+  min-height: 0;
   border-right: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.app.dock-open .dock {
+  display: flex;
+}
+
+.dock-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  flex: none;
+  padding: 0 10px 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dock-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.88em;
+}
+
+.dock-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--good);
+}
+
+.dock-status.warning::before {
+  background: var(--warning);
+}
+
+.dock-status.error {
+  color: var(--error);
+}
+
+.dock-status.error::before {
+  background: var(--error);
+}
+
+.dock-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app.dock-both .dock {
+  width: max(var(--dock-w), 560px);
+}
+
+.app.dock-both .blocks {
+  flex: 1.2;
+  border-bottom: 1px solid var(--line);
+}
+
+.dock-resize {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 3;
+}
+
+.dock-resize:hover,
+.app.dock-dragging .dock-resize {
+  background: linear-gradient(90deg, transparent 3px, var(--accent-line) 3px 5px, transparent 5px);
+}
+
+.app.dock-dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* The blocks: Blockly's workspace fills its part of the dock. Out of date, they're dimmed. */
+.blocks {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 .blocks-area {
@@ -189,17 +946,17 @@ body.with-blocks.with-code .layout {
   z-index: 2;
   max-width: 90%;
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: 8px;
   background: #3a2a10;
   color: var(--warning);
   font-size: 0.9em;
 }
 
 .code {
+  flex: 1;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border-right: 1px solid var(--line);
 }
 
 /* Code colours, from the core lexer (editor.ts). */
@@ -252,159 +1009,25 @@ body.with-blocks.with-code .layout {
   font-size: 0.85em;
 }
 
-.stage {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  background: var(--bg);
-}
-
-/* The sides to look from, and full screen, over the bottom right of the view. */
-.views {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 4px;
-  opacity: 0.55;
-  transition: opacity 0.2s;
-}
-
-.views:hover,
-.views:focus-within {
-  opacity: 1;
-}
-
-.views button {
-  padding: 3px 8px;
-  font-size: 0.85em;
-  background: #1b2133cc;
-}
-
-/* Full screen shows only the creature: the tools float over it, and fade while the mouse is still. */
-.stage:fullscreen .tools {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1;
-  border-bottom: none;
-  background: #10131dcc;
-  transition: opacity 0.3s;
-}
-
-.stage:fullscreen:not(.awake) .tools,
-.stage:fullscreen:not(.awake) .views {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.stage:fullscreen:not(.awake) #view {
-  cursor: none;
-}
-
-.tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--line);
-}
-
-#view {
-  flex: 1;
-  width: 100%;
-  min-height: 300px;
-  display: block;
-  cursor: grab;
-}
-
-.grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: 1fr;
-  gap: 8px;
-  padding: 8px;
-  min-height: 300px;
-  overflow: auto;
-}
-
-.tile {
-  position: relative;
-  min-height: 0;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-  background: var(--bg);
-}
-
-.tile canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.tile:hover {
-  border-color: #3a4560;
-}
-
-.tile.selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 12px rgb(240 107 192 / 0.4);
-}
-
-.tile.parent::after {
-  content: "parent";
-  position: absolute;
-  top: 6px;
-  left: 8px;
-  font-size: 0.75em;
-  color: var(--muted);
-}
-
-.lock {
-  display: inline-flex;
-  padding: 2px 4px;
-  border: none;
-  background: none;
-  color: var(--muted);
-  opacity: 0.55;
-  cursor: pointer;
-}
-
-.lock:hover {
-  opacity: 1;
-}
-
-.lock[aria-pressed="true"] {
-  color: var(--accent);
-  background: none;
-  opacity: 1;
-}
-
-/* A locked gene's row is marked down its left edge, so locks show at a glance. */
-tr.locked > td:first-child {
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-
+/* The panel: the creature's name, problems and genes. */
 .panel {
+  grid-area: panel;
+  display: none;
+  width: var(--panel-w);
+  min-height: 0;
+  padding: 20px;
+  overflow: hidden auto;
   border-left: 1px solid var(--line);
   background: var(--panel);
-  padding: 16px;
-  overflow: auto;
+}
+
+.app.panel-open .panel {
+  display: block;
 }
 
 .panel h1 {
-  margin: 0 0 4px;
-  font-size: 1.4em;
+  margin: 0 0 6px;
+  font-size: 1.3em;
 }
 
 .panel h1 .variant-name {
@@ -413,16 +1036,36 @@ tr.locked > td:first-child {
 }
 
 .panel h2 {
-  margin: 20px 0 8px;
-  font-size: 0.85em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 22px 0 6px;
+  font-size: 0.75em;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--muted);
+}
+
+.panel h2 .count {
+  margin-left: auto;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 #description {
   margin: 0;
   color: var(--muted);
+  font-size: 0.93em;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+#description:hover {
+  -webkit-line-clamp: unset;
 }
 
 #genes {
@@ -432,22 +1075,29 @@ tr.locked > td:first-child {
 }
 
 #genes td {
-  padding: 4px 0;
+  padding: 9px 0;
   border-bottom: 1px solid var(--line);
   vertical-align: top;
 }
 
 #genes td.gene-name {
-  font-family: ui-monospace, monospace;
+  font-family: var(--mono);
+  font-size: 0.95em;
   padding-right: 8px;
 }
 
+/* Long values (vectors, colours spelt out) wrap rather than pushing the panel sideways. */
 #genes td.gene-value {
+  max-width: 120px;
   text-align: right;
+  font-family: var(--mono);
+  font-size: 0.9em;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 #genes tr.gene-group td {
-  padding: 10px 0 2px;
+  padding: 14px 0 4px;
 }
 
 .gene-group button {
@@ -455,7 +1105,7 @@ tr.locked > td:first-child {
   border: none;
   background: none;
   color: var(--text);
-  font-family: ui-monospace, monospace;
+  font-family: var(--mono);
   font-weight: 600;
   cursor: pointer;
 }
@@ -478,6 +1128,28 @@ tr.locked > td:first-child {
   color: var(--muted);
 }
 
+.lock {
+  display: inline-flex;
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  color: var(--faint);
+  cursor: pointer;
+}
+
+.lock:hover {
+  color: var(--text);
+}
+
+.lock[aria-pressed="true"] {
+  color: var(--accent);
+}
+
+/* A locked gene's row is marked down its left edge, so locks show at a glance. */
+tr.locked > td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
 .reset {
   display: block;
   padding: 0 4px;
@@ -492,33 +1164,71 @@ tr.locked > td:first-child {
 }
 
 .gene-about {
+  margin-top: 2px;
   color: var(--muted);
-  font-size: 0.9em;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.88em;
+  line-height: 1.35;
 }
 
 .gene-control {
   display: block;
-  margin-top: 4px;
+  margin-top: 8px;
   font-family: system-ui, sans-serif;
 }
 
 input[type="range"].gene-control,
 .gene-control input[type="range"] {
   width: 100%;
-  accent-color: var(--accent);
 }
 
 input[type="color"].gene-control {
   width: 48px;
-  height: 24px;
+  height: 26px;
   padding: 0;
   border: 1px solid var(--line);
+  border-radius: 6px;
   background: none;
+}
+
+.gene-control select {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+}
+
+/* Time and music sliders, folded away until wanted. */
+.inputs-section h2 button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.inputs-section h2 button .ico {
+  margin-left: auto;
+  transition: transform 0.2s var(--ease);
+}
+
+.inputs-section.open h2 button .ico {
+  transform: rotate(90deg);
+}
+
+.inputs-section:not(.open) .inputs {
+  display: none;
 }
 
 .inputs {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   font-size: 0.92em;
 }
 
@@ -531,7 +1241,6 @@ input[type="color"].gene-control {
 
 .input-row input[type="range"] {
   width: 100%;
-  accent-color: var(--accent);
 }
 
 .input-value {
@@ -543,11 +1252,11 @@ input[type="color"].gene-control {
 
 .swatch {
   display: inline-block;
-  width: 0.9em;
-  height: 0.9em;
-  border-radius: 3px;
-  vertical-align: -0.1em;
-  margin-right: 4px;
+  width: 0.95em;
+  height: 0.95em;
+  border-radius: 4px;
+  vertical-align: -0.12em;
+  margin-right: 5px;
   border: 1px solid #0006;
 }
 
@@ -571,198 +1280,178 @@ input[type="color"].gene-control {
 }
 
 .where {
-  font-family: ui-monospace, monospace;
+  font-family: var(--mono);
   color: var(--muted);
   margin-right: 6px;
 }
 
-.drop {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 1.4em;
-  background: #0b0e17cc;
-  border: 3px dashed var(--accent);
-  pointer-events: none;
+#status {
+  margin-top: 18px;
 }
 
-/* Phones: the panes stack, creature first, and the page scrolls as a whole instead of each pane
-   being squeezed into the height of the screen. */
-@media (max-width: 760px) {
-  html,
-  body {
-    height: auto;
-  }
+/* ---------- breeding ---------- */
 
-  .modes {
-    flex-wrap: wrap;
-    margin-left: 0;
-  }
-
-  .grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .layout {
-    flex: none;
-  }
-
-  .stage {
-    order: -1;
-  }
-
-  /* An up-and-down swipe on the view scrolls the page, or there'd be nowhere to scroll from; a drag
-     sideways still turns the creature and a pinch zooms. The orbit controls set touch-action: none
-     on the canvas itself, hence !important. */
-  #view {
-    touch-action: pan-y !important;
-  }
-
-  .layout,
-  body.with-code .layout,
-  body.with-blocks .layout,
-  body.with-blocks.with-code .layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: none;
-  }
-
-  /* The tools wrap onto several rows here, so the stage grows round them and the picture gets its
-     own height, rather than both sharing one that the picture overflowed. svh is the screen with
-     the browser's address bar showing, so the picture doesn't change size as the bar comes and
-     goes. */
-  .stage:not(:fullscreen) #view {
-    flex: none;
-    height: 60vh;
-    height: 60svh;
-  }
-
-  .stage:not(:fullscreen) .grid {
-    flex: none;
-    height: 70vh;
-    height: 70svh;
-  }
-
-  .stage:not(:fullscreen) .patterns,
-  .stage:not(:fullscreen) .library {
-    flex: none;
-  }
-
-  .blocks {
-    height: 60vh;
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .code {
-    height: 40vh;
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .panel {
-    border-left: none;
-    border-top: 1px solid var(--line);
-    overflow: visible;
-  }
-}
-
-/* What the creature hears: a small bar for each music input and the beat. */
-.meters {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 26px;
-}
-
-.meter {
-  position: relative;
-  width: 10px;
-  height: 100%;
-  background: #ffffff14;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.meter > div {
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 0;
-  background: var(--accent);
-}
-
-.meter.hit > div {
-  background: #40cfff;
-}
-
-/* Patterns: a big preview with its controls beside it, then the variations to pick from. */
-.patterns {
+.grid {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 14px;
+  padding: 20px 20px 100px;
   min-height: 0;
   overflow: auto;
 }
 
-.pattern-top {
+.tile {
+  position: relative;
+  min-height: 0;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  background: rgb(255 255 255 / 0.03);
+  transition:
+    transform 0.15s var(--ease),
+    border-color 0.15s;
+}
+
+.tile canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tile:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
+}
+
+.tile.selected {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 4px rgb(240 107 192 / 0.16),
+    0 10px 30px rgb(240 107 192 / 0.22);
+}
+
+.tile.parent::after {
+  content: "parent";
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgb(0 0 0 / 0.45);
+  font-size: 0.75em;
+  color: var(--text);
+}
+
+/* ---------- patterns ---------- */
+
+.patterns {
+  flex: 1;
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: flex-start;
+  gap: 20px;
+  padding: 20px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pattern-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pattern-stage {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  border-radius: 20px;
+  background: radial-gradient(circle at 50% 40%, #1d2236, #0b0e17);
 }
 
 .pattern-preview {
-  width: min(100%, 420px);
+  width: min(100%, 440px);
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
+}
+
+.pattern-side {
+  width: 310px;
+  flex: none;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
 }
 
 .pattern-controls {
   display: grid;
-  gap: 8px;
-  min-width: 240px;
+  gap: 10px;
 }
 
 .pattern-controls .field {
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: 70px 1fr;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.pattern-controls select {
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgb(255 255 255 / 0.05);
 }
 
 .pattern-controls input[type="range"] {
   width: 100%;
-  accent-color: var(--accent);
 }
 
 .pattern-variations {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 10px;
 }
 
 .pattern-variation {
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 6px;
+  border-radius: 12px;
   border: 2px solid transparent;
   cursor: pointer;
+  transition:
+    transform 0.15s var(--ease),
+    border-color 0.15s;
 }
 
 .pattern-variation:hover {
-  border-color: #3a4560;
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
 }
 
 .pattern-variation.selected {
   border-color: var(--accent);
-  box-shadow: 0 0 12px rgb(240 107 192 / 0.4);
+  box-shadow: 0 0 0 4px rgb(240 107 192 / 0.16);
 }
 
 .pattern-code {
-  font-family: ui-monospace, monospace;
-  font-size: 0.92em;
+  font-family: var(--mono);
+  font-size: 0.85em;
   color: var(--muted);
   overflow-wrap: anywhere;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.25);
 }
 
 .pattern-actions {
@@ -770,6 +1459,26 @@ input[type="color"].gene-control {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.pattern-actions button,
+.library-buttons button {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgb(255 255 255 / 0.06);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.pattern-actions button:hover:not(:disabled),
+.library-buttons button:hover {
+  background: rgb(255 255 255 / 0.11);
+}
+
+.pattern-actions button:disabled {
+  opacity: 0.4;
 }
 
 /* The blocks' own controls, which open under a field: a gene's slider, a colour picker, and a
@@ -789,12 +1498,11 @@ input[type="color"].gene-control {
 
 .genocode-slider {
   width: 200px;
-  accent-color: var(--accent);
 }
 
 .genocode-slider-value {
   min-width: 4em;
-  font-family: ui-monospace, monospace;
+  font-family: var(--mono);
 }
 
 .genocode-control input[type="color"] {
@@ -805,70 +1513,89 @@ input[type="color"].gene-control {
   background: none;
 }
 
-/* The library: sections of tiles, each a picture with a name and a line about it. */
+/* ---------- the library ---------- */
+
 .library {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 4px 16px 16px;
+  padding: 20px;
 }
 
-.library h2 {
-  margin: 16px 0 2px;
-  font-size: 1em;
+.library-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
 }
 
-.library .hint {
-  margin: 0 0 10px;
+.library-head h2 {
+  margin: 0;
+  font-size: 1.55em;
+}
+
+.library > .hint {
+  margin: 10px 0 16px;
 }
 
 .library-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
 }
 
 .library-tile {
   display: flex;
   flex-direction: column;
-  border: 2px solid var(--line);
-  border-radius: 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
   background: var(--panel);
   overflow: hidden;
   cursor: pointer;
+  transition:
+    transform 0.15s var(--ease),
+    border-color 0.15s;
 }
 
 .library-tile:hover,
 .library-tile:focus-visible {
-  border-color: var(--accent);
+  border-color: var(--accent-line);
+  transform: translateY(-3px);
   outline: none;
 }
 
-.library-tile canvas,
+.library-picture,
 .library-dance {
   width: 100%;
   aspect-ratio: 4 / 3;
-  background: var(--bg) center / cover no-repeat;
+  background: var(--surface) center / cover no-repeat;
 }
 
 .library-dance {
   display: grid;
   place-items: center;
-  font-size: 3em;
   color: #6bc8f2;
+  background: radial-gradient(circle at 50% 45%, #1d2a44, var(--surface));
+}
+
+.library-dance .ico {
+  width: 46px;
+  height: 46px;
+  stroke-width: 1.4;
 }
 
 .library-name {
-  padding: 6px 8px 0;
+  padding: 10px 12px 0;
   font-weight: 600;
 }
 
 .library-about {
   /* A margin, not padding, below: the clamp would show a cut line in the padding. */
-  padding: 2px 8px 0;
-  margin-bottom: 8px;
+  padding: 3px 12px 0;
+  margin-bottom: 12px;
   color: var(--muted);
   font-size: 0.85em;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -877,28 +1604,497 @@ input[type="color"].gene-control {
 
 .library-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  padding: 0 8px 8px;
+  padding: 0 12px 12px;
   margin-top: auto;
 }
 
 .library-buttons button {
-  padding: 3px 8px;
+  height: 30px;
+  padding: 0 10px;
   font-size: 0.85em;
 }
 
-a.button {
-  text-decoration: none;
+/* ---------- full screen: only the creature and its tools ---------- */
+
+.app.full {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "stage";
 }
 
-/* The app's own dialogs (dialog.ts), in place of alert, confirm and prompt. */
+.app.full .appbar,
+.app.full .modes,
+.app.full .dock,
+.app.full .panel,
+.app.full .sheet-handle,
+.app.full .sheet-tabs {
+  display: none !important;
+}
+
+.app.full .modebar,
+.app.full .corner,
+.app.full .stage-title {
+  transition: opacity 0.3s;
+}
+
+.app.full:not(.awake) .modebar,
+.app.full:not(.awake) .corner,
+.app.full:not(.awake) .stage-title {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app.full:not(.awake) #view {
+  cursor: none;
+}
+
+.drop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  font-size: 1.4em;
+  background: rgb(9 12 20 / 0.82);
+  border: 3px dashed var(--accent);
+  pointer-events: none;
+}
+
+/* ---------- a medium screen: a narrower dock and panel ---------- */
+
+@media (max-width: 1180px) {
+  :root {
+    --panel-w: 300px;
+    --dock-w: 400px;
+  }
+
+  .appbar .label {
+    display: none;
+  }
+}
+
+/* ---------- a phone: the creature fills the screen, the modes are tabs along the bottom, and a
+   sheet slides up over the creature with the mode's tools, the genes, the code and the blocks. */
+
+@media (max-width: 760px) {
+  :root {
+    --bar-h: 58px;
+  }
+
+  .wide-only {
+    display: none !important;
+  }
+
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--bar-h) minmax(0, 1fr) calc(
+        var(--tabs-h) + env(safe-area-inset-bottom)
+      );
+    grid-template-areas:
+      "bar"
+      "stage"
+      "rail";
+  }
+
+  .appbar {
+    z-index: 40;
+    gap: 6px;
+    padding: 0 8px 0 12px;
+    background: rgb(9 12 20 / 0.9);
+    border-bottom: none;
+  }
+
+  .brand {
+    margin-right: 4px;
+  }
+
+  .brand .wordmark {
+    display: none;
+  }
+
+  .picker {
+    max-width: calc(100vw - 120px);
+  }
+
+  #file-button {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+
+  #file-button .label {
+    display: none;
+  }
+
+  .menu {
+    max-height: calc(100dvh - 140px);
+  }
+
+  #file-menu {
+    left: auto;
+    right: 0;
+  }
+
+  .menu > button,
+  .menu > a {
+    min-height: 46px;
+    font-size: 1em;
+  }
+
+  /* The modes along the bottom. */
+  .modes {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    padding: 0 0 env(safe-area-inset-bottom);
+    border-right: none;
+    border-top: 1px solid var(--line);
+    background: rgb(10 13 22 / 0.97);
+    z-index: 30;
+  }
+
+  .modes .grow,
+  #code-toggle {
+    display: none;
+  }
+
+  .modes button {
+    flex: 1;
+    width: auto;
+    padding: 8px 0 6px;
+    gap: 4px;
+    border-radius: 0;
+    font-size: 0.75em;
+  }
+
+  .modes button[aria-pressed="true"] {
+    background: transparent;
+  }
+
+  .modes button[data-mode][aria-pressed="true"]::before {
+    left: 30%;
+    right: 30%;
+    top: 0;
+    bottom: auto;
+    width: auto;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: linear-gradient(90deg, var(--blue), var(--accent));
+  }
+
+  .ico {
+    width: 22px;
+    height: 22px;
+  }
+
+  .ico.sm {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* The picture ends where the sheet begins, so the creature isn't hidden behind it. */
+  .stage {
+    padding-bottom: var(--sheet-cover, 0px);
+  }
+
+  .stage-title {
+    top: 6px;
+    left: 16px;
+    right: 64px;
+  }
+
+  .stage-name {
+    display: none;
+  }
+
+  .corner {
+    top: 6px;
+    right: 10px;
+  }
+
+  .ibtn,
+  .chip-select,
+  .toggle {
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .ibtn.icon,
+  .ibtn.play {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* The sheet. */
+  .sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom));
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - var(--bar-h) - var(--tabs-h) - 8px);
+    border-radius: 24px 24px 0 0;
+    background: var(--glass);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid var(--line-strong);
+    border-bottom: none;
+    box-shadow: 0 -12px 40px rgb(0 0 0 / 0.45);
+  }
+
+  .sheet.no-tools {
+    display: none;
+  }
+
+  .sheet-handle {
+    display: grid;
+    place-items: center;
+    flex: none;
+    height: 26px;
+    border: none;
+    background: transparent;
+    touch-action: none;
+  }
+
+  .sheet-handle span {
+    width: 40px;
+    height: 5px;
+    border-radius: 5px;
+    background: rgb(255 255 255 / 0.3);
+  }
+
+  .modebar {
+    margin: 0;
+    max-width: none;
+    padding: 0 10px 10px;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .tools {
+    gap: 8px;
+  }
+
+  .tools .sep {
+    display: none;
+  }
+
+  .range {
+    flex: 1 1 100%;
+    padding: 4px 4px 0;
+  }
+
+  .range input {
+    flex: 1;
+    width: auto;
+  }
+
+  #breed-tools #back {
+    order: -1;
+  }
+
+  /* View: the variant and a picture; the tab bar already has Breed and Dance. */
+  #view-tools [data-go] {
+    display: none;
+  }
+
+  #view-tools .chip-select {
+    flex: 1;
+  }
+
+  #picture-bar .label {
+    display: none;
+  }
+
+  /* Dance: the music on the first line, the style and 2D on the second. */
+  #dance-tools .sep {
+    display: block;
+    flex-basis: 100%;
+    height: 0;
+    margin: 0;
+    background: none;
+  }
+
+  #dance-tools .chip-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  #dance-tools .pop {
+    flex: 1;
+    min-width: 0;
+  }
+
+  #music-button {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  #music-button .label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chip-select select {
+    max-width: none;
+    flex: 1;
+  }
+
+  .menu.up {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + var(--sheet-cover, 0px) + 6px);
+  }
+
+  .app.mode-view .sheet-tabs {
+    display: flex;
+    margin: 0 12px 8px;
+  }
+
+  .sheet-tabs button {
+    flex: 1;
+    height: 36px;
+  }
+
+  /* Under the tools: the genes, or the code, or the blocks, as tall as the sheet is pulled up. */
+  .dock,
+  .panel {
+    grid-area: auto;
+    width: auto;
+    height: var(--sheet-body, 0px);
+    border: none;
+    transition: height 0.32s var(--ease);
+  }
+
+  .app.sheet-half {
+    --sheet-body: 42dvh;
+  }
+
+  .app.sheet-full {
+    --sheet-body: calc(100dvh - var(--bar-h) - var(--tabs-h) - 150px);
+  }
+
+  .app.sheet-dragging .dock,
+  .app.sheet-dragging .panel {
+    transition: none;
+  }
+
+  /* With the sheet down only the tools show, not the edge of what's under them. */
+  .app.sheet-peek:not(.sheet-dragging) .dock,
+  .app.sheet-peek:not(.sheet-dragging) .panel {
+    display: none;
+  }
+
+  .dock {
+    --bg: transparent;
+    background: transparent;
+  }
+
+  .dock-head,
+  .dock-resize {
+    display: none;
+  }
+
+  .panel {
+    padding: 0 16px 16px;
+    background: transparent;
+  }
+
+  .panel h1,
+  #description {
+    display: none;
+  }
+
+  .panel h2:first-child,
+  #problems-section + section h2 {
+    margin-top: 6px;
+  }
+
+  #genes td {
+    padding: 12px 0;
+  }
+
+  .gene-control {
+    margin-top: 10px;
+  }
+
+  /* Breeding: two columns, scrolled. */
+  /* Square rows: half the width, less the padding and the gap. */
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: calc((100vw - 34px) / 2);
+    gap: 10px;
+    padding: 12px 12px 16px;
+  }
+
+  .grid {
+    align-content: start;
+  }
+
+  /* Patterns: the picture, then the card under it. */
+  .patterns {
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .pattern-side {
+    width: auto;
+    align-self: stretch;
+  }
+
+  .library {
+    padding: 12px;
+  }
+
+  .library-head .seg {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .library-about {
+    -webkit-line-clamp: 2;
+  }
+
+  .app.full .sheet {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .app.full {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .app.full .sheet {
+    bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ---------- the app's own dialogs (dialog.ts), in place of alert, confirm and prompt ---------- */
+
 dialog.ask {
   width: min(440px, calc(100vw - 32px));
-  padding: 18px 20px 16px;
+  padding: 20px 22px 16px;
   color: var(--text);
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
   box-shadow: 0 18px 48px rgb(0 0 0 / 55%);
 }
 
@@ -908,7 +2104,7 @@ dialog.ask[open] {
 
 dialog.ask::backdrop {
   background: rgb(5 7 12 / 60%);
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(3px);
 }
 
 @keyframes ask-in {
@@ -928,12 +2124,12 @@ dialog.ask p {
 dialog.ask input[type="text"] {
   width: 100%;
   margin-bottom: 6px;
-  padding: 7px 9px;
+  padding: 9px 11px;
   font: inherit;
   color: var(--text);
   background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
 }
 
 dialog.ask input[type="text"]:focus {
@@ -958,9 +2154,20 @@ dialog.ask input[type="text"]:focus {
   gap: 8px;
 }
 
+.ask-buttons button {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.06);
+  font-weight: 500;
+}
+
 .ask-buttons button.main {
-  background: #2a3350;
-  border-color: var(--accent);
+  background: linear-gradient(135deg, #ff5fb5, #c76bff);
+  border: none;
+  color: #fff;
+  font-weight: 600;
 }
 
 .ask-buttons button.danger {
@@ -969,7 +2176,17 @@ dialog.ask input[type="text"]:focus {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  dialog.ask[open] {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* With the dock and the panel both open, the stage is narrow: the bar's buttons drop their words. */
+@media (min-width: 761px) and (max-width: 1500px) {
+  .app.dock-open.panel-open .modebar .label {
+    display: none;
   }
 }

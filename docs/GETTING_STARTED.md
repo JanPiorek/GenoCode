@@ -7,10 +7,13 @@ creature with genes and parts. The full rules are in [the language](LANGUAGE.md)
 
 ## The app
 
-The app has six modes, along the top:
+The app has six modes, down the left (along the bottom on a phone). The creature fills the middle,
+and each mode's tools float in a bar under it:
 
-- **View** shows the creature, with its code beside it. Change the code and the creature follows
-  as you type. The panel on the right has a slider for every gene, to try other values.
+- **View** shows the creature, with its code beside it (**Code**, under the modes, shows and hides
+  it). Change the code and the creature follows as you type. The **Genes** panel on the right has
+  a slider for every gene, to try other values. On a phone, pull up the sheet under the creature
+  for the genes, the code and the blocks.
 - **Breed** shows a grid of variations. Click creatures to choose them as parents, then **Mutate**
   or **Breed** for a new grid. Double-click one to open it.
 - **Morph** blends a creature into its variants and back, in a loop.
@@ -19,12 +22,12 @@ The app has six modes, along the top:
 - **Patterns** designs the textures and backgrounds creatures wear.
 - **Library** has the creatures that come with GenoCode, and everything you've saved in the browser.
 
-Start in the **Library**: open a few of the starter creatures, look at their code, and move their
-gene sliders. Every one of them was written in the language this guide describes.
+Start with the creature menu at the top, or the **Library**: open a few of the starter creatures,
+look at their code, and move their gene sliders. Every one of them was written in the language this guide describes.
 
 ## A first creature
 
-Press **New** and replace the code with this:
+Choose **File › New creature** and replace the code with this:
 
 ```
 creature Snowman
@@ -140,7 +143,7 @@ makes everything swell with the bass.
 
 ## Blocks
 
-Press **Blocks** in View to see the code as blocks, beside the code itself. Drag blocks in from the
+Choose **Blocks** (or **Both**) above the code in View to see the code as blocks. Drag blocks in from the
 palettes on the left, and the code is written for you. Change the code, and the blocks follow.
 
 - A number that is a gene's value opens a slider. A colour has a swatch that opens a colour picker.
@@ -170,8 +173,9 @@ finishes, breed the ones you like, and **Copy code** or **Use as background**.
 ## Saving and sharing
 
 - **Save** keeps a creature in this browser; it then appears in the Library under "Yours".
-- **Download** saves the `.genie` file, and **Open file** opens one. Opening a background or dance
-  file while a creature is on show offers to put it into the creature.
+- **Download** saves the `.genie` file, and **Open a .genie file** opens one (all three are in the
+  **File** menu). Opening a background or dance file while a creature is on show offers to put it
+  into the creature.
 - **Picture** in View saves a picture of the creature as it's shown.
 
 ## Where next

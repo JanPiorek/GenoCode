@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#090c14" />
     <title>GenoCode app</title>
     <meta
       name="description"
@@ -25,138 +26,572 @@
     <link rel="stylesheet" href="../src/style.css" />
   </head>
   <body>
-    <header class="bar">
-      <a class="brand" href="../" title="GenoCode's front page"
-        ><img src="../favicon.svg" alt="" width="28" height="28" /><span class="wordmark"
-          ><b>Geno</b><span>Code</span></span
-        ></a
-      >
-      <label class="field">
-        <span>Creature</span>
-        <select id="creatures"></select>
-      </label>
-      <button id="new" type="button">New</button>
-      <button id="open" type="button">Open file…</button>
-      <input id="file-input" type="file" accept=".genie" hidden />
-      <button id="save" type="button" title="Keep it in this browser">Save</button>
-      <button id="download" type="button">Download…</button>
-      <button id="delete" type="button" title="Delete it from this browser" hidden>Delete</button>
-      <nav class="modes" aria-label="Mode">
-        <button type="button" data-mode="view" aria-pressed="true">View</button>
-        <button id="mode-breed" type="button" data-mode="breed" aria-pressed="false">Breed</button>
-        <button type="button" data-mode="morph" aria-pressed="false">Morph</button>
-        <button type="button" data-mode="dance" aria-pressed="false">Dance</button>
-        <button type="button" data-mode="patterns" aria-pressed="false">Patterns</button>
-        <button type="button" data-mode="library" aria-pressed="false">Library</button>
-      </nav>
-      <a id="help" class="button" href="../docs/" target="_blank" rel="noopener">Help</a>
-      <span id="watching" class="hint" hidden></span>
-    </header>
+    <div class="app" id="app">
+      <header class="appbar">
+        <a class="brand" href="../" title="GenoCode's front page"
+          ><img src="../favicon.svg" alt="" width="30" height="30" /><span class="wordmark"
+            ><b>Geno</b><span>Code</span></span
+          ></a
+        >
 
-    <main class="layout">
-      <section id="blocks" class="blocks" aria-label="Blocks" hidden></section>
-      <section id="code" class="code" aria-label="Code"></section>
-      <section class="stage">
-        <div class="tools" id="view-tools">
-          <button id="blocks-toggle" type="button" aria-pressed="false">Blocks</button>
-          <button id="code-toggle" type="button" aria-pressed="true">Code</button>
-          <label
-            class="field"
-            id="variant-field"
-            title="The creature itself, or one of its variants"
-            hidden
-          >
-            <span>Variant</span>
-            <select id="variant"></select>
-          </label>
-          <button id="reset" type="button">Reset view</button>
-          <button id="picture" type="button" title="Save a picture of the creature as it's shown">
-            Picture…
-          </button>
-        </div>
-        <div class="tools" id="breed-tools" hidden>
-          <button id="mutate" type="button">Mutate</button>
-          <label class="field" title="How far genes move when they mutate">
-            <span>Strength</span>
-            <input id="strength" type="range" min="1" max="100" step="1" value="50" />
-          </label>
-          <button id="breed" type="button">Breed</button>
-          <label class="field"><input id="keep" type="checkbox" checked /> Keep parents</label>
-          <button id="back" type="button">Back</button>
-          <span id="breed-hint" class="hint"></span>
-        </div>
-        <div class="tools" id="morph-tools" hidden>
-          <button id="play" type="button">Pause</button>
-          <label class="field" title="Seconds from one creature to the next">
-            <span>Speed</span>
-            <input id="speed" type="range" min="0.5" max="10" step="0.5" value="3" />
-          </label>
-          <span id="morph-hint" class="hint"></span>
-        </div>
-        <div class="tools" id="dance-tools" hidden>
-          <button id="music-file" type="button">Music file…</button>
-          <input id="music-input" type="file" accept="audio/*" hidden />
-          <button id="music-url" type="button" title="Play music from a web address">Web…</button>
-          <button id="music-mic" type="button" title="Dance to what the microphone hears">
-            Microphone
-          </button>
-          <button id="music-tab" type="button" title="Dance to the sound of another browser tab">
-            Tab…
-          </button>
-          <button id="music-play" type="button" disabled>Pause</button>
-          <label class="field" title="The creature that dances ([ and ] switch)">
-            <span>Creature</span>
-            <select id="dance-creature"></select>
-          </label>
-          <label class="field" title="How the music moves the creature (keys 1–9 switch)">
-            <span>Style</span>
-            <select id="dance-style"></select>
-          </label>
+        <div class="pop">
           <button
-            id="face-on"
+            id="creature-button"
+            class="picker"
             type="button"
-            aria-pressed="false"
-            title="Watch the dance head-on: the creature still morphs, spins and swoops in to the music, but always faces you"
+            aria-haspopup="true"
+            aria-expanded="false"
+            title="Choose a creature to look at"
           >
-            2D view
+            <span id="creature-picture" class="picker-picture" aria-hidden="true"></span>
+            <span id="creature-name" class="picker-name">GenoCode</span>
+            <span id="creature-kind" class="picker-kind"></span>
+            <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
           </button>
-          <div id="meters" class="meters" aria-label="What the creature hears"></div>
-          <span id="dance-hint" class="hint"></span>
+          <div id="creature-menu" class="menu glass picker-menu" hidden></div>
         </div>
+
+        <div class="pop">
+          <button
+            id="file-button"
+            class="ibtn"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded="false"
+            title="New, open, save and download"
+          >
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+              <path d="M14 3v5h5" />
+            </svg>
+            <span class="label">File</span>
+            <svg class="ico sm wide-only" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          <div id="file-menu" class="menu glass" role="menu" hidden>
+            <button id="new" type="button" role="menuitem">
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              New creature
+            </button>
+            <button id="open" type="button" role="menuitem">
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                />
+              </svg>
+              Open a .genie file…
+            </button>
+            <hr />
+            <button id="save" type="button" role="menuitem">
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+                <path d="M8 3v5h7V3M7 21v-7h10v7" />
+              </svg>
+              Save in this browser
+            </button>
+            <button id="download" type="button" role="menuitem">
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+              </svg>
+              Download .genie…
+            </button>
+            <button id="picture" type="button" role="menuitem">
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <circle cx="9" cy="10" r="2" />
+                <path d="M21 16l-5-5-9 8" />
+              </svg>
+              Save a picture…
+            </button>
+            <button id="delete" type="button" role="menuitem" class="danger" hidden>
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+              </svg>
+              Delete from this browser
+            </button>
+            <hr />
+            <button id="shortcuts" class="wide-only" type="button" role="menuitem">
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="2" y="6" width="20" height="12" rx="2" />
+                <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
+              </svg>
+              Keyboard shortcuts
+            </button>
+            <hr class="narrow-only" />
+            <a class="narrow-only" href="../docs/" target="_blank" rel="noopener" role="menuitem">
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01" />
+              </svg>
+              Help and the language guide
+            </a>
+          </div>
+        </div>
+        <input id="file-input" type="file" accept=".genie" hidden />
+
+        <span class="grow"></span>
+        <span id="watching" class="hint wide-only" hidden></span>
+        <span id="saved-state" class="saved-state wide-only" hidden></span>
+        <button
+          id="panel-toggle"
+          class="ibtn wide-only"
+          type="button"
+          aria-pressed="true"
+          title="Show or hide the creature's genes"
+        >
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />
+            <circle cx="15" cy="6" r="2" />
+            <circle cx="9" cy="12" r="2" />
+            <circle cx="17" cy="18" r="2" />
+          </svg>
+          <span class="label">Genes</span>
+        </button>
+        <a
+          id="help"
+          class="ibtn wide-only"
+          href="../docs/"
+          target="_blank"
+          rel="noopener"
+          title="The language guide and getting started"
+        >
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01" />
+          </svg>
+          <span class="label">Help</span>
+        </a>
+      </header>
+
+      <nav class="modes" aria-label="Mode">
+        <button
+          type="button"
+          data-mode="view"
+          aria-pressed="true"
+          title="Look at the creature and change it"
+        >
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span>View</span>
+        </button>
+        <button id="mode-breed" type="button" data-mode="breed" aria-pressed="false">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M7 3c0 5 10 7 10 12 0 2.5-1.5 4.5-2 6M17 3c0 5-10 7-10 12 0 2.5 1.5 4.5 2 6M9 7h6M8 12h8M9 17h6"
+            />
+          </svg>
+          <span>Breed</span>
+        </button>
+        <button
+          type="button"
+          data-mode="morph"
+          aria-pressed="false"
+          title="Watch the creature flow through its family"
+        >
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.5 9a3 3 0 1 0 0 6c3 0 8-6 11-6a3 3 0 1 1 0 6c-3 0-8-6-11-6z" />
+          </svg>
+          <span>Morph</span>
+        </button>
+        <button type="button" data-mode="dance" aria-pressed="false" title="Make it dance to music">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 18V5l11-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="17" cy="16" r="3" />
+          </svg>
+          <span>Dance</span>
+        </button>
+        <button
+          type="button"
+          data-mode="patterns"
+          aria-pressed="false"
+          title="Design patterns for skins and backgrounds"
+        >
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="3" width="7" height="7" rx="3.5" />
+            <rect x="3" y="14" width="7" height="7" rx="3.5" />
+            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+          </svg>
+          <span>Patterns</span>
+        </button>
+        <button
+          type="button"
+          data-mode="library"
+          aria-pressed="false"
+          title="Your creatures, the starters, dances and patterns"
+        >
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 4h4v16H4zM10 4h4v16h-4zM16.5 4.6l3.8 1-3.9 14.8-3.8-1z" />
+          </svg>
+          <span>Library</span>
+        </button>
+        <span class="grow"></span>
+        <button
+          id="code-toggle"
+          type="button"
+          aria-pressed="true"
+          title="Show or hide the creature's code and blocks"
+        >
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 6l-6 6 6 6M16 6l6 6-6 6" />
+          </svg>
+          <span>Code</span>
+        </button>
+      </nav>
+
+      <main class="stage" id="stage">
         <canvas id="view" aria-label="The creature"></canvas>
-        <div id="views" class="views" role="toolbar" aria-label="View">
-          <button type="button" data-side="front" title="Front">Front</button>
-          <button type="button" data-side="back" title="Back">Back</button>
-          <button type="button" data-side="left" title="Left side">Left</button>
-          <button type="button" data-side="right" title="Right side">Right</button>
-          <button type="button" data-side="top" title="Top">Top</button>
-          <button type="button" data-side="bottom" title="Bottom">Bottom</button>
-          <button type="button" id="fullscreen" title="Full screen (F)" aria-pressed="false">
-            ⛶
+        <div class="stage-title" id="stage-title">
+          <span id="stage-name" class="stage-name"></span>
+          <span id="view-hint" class="hint">Drag to turn it · scroll or pinch to zoom</span>
+          <span id="breed-hint" class="hint" hidden></span>
+          <span id="morph-hint" class="hint" hidden></span>
+          <span id="dance-hint" class="hint" hidden></span>
+        </div>
+        <div id="views" class="corner" role="toolbar" aria-label="View">
+          <div class="pop">
+            <button
+              id="camera-button"
+              class="ibtn icon glass"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-label="Look from another side"
+              title="Look from another side"
+            >
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+                <path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" />
+              </svg>
+            </button>
+            <div id="camera-menu" class="menu glass camera-menu" role="menu" hidden>
+              <div class="menu-head">Look from</div>
+              <div class="sides">
+                <button type="button" data-side="front" role="menuitem">Front</button>
+                <button type="button" data-side="back" role="menuitem">Back</button>
+                <button type="button" data-side="top" role="menuitem">Top</button>
+                <button type="button" data-side="left" role="menuitem">Left</button>
+                <button type="button" data-side="right" role="menuitem">Right</button>
+                <button type="button" data-side="bottom" role="menuitem">Bottom</button>
+              </div>
+              <hr />
+              <button id="reset" type="button" role="menuitem">
+                <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4" />
+                </svg>
+                Start the view again
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            id="fullscreen"
+            class="ibtn icon glass"
+            aria-pressed="false"
+            aria-label="Full screen (F)"
+            title="Full screen (F)"
+          >
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+            </svg>
           </button>
         </div>
         <div id="grid" class="grid" hidden></div>
         <div id="patterns" class="patterns" hidden></div>
         <div id="library" class="library" hidden></div>
-      </section>
-      <aside class="panel">
-        <h1 id="name"></h1>
-        <p id="description"></p>
-        <section id="problems-section" hidden>
-          <h2>Problems</h2>
-          <ul id="problems"></ul>
+      </main>
+
+      <div class="sheet" id="sheet">
+        <button id="sheet-handle" class="sheet-handle" type="button" aria-label="Show more">
+          <span></span>
+        </button>
+
+        <div class="modebar glass" id="modebar">
+          <div class="tools" id="view-tools">
+            <label
+              class="chip-select"
+              id="variant-field"
+              title="The creature itself, or one of its variants"
+              hidden
+            >
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="6" r="3" />
+                <circle cx="18" cy="18" r="3" />
+                <path d="M9 11l6-4M9 13l6 4" />
+              </svg>
+              <select id="variant" aria-label="Variant"></select>
+            </label>
+            <span class="sep" id="variant-sep" hidden></span>
+            <button
+              type="button"
+              class="ibtn"
+              data-go="breed"
+              title="Breed new creatures from this one"
+            >
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M7 3c0 5 10 7 10 12 0 2.5-1.5 4.5-2 6M17 3c0 5-10 7-10 12 0 2.5 1.5 4.5 2 6"
+                />
+              </svg>
+              <span class="label">Breed</span>
+            </button>
+            <button type="button" class="ibtn" data-go="dance" title="Make it dance to music">
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 18V5l11-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="17" cy="16" r="3" />
+              </svg>
+              <span class="label">Dance</span>
+            </button>
+            <button
+              type="button"
+              class="ibtn"
+              id="picture-bar"
+              title="Save a picture of the creature as it's shown"
+            >
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <circle cx="9" cy="10" r="2" />
+                <path d="M21 16l-5-5-9 8" />
+              </svg>
+              <span class="label">Picture</span>
+            </button>
+          </div>
+
+          <div class="tools" id="breed-tools" hidden>
+            <button id="back" type="button" class="ibtn" title="Back to the grid before this one">
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+              <span class="label">Back</span>
+            </button>
+            <span class="sep"></span>
+            <button
+              id="mutate"
+              type="button"
+              class="ibtn solid"
+              title="New children from the ones you picked, each a little different"
+            >
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
+              </svg>
+              Mutate
+            </button>
+            <label class="range" title="How far genes move when they mutate">
+              <span class="hint">Strength</span>
+              <input id="strength" type="range" min="1" max="100" step="1" value="50" />
+            </label>
+            <button
+              id="breed"
+              type="button"
+              class="ibtn primary"
+              title="Children of the parents you picked"
+            >
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M7 3c0 5 10 7 10 12 0 2.5-1.5 4.5-2 6M17 3c0 5-10 7-10 12 0 2.5 1.5 4.5 2 6"
+                />
+              </svg>
+              Breed
+            </button>
+            <label class="toggle" title="Keep the parents in the next round">
+              <input id="keep" type="checkbox" checked />
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12l5 5L20 7" />
+              </svg>
+              Keep parents
+            </label>
+          </div>
+
+          <div class="tools" id="morph-tools" hidden>
+            <button
+              id="play"
+              type="button"
+              class="ibtn primary icon play"
+              data-state="pause"
+              aria-label="Pause"
+            >
+              <svg class="ico when-pause" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5v14M16 5v14" />
+              </svg>
+              <svg class="ico when-play" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5l11 7-11 7z" />
+              </svg>
+            </button>
+            <label class="range" title="Seconds from one creature to the next">
+              <span class="hint">Speed</span>
+              <input id="speed" type="range" min="0.5" max="10" step="0.5" value="3" />
+            </label>
+          </div>
+
+          <div class="tools" id="dance-tools" hidden>
+            <div class="pop">
+              <button
+                id="music-button"
+                type="button"
+                class="ibtn solid"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                title="Choose what to dance to: a music file, a web address, the microphone or another tab"
+              >
+                <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 18V5l11-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="17" cy="16" r="3" />
+                </svg>
+                <span class="label">Music</span>
+                <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              <div id="music-menu" class="menu glass up" role="menu" hidden>
+                <div class="menu-head">Dance to</div>
+                <button id="music-file" type="button" role="menuitem">
+                  <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 3v5h5" />
+                  </svg>
+                  A music file…
+                </button>
+                <button id="music-url" type="button" role="menuitem">
+                  <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+                  </svg>
+                  Music from a web address…
+                </button>
+                <button id="music-mic" type="button" role="menuitem">
+                  <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="9" y="3" width="6" height="11" rx="3" />
+                    <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+                  </svg>
+                  What the microphone hears
+                </button>
+                <button id="music-tab" type="button" role="menuitem">
+                  <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <path d="M3 9h18" />
+                  </svg>
+                  Sound from another tab…
+                </button>
+              </div>
+              <input id="music-input" type="file" accept="audio/*" hidden />
+            </div>
+            <button
+              id="music-play"
+              type="button"
+              class="ibtn primary icon play"
+              data-state="play"
+              aria-label="Play"
+              disabled
+            >
+              <svg class="ico when-pause" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5v14M16 5v14" />
+              </svg>
+              <svg class="ico when-play" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5l11 7-11 7z" />
+              </svg>
+              <svg class="ico when-live" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="9" y="3" width="6" height="11" rx="3" />
+                <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+              </svg>
+            </button>
+            <div id="meters" class="meters" aria-label="What the creature hears"></div>
+            <span class="sep"></span>
+            <label class="chip-select" title="How the music moves the creature (keys 1–9 switch)">
+              <span class="hint">Style</span>
+              <select id="dance-style" aria-label="Dance style"></select>
+            </label>
+            <button
+              id="face-on"
+              type="button"
+              class="ibtn"
+              aria-pressed="false"
+              title="Watch the dance head-on: the creature still morphs, spins and swoops in to the music, but always faces you"
+            >
+              2D
+            </button>
+          </div>
+        </div>
+
+        <div class="sheet-tabs seg" id="sheet-tabs" role="group" aria-label="Show">
+          <button type="button" data-sheet="genes" aria-pressed="true">Genes</button>
+          <button type="button" data-sheet="code" aria-pressed="false">Code</button>
+          <button type="button" data-sheet="blocks" aria-pressed="false">Blocks</button>
+        </div>
+
+        <section id="dock" class="dock" aria-label="Code and blocks">
+          <div class="dock-head">
+            <div class="seg" role="group" aria-label="Show">
+              <button type="button" data-dock="code" aria-pressed="true">Code</button>
+              <button type="button" data-dock="blocks" aria-pressed="false">Blocks</button>
+              <button type="button" data-dock="both" aria-pressed="false">Both</button>
+            </div>
+            <span class="grow"></span>
+            <span id="dock-status" class="dock-status"></span>
+            <button
+              id="dock-close"
+              type="button"
+              class="ibtn icon"
+              aria-label="Hide the code"
+              title="Hide the code"
+            >
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+          </div>
+          <div class="dock-body">
+            <section id="blocks" class="blocks" aria-label="Blocks" hidden></section>
+            <section id="code" class="code" aria-label="Code"></section>
+          </div>
+          <div
+            id="dock-resize"
+            class="dock-resize"
+            title="Drag to make the code wider or narrower"
+          ></div>
         </section>
-        <section id="inputs-section" hidden>
-          <h2>Inputs</h2>
-        </section>
-        <section>
-          <h2>Genes</h2>
-          <table id="genes"></table>
-          <p id="no-genes" class="hint" hidden>This creature has no genes.</p>
-        </section>
-        <p id="status" class="hint"></p>
-      </aside>
-    </main>
+
+        <aside class="panel" id="panel" aria-label="About the creature">
+          <h1 id="name"></h1>
+          <p id="description"></p>
+          <section id="problems-section" hidden>
+            <h2>Problems</h2>
+            <ul id="problems"></ul>
+          </section>
+          <section>
+            <h2>Genes <span id="gene-count" class="count"></span></h2>
+            <table id="genes"></table>
+            <p id="no-genes" class="hint" hidden>This creature has no genes.</p>
+          </section>
+          <section id="inputs-section" class="inputs-section" hidden>
+            <h2>
+              <button
+                id="inputs-toggle"
+                type="button"
+                aria-expanded="false"
+                title="Try how the creature reacts to time and music"
+              >
+                Try inputs
+                <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 6l6 6-6 6" />
+                </svg>
+              </button>
+            </h2>
+          </section>
+          <p id="status" class="hint"></p>
+        </aside>
+      </div>
+    </div>
 
     <div id="drop" class="drop" hidden>Drop a .genie file to open it, or music to dance to</div>
     <script type="module" src="../src/main.ts"></script>
