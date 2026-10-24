@@ -1534,6 +1534,8 @@ gene wobble = 0.3 in 0..1
 let turn = random(0, 360)
 let lumps = clouds(5, 3)
 value picture {
+  // picture { } gives each pixel its own x and y (where it is)
+  // and r (its distance from the middle); you don't make them
   let ripple = sin(r * rings * 180 + turn + lumps(x, y) * wobble * 360)
   value ripple * 0.5 + 0.5
 }
