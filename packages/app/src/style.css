@@ -772,6 +772,121 @@ input[type="range"] {
   background: var(--line-strong);
 }
 
+/* Recording a video: the picture takes the video's shape, framed on the darkened stage, with the
+   site's mark where it will be in the video. */
+.rec-dot {
+  width: 11px;
+  height: 11px;
+  flex: none;
+  border-radius: 50%;
+  background: #ff5468;
+  box-shadow: 0 0 0 3px rgb(255 84 104 / 0.18);
+}
+
+#record-button.recording {
+  background: rgb(255 84 104 / 0.16);
+  border-color: rgb(255 84 104 / 0.5);
+  color: #ffd6db;
+  font-variant-numeric: tabular-nums;
+}
+
+#record-button.recording .rec-dot {
+  animation: rec-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes rec-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* A small picture of each shape in the menu. */
+.shape {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+}
+
+.shape::before {
+  content: "";
+  border: 1.8px solid var(--muted);
+  border-radius: 3px;
+}
+
+.shape.tall::before {
+  width: 11px;
+  height: 19px;
+}
+
+.shape.square::before {
+  width: 16px;
+  height: 16px;
+}
+
+.shape.wide::before {
+  width: 20px;
+  height: 12px;
+}
+
+.menu small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.menu-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.92em;
+  cursor: pointer;
+}
+
+.menu-check input {
+  accent-color: var(--accent);
+}
+
+.menu-note {
+  margin: 0;
+  padding: 2px 10px 6px;
+  color: var(--muted);
+  font-size: 0.82em;
+}
+
+.stage.recording {
+  background: #05060b;
+}
+
+.stage.recording #view {
+  flex: none;
+  align-self: center;
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.18),
+    0 18px 60px rgb(0 0 0 / 0.6);
+}
+
+.stage.recording .stage-title,
+.stage.recording .corner {
+  display: none;
+}
+
+.record-mark {
+  position: absolute;
+  font-weight: 600;
+  line-height: 1;
+  color: rgb(255 255 255 / 0.62);
+  text-shadow: 0 0 0.3em rgb(0 0 0 / 0.5);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* What the creature hears: a slim bar for each music input and the beat. */
 .meters {
   display: flex;
@@ -1901,6 +2016,11 @@ input[type="color"].gene-control {
     order: -1;
   }
 
+  /* Morph: play and Video on the first line, the speed under them. */
+  #morph-tools .range {
+    order: 1;
+  }
+
   /* View: the variant and a picture; the tab bar already has Breed and Dance. */
   #view-tools [data-go] {
     display: none;
@@ -2188,5 +2308,10 @@ dialog.ask input[type="text"]:focus {
 @media (min-width: 761px) and (max-width: 1500px) {
   .app.dock-open.panel-open .modebar .label {
     display: none;
+  }
+
+  /* Except the time while recording. */
+  .app.dock-open.panel-open #record-button.recording .label {
+    display: inline;
   }
 }

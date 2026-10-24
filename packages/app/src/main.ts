@@ -51,6 +51,7 @@ import {
 } from "./patterns.js";
 import { showGenes, showInfo, showProblems, showStatus, type VariantGenes } from "./panel.js";
 import { CreaturePicker, type PickerEntry } from "./picker.js";
+import { canRecord, LONGEST, VideoRecorder, type Video, type VideoShape } from "./recorder.js";
 import { dropdown, Shell, type Mode } from "./shell.js";
 
 // The starter creatures in the repository's creatures/ folder.
@@ -517,6 +518,7 @@ function showPanes(): void {
 }
 
 function setMode(next: Mode): void {
+  recorder.stop();
   mode = next;
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
     b.setAttribute("aria-pressed", String(b.dataset["mode"] === mode));
@@ -549,6 +551,8 @@ function setMode(next: Mode): void {
   if (mode === "library") library.show(libraryEntries());
   showFaceOn();
   enableTools();
+  // One Video button, in the Morph or the Dance tools.
+  if (mode === "morph" || mode === "dance") $(`${mode}-tools`).append($("record-tools"));
 }
 
 /**
@@ -988,6 +992,86 @@ $("music-play").addEventListener("click", () => void playMusic(() => player.togg
 
 const isMusic = (f: File) =>
   f.type.startsWith("audio/") || /\.(mp3|wav|ogg|oga|opus|flac|m4a|aac|webm)$/i.test(f.name);
+
+// ---------- videos ----------
+
+const recordButton = $<HTMLButtonElement>("record-button");
+const recorder = new VideoRecorder(view, canvas, $("stage"), $("record-mark"), player, () =>
+  // On a wide screen the tools float over the bottom of the stage; on a phone they're in the sheet.
+  shell.narrow.matches ? 0 : $("modebar").offsetHeight + 34,
+);
+recorder.onReframe = () => (mode === "dance" && faceOn ? view.viewFrom("front") : view.resetView());
+recorder.onTick = (seconds) => {
+  $("record-label").textContent = `Stop ${minutes(seconds)}`;
+};
+$("record-tools").hidden = !canRecord();
+
+/** Whether the music is a file or an address, which can be recorded from start to end. */
+const wholeSongs = () => mode === "dance" && player.position !== undefined;
+
+dropdown(recordButton, $("record-menu"), () => {
+  $("record-whole-row").hidden = !wholeSongs();
+  $("record-note").textContent =
+    mode === "dance" && !player.active
+      ? "No music is playing, so the video will be silent."
+      : `Up to ${LONGEST / 60} minutes. Press Stop to finish.`;
+});
+// While recording, the button stops it instead of opening the menu.
+recordButton.addEventListener(
+  "click",
+  (e) => {
+    if (!recorder.recording) return;
+    e.stopImmediatePropagation();
+    recorder.stop();
+  },
+  { capture: true },
+);
+for (const b of document.querySelectorAll<HTMLButtonElement>("[data-shape]")) {
+  b.addEventListener("click", () => void record(b.dataset["shape"] as VideoShape));
+}
+
+async function record(shape: VideoShape): Promise<void> {
+  const name = creatureName();
+  recordButton.classList.add("recording");
+  recordButton.title = "Stop recording and keep the video";
+  let video: Video | undefined;
+  try {
+    video = await recorder.start({
+      shape,
+      sound: mode === "dance",
+      wholeSong: wholeSongs() && $<HTMLInputElement>("record-whole").checked,
+    });
+  } catch (e) {
+    await tell(`The video can't be recorded: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  recordButton.classList.remove("recording");
+  recordButton.title = "Make a video of the creature, to keep or share";
+  $("record-label").textContent = "Video";
+  showDanceHint();
+  if (video) await keepVideo(video, name);
+}
+
+/** Offers to save the video, or share it where the browser can (phones, mostly). */
+async function keepVideo(video: Video, name: string): Promise<void> {
+  const file = new File([video.blob], `${name}${video.ext}`, { type: video.blob.type });
+  const share = navigator.canShare?.({ files: [file] }) ?? false;
+  const size = `${Math.max(1, Math.round(video.blob.size / 1e6))} MB`;
+  const choice = await choose(`Your video is ready: ${minutes(video.seconds)}, ${size}.`, [
+    { label: "Throw away", danger: true },
+    ...(share ? [{ label: "Share…" }] : []),
+    { label: "Save…", main: true },
+  ]);
+  if (choice <= 0) return;
+  if (share && choice === 1) {
+    try {
+      await navigator.share({ files: [file], title: name.replace(/_/g, " ") });
+    } catch {
+      // The share sheet was closed.
+    }
+    return;
+  }
+  await saveBlob(video.blob, file.name, "Videos", video.ext);
+}
 
 // ---------- saving ----------
 

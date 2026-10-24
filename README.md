@@ -74,6 +74,9 @@ the genes, the code and the blocks:
 - **Dance** moves the creature to music (a file, a web address, the microphone or another browser
   tab), by a dance style. Its bar has the music and the style;
   `[` and `]` step through the creatures and the number keys through the styles.
+- **Video**, in Morph and Dance, records the creature with its music as a video to save or share:
+  tall (Shorts, TikTok, Reels), square or wide, up to five minutes, or the whole song from the
+  start. It's made in the browser: MP4 where the browser can, otherwise WebM.
 - **Patterns** designs texture and background recipes, with variations to breed, and exports
   them as code, background files or pictures.
 - **Library** has the starter creatures and dance styles, and everything saved in the browser.

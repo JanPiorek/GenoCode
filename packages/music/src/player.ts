@@ -35,6 +35,8 @@ export class MusicPlayer {
   private element: MediaElementAudioSourceNode | undefined;
   private microphone: MediaStreamAudioSourceNode | undefined;
   private stream: MediaStream | undefined;
+  /** Where the sound also goes while a video is being recorded. */
+  private recording: MediaStreamAudioDestinationNode | undefined;
   readonly audio = new Audio();
   /** What's playing: the file's name, the address, "Microphone" or "Another tab". */
   name = "";
@@ -162,8 +164,7 @@ export class MusicPlayer {
     const ctx = await this.connect();
     this.element ??= ctx.createMediaElementSource(this.audio);
     this.element.connect(this.node!);
-    this.node!.disconnect();
-    this.node!.connect(ctx.destination);
+    this.sendTo(ctx.destination);
     this.begin(name, source);
     try {
       await playing;
@@ -179,8 +180,7 @@ export class MusicPlayer {
     this.microphone.connect(this.node!);
     // Live sound isn't played back: the microphone would howl, and the tab plays its own. The
     // worklet still runs.
-    this.node!.disconnect();
-    this.node!.connect(silentOutput(ctx));
+    this.sendTo(silentOutput(ctx));
     this.begin(name, source);
     // Stopping the sharing (from the browser's own bar) ends the tracks.
     for (const t of stream.getAudioTracks()) {
@@ -190,6 +190,32 @@ export class MusicPlayer {
         this.onEnd?.();
       });
     }
+  }
+
+  /**
+   * The sound as it's heard, for recording a video: whatever plays from now until
+   * `stopRecordingSound`, even if the music changes.
+   */
+  async recordSound(): Promise<MediaStream> {
+    const ctx = await this.connect();
+    this.stopRecordingSound();
+    this.recording = ctx.createMediaStreamDestination();
+    this.node!.connect(this.recording);
+    return this.recording.stream;
+  }
+
+  stopRecordingSound(): void {
+    if (this.recording === undefined) return;
+    this.node?.disconnect(this.recording);
+    this.recording.stream.getTracks().forEach((t) => t.stop());
+    this.recording = undefined;
+  }
+
+  /** Sends the sound out of the graph to `out`, and on to a recording if there is one. */
+  private sendTo(out: AudioNode): void {
+    this.node!.disconnect();
+    this.node!.connect(out);
+    if (this.recording) this.node!.connect(this.recording);
   }
 
   private begin(name: string, source: MusicSource): void {
