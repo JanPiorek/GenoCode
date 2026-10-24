@@ -51,8 +51,12 @@ part chain(arm) {
     if arm > 0 or k > 0 {
       branch {
         if k % 2 == 0 {
+          // uncomment this line to see the flat links in their textured glory, and comment out the next line
+          // texture mixed(pattern(kaleidoscope, flat(along).hue, along * 20, jewel, pearl), warp, plasma, 0.5)
           colour flat(along)
         } else {
+          // uncomment this line to see the upright links in their textured glory, and comment out the next line
+          // texture mixed(pattern(kaleidoscope, upright(along).hue, along * 20, split, iridescent), blend, lightning, 0.5)
           colour upright(along)
           yaw 90
         }
