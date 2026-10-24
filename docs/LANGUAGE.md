@@ -1,6 +1,6 @@
 # The GenoCode language
 
-Version 0.9, as built by `@genocode/core` 0.9.
+Version 0.10, as built by `@genocode/core` 0.10.
 
 This document is the definition of GenoCode. When the implementation and this document disagree,
 this document is right and the implementation is fixed, unless the document is changed first.
@@ -388,7 +388,7 @@ From lowest to highest precedence:
 | `==` `!=`                       | equal, not equal                                                                                                       | two values of the same type: numbers, bools, vectors, colours, shapes, and the pattern words (kinds, schemes, finishes, ways of mixing) |
 | `<` `<=` `>` `>=`               | comparisons                                                                                                            | numbers                                                                                                                                 |
 | `+` `-`                         | add, subtract                                                                                                          | numbers, or two vectors; `+` also joins two lists                                                                                       |
-| `*` `/` `%`                     | multiply, divide, remainder                                                                                            | numbers; vector with number; two vectors ([8.2](#82-vector-arithmetic))                                                                 |
+| `*` `/` `%`                     | multiply, divide, remainder                                                                                            | numbers; `*` and `/` also vector with number and two vectors ([8.2](#82-vector-arithmetic)); `%` numbers only                           |
 | `-` (prefix)                    | negate                                                                                                                 | number or vector                                                                                                                        |
 | `^`                             | power                                                                                                                  | numbers                                                                                                                                 |
 | `.name` `f(…)` `skin(t)` `l[i]` | part of a value, call, sampling a gradient ([13.3](#133-gradients)) or a picture, an item of a list ([8.3](#83-lists)) |                                                                                                                                         |
@@ -1115,13 +1115,13 @@ These make and change pictures. They can only be used in pattern code, outside `
 ([section 14.1](#141-your-own-patterns)). They're built-in names only there: elsewhere, a creature
 may use `stretch`, `power` or `blur` as names of its own.
 
-| Function                      | Result                                                                                                                                                                                                                     |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `clouds()`, `clouds(o, s)`    | fractal noise: `o` layers (6 if left out) of random values on a grid, the first `s` × `s` (4 if left out), each layer twice as fine and half as strong as the last, smoothly enlarged and added up, then stretched to 0..1 |
-| `blur(p, w)`, `blur(p, w, h)` | `p` blurred, `w` across and `h` down (`w` if left out). Widths are in pixels of a picture 512 across, so a blur looks the same at any size                                                                                 |
-| `zoom_blur(p, s)`             | `p` streaked out from the middle: the average of `p` enlarged from 1 to `1 + s` times about the middle                                                                                                                     |
-| `stretch(p)`                  | `p` stretched so its darkest point is 0 and its lightest 1                                                                                                                                                                 |
-| `power(p, e)`                 | every value of `p` raised to the power `e`                                                                                                                                                                                 |
+| Function                      | Result                                                                                                                                                                                                                                          |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clouds()`, `clouds(o, s)`    | fractal noise: `o` layers (1 to 12, 6 if left out) of random values on a grid, the first `s` × `s` (at least 1, 4 if left out), each layer twice as fine and half as strong as the last, smoothly enlarged and added up, then stretched to 0..1 |
+| `blur(p, w)`, `blur(p, w, h)` | `p` blurred, `w` across and `h` down (`w` if left out). Widths are in pixels of a picture 512 across, so a blur looks the same at any size                                                                                                      |
+| `zoom_blur(p, s)`             | `p` streaked out from the middle: the average of `p` enlarged from 1 to `1 + s` times about the middle                                                                                                                                          |
+| `stretch(p)`                  | `p` stretched so its darkest point is 0 and its lightest 1                                                                                                                                                                                      |
+| `power(p, e)`                 | every value of `p` raised to the power `e`                                                                                                                                                                                                      |
 
 How they work, so that a pattern always draws the same picture:
 
