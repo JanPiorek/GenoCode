@@ -51,24 +51,28 @@ npm run check     # build, type-check, test and check formatting, as CI does
 ```
 
 **Write creatures in the browser:** `npm run dev`, then open the address it prints. Pick a creature
-from the **Library**, start a **New** one, or open or drop any `.genie` file. In Chromium-based
+from the creature menu at the top or the **Library**, start a new one from the **File** menu, or
+open or drop any `.genie` file. In Chromium-based
 browsers, a file opened from disk is watched too, so you can edit it in any editor and see the
 changes (until you edit it in the app). **Save** keeps a creature in the browser, and
 **Download…** writes it as a `.genie` file.
 
-The app has six modes:
+The creature fills the window. The six modes sit in a rail on the left (tabs along the bottom on a
+phone), each mode's tools float in a bar under the creature, and on a phone a sheet slides up with
+the genes, the code and the blocks:
 
-- **View** shows the creature beside its code, rebuilt as you type. The editor colours the code,
-  marks problems, completes names and explains whatever you point at. **Blocks** shows the code as
-  blocks too, kept in step with it, to build creatures by dragging. Each gene has a slider, colour
-  picker or menu in the side panel; creatures that react to time or music get sliders for those.
-  Lock a gene (🔓) to keep it fixed while breeding. **Picture…** saves the view as a PNG.
+- **View** shows the creature beside its code (**Code** in the rail shows and hides it), rebuilt as
+  you type. The editor colours the code, marks problems, completes names and explains whatever you
+  point at. **Blocks** or **Both** shows the code as blocks too, kept in step with it, to build
+  creatures by dragging. Each gene has a slider, colour picker or menu in the **Genes** panel;
+  creatures that react to time or music get sliders for those under **Try inputs**. Lock a gene
+  (🔓) to keep it fixed while breeding. **Picture** saves the view as a PNG.
 - **Breed** shows a grid of variations. Click creatures to choose them as parents, then **Mutate**
   or **Breed**; **Back** returns to the previous generation, and double-clicking one opens it.
 - **Morph** blends the creature through its variants, or the creatures chosen in the grid, in a
   loop.
 - **Dance** moves the creature to music (a file, a web address, the microphone or another browser
-  tab), by a dance style. Its own menus change the creature and the style, also in full screen;
+  tab), by a dance style. Its bar has the music and the style;
   `[` and `]` step through the creatures and the number keys through the styles.
 - **Patterns** designs texture and background recipes, with variations to breed, and exports
   them as code, background files or pictures.
@@ -76,8 +80,8 @@ The app has six modes:
   Clicking a dance style dances the creature to it; **Make it its own** writes it into the
   creature.
 
-In View, Morph and Dance, the buttons at the bottom right turn the picture to look from each side,
-and ⛶ (or the F key) shows it full screen.
+In View, Morph and Dance, the buttons at the top right of the creature turn the picture to look from
+each side and (or the F key) show it full screen. **File › Keyboard shortcuts** lists the keys.
 
 **Help** in the app opens the documentation: the getting-started guide and the language reference,
 made from `docs/` when the app is built. `npm run build` puts the whole website in

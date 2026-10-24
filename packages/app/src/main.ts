@@ -50,6 +50,8 @@ import {
   withDefinition,
 } from "./patterns.js";
 import { showGenes, showInfo, showProblems, showStatus, type VariantGenes } from "./panel.js";
+import { CreaturePicker, type PickerEntry } from "./picker.js";
+import { dropdown, Shell, type Mode } from "./shell.js";
 
 // The starter creatures in the repository's creatures/ folder.
 const examples = import.meta.glob("../../../creatures/*.genie", {
@@ -89,12 +91,10 @@ const grid = $("grid");
 const codeSection = $("code");
 drawFieldsInWorkers();
 const view = new CreatureView(canvas);
-const creatureSelect = $<HTMLSelectElement>("creatures");
-const danceCreatureSelect = $<HTMLSelectElement>("dance-creature");
+const app = $("app");
 const fileInput = $<HTMLInputElement>("file-input");
 const watching = $("watching");
 
-type Mode = "view" | "breed" | "morph" | "dance" | "patterns" | "library";
 let mode: Mode = "view";
 
 /** Where the code came from: an example, a creature saved in this browser, or elsewhere. */
@@ -192,6 +192,7 @@ function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Val
   fillVariantMenu();
   showInfo(program, shown?.variant);
   enableTools();
+  showSaved();
   // A creature that says `breed off` can't be bred: it's shown instead.
   if (mode === "breed" && current && !current.program.breedable) {
     setMode("view");
@@ -254,6 +255,7 @@ function pickShown(): void {
 function fillVariantMenu(): void {
   const variants = current?.program.variants ?? [];
   $("variant-field").hidden = variants.length === 0;
+  $("variant-sep").hidden = variants.length === 0;
   const option = (value: string, label: string) => {
     const o = document.createElement("option");
     o.value = value;
@@ -382,13 +384,12 @@ function load(text: string, from: Source): void {
   showSource();
 }
 
-/** Shows where the code came from in the creature menu and the address. */
+/** Shows what's open in the creature menu and the address. */
 function showSource(): void {
-  fillCreatureMenu();
-  creatureSelect.value = source.kind === "other" ? "" : `${source.kind}:${source.name}`;
-  danceCreatureSelect.value = creatureSelect.value;
-  if (danceCreatureSelect.selectedIndex < 0) danceCreatureSelect.value = "";
+  const file = checkText(editor.text).file;
+  picker.setCurrent(file.name || "Untitled", editor.text, file.kind);
   $("delete").hidden = source.kind !== "mine";
+  showSaved();
   const url = new URL(location.href);
   url.searchParams.delete("example");
   url.searchParams.delete("mine");
@@ -410,41 +411,24 @@ function exampleText(name: string): string | undefined {
   return path ? examples[path] : undefined;
 }
 
-function fillCreatureMenu(): void {
-  const group = (label: string, kind: string, names: string[]) => {
-    const g = document.createElement("optgroup");
-    g.label = label;
-    for (const n of names) {
-      const option = document.createElement("option");
-      option.value = `${kind}:${n}`;
-      option.textContent = n;
-      g.append(option);
-    }
-    return g;
-  };
-  const other = document.createElement("option");
-  other.value = "";
-  other.textContent = "—";
-  other.hidden = true;
-  const mine = savedNames();
-  creatureSelect.replaceChildren(
-    other,
-    ...(mine.length > 0 ? [group("Mine", "mine", mine)] : []),
-    group("Examples", "example", exampleNames),
-  );
-  // The dance's own menu, so the creature can be changed in full screen: creatures only.
-  const myCreatures = mine.filter((n) => kindOf(savedText(n)!) === "creature");
-  const none = other.cloneNode(true);
-  danceCreatureSelect.replaceChildren(
-    none,
-    ...(myCreatures.length > 0 ? [group("Mine", "mine", myCreatures)] : []),
-    group(
-      "Examples",
-      "example",
-      exampleNames.filter((n) => kindOf(exampleText(n)!) === "creature"),
-    ),
-  );
+/** What the creature menu offers: those kept in this browser, then the starters. */
+function pickerEntries(): PickerEntry[] {
+  const mine = savedNames().map((name) => {
+    const text = savedText(name)!;
+    return { kind: "mine" as const, name, text, what: kindOf(text) };
+  });
+  const starters = exampleNames.map((name) => {
+    const text = exampleText(name)!;
+    return { kind: "example" as const, name, text, what: kindOf(text) };
+  });
+  return [...mine, ...starters];
 }
+
+const picker = new CreaturePicker({
+  entries: pickerEntries,
+  open: (e) => void openPicked(e.kind, e.name),
+  library: () => setMode("library"),
+});
 
 function openListed(kind: "example" | "mine", name: string): boolean {
   const text = kind === "example" ? exampleText(name) : savedText(name);
@@ -453,26 +437,30 @@ function openListed(kind: "example" | "mine", name: string): boolean {
   return true;
 }
 
-/** Opens a creature picked from a menu (`kind:name`), unless that would lose changes. */
-async function openPicked(value: string): Promise<void> {
-  const [kind, ...rest] = value.split(":");
-  if (!(await mayDiscard())) {
-    showSource();
-    return;
-  }
-  openListed(kind as "example" | "mine", rest.join(":"));
+/** Opens a creature picked from the menu, unless that would lose changes. */
+async function openPicked(kind: "example" | "mine", name: string): Promise<void> {
+  if (await mayDiscard()) openListed(kind, name);
 }
 
-creatureSelect.addEventListener("change", () => void openPicked(creatureSelect.value));
-danceCreatureSelect.addEventListener("change", () => void openPicked(danceCreatureSelect.value));
-
-/** Dances the next (or previous) creature in the dance's menu. */
+/** Dances the next (or previous) creature in the creature menu. */
 function stepCreature(by: number): void {
-  const options = [...danceCreatureSelect.options].filter((o) => o.value !== "");
-  if (options.length === 0) return;
-  const at = options.findIndex((o) => o.value === danceCreatureSelect.value);
-  const next = options[(at + by + options.length) % options.length]!;
-  void openPicked(next.value);
+  const list = pickerEntries().filter((e) => e.what === "creature");
+  if (list.length === 0) return;
+  const at = list.findIndex((e) => source.kind === e.kind && source.name === e.name);
+  const next = list[(at + by + list.length) % list.length]!;
+  void openPicked(next.kind, next.name);
+}
+
+/** Says in the top bar whether what's open has changes that aren't kept anywhere. */
+function showSaved(): void {
+  const saved = $("saved-state");
+  const changed = dirty();
+  saved.hidden = !changed && source.kind !== "mine";
+  saved.classList.toggle("changed", changed);
+  saved.textContent = changed ? "Not saved" : "Saved";
+  saved.title = changed
+    ? "Your changes are only on this page: Save keeps them in this browser"
+    : "Kept in this browser";
 }
 
 $("new").addEventListener("click", async () => {
@@ -515,42 +503,36 @@ const morpher = new Morpher(view, (f) => {
   showProblems(f.creature.program, f.problems);
 });
 
-const showCode = () => {
-  try {
-    return localStorage.getItem("genocode.code") !== "hidden";
-  } catch {
-    return true;
-  }
-};
+const shell = new Shell(app, {
+  changed: showPanes,
+  wantView: () => setMode("view"),
+});
 
-const showBlocks = () => {
-  try {
-    return localStorage.getItem("genocode.blocks") === "shown";
-  } catch {
-    return false;
-  }
-};
+/** Shows or hides the code and the blocks as the frame says. */
+function showPanes(): void {
+  codeSection.hidden = !shell.codeShown;
+  const wasHidden = blocksSection.hidden;
+  blocksSection.hidden = !shell.blocksShown;
+  if (!blocksSection.hidden && wasHidden) blocks.revealed();
+}
 
 function setMode(next: Mode): void {
   mode = next;
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
     b.setAttribute("aria-pressed", String(b.dataset["mode"] === mode));
   }
-  $("view-tools").hidden = mode !== "view";
-  $("breed-tools").hidden = mode !== "breed";
-  $("morph-tools").hidden = mode !== "morph";
-  $("dance-tools").hidden = mode !== "dance";
-  codeSection.hidden = mode !== "view" || !showCode();
-  document.body.classList.toggle("with-code", !codeSection.hidden);
-  blocksSection.hidden = mode !== "view" || !showBlocks();
-  document.body.classList.toggle("with-blocks", !blocksSection.hidden);
-  if (!blocksSection.hidden) blocks.revealed();
+  for (const m of ["view", "breed", "morph", "dance"]) {
+    $(`${m}-tools`).hidden = mode !== m;
+    $(`${m}-hint`).hidden = mode !== m;
+  }
+  shell.setMode(mode);
   const pictureless = mode === "breed" || mode === "patterns" || mode === "library";
   canvas.hidden = pictureless;
   grid.hidden = mode !== "breed";
   patternsSection.hidden = mode !== "patterns";
   librarySection.hidden = mode !== "library";
   $("views").hidden = pictureless;
+  $("stage-title").hidden = pictureless;
   cancelAnimationFrame(liveFrame);
   morpher.stop();
   floor.stop();
@@ -615,16 +597,19 @@ function strengthOf(slider: number): number {
 function enableTools(): void {
   const ok = current !== undefined;
   for (const b of document.querySelectorAll<HTMLButtonElement>(
-    "[data-mode=breed], [data-mode=morph], [data-mode=dance]",
+    "[data-mode=breed], [data-mode=morph], [data-mode=dance], [data-go]",
   )) {
     b.disabled = !ok;
   }
-  const breedMode = $<HTMLButtonElement>("mode-breed");
   const unbred = current !== undefined && !current.program.breedable;
-  if (unbred) breedMode.disabled = true;
-  breedMode.title = unbred
-    ? "This creature says `breed off`: its children don't keep its look"
-    : "";
+  for (const b of document.querySelectorAll<HTMLButtonElement>(
+    "[data-mode=breed], [data-go=breed]",
+  )) {
+    if (unbred) b.disabled = true;
+    b.title = unbred
+      ? "This creature says `breed off`: its children don't keep its look"
+      : "Breed new creatures from this one";
+  }
   // `breed off` rules out mutating as well as breeding.
   const chosen = unbred ? 0 : breeder.selection.length;
   $<HTMLButtonElement>("mutate").disabled = chosen < 1;
@@ -640,29 +625,9 @@ for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
   b.addEventListener("click", () => setMode(b.dataset["mode"] as Mode));
 }
 
-$("code-toggle").addEventListener("click", () => {
-  const on = !showCode();
-  try {
-    localStorage.setItem("genocode.code", on ? "shown" : "hidden");
-  } catch {
-    // Not remembered, then.
-  }
-  $("code-toggle").setAttribute("aria-pressed", String(on));
-  setMode(mode);
-});
-$("code-toggle").setAttribute("aria-pressed", String(showCode()));
-
-$("blocks-toggle").addEventListener("click", () => {
-  const on = !showBlocks();
-  try {
-    localStorage.setItem("genocode.blocks", on ? "shown" : "hidden");
-  } catch {
-    // Not remembered, then.
-  }
-  $("blocks-toggle").setAttribute("aria-pressed", String(on));
-  setMode(mode);
-});
-$("blocks-toggle").setAttribute("aria-pressed", String(showBlocks()));
+for (const b of document.querySelectorAll<HTMLButtonElement>("[data-go]")) {
+  b.addEventListener("click", () => setMode(b.dataset["go"] as Mode));
+}
 
 $("mutate").addEventListener("click", () => {
   if (current && !current.program.breedable) return;
@@ -682,7 +647,8 @@ const keepParents = () => $<HTMLInputElement>("keep").checked;
 
 $("play").addEventListener("click", () => {
   morpher.playing = !morpher.playing;
-  $("play").textContent = morpher.playing ? "Pause" : "Play";
+  $("play").dataset["state"] = morpher.playing ? "pause" : "play";
+  $("play").setAttribute("aria-label", morpher.playing ? "Pause" : "Play");
 });
 $<HTMLInputElement>("speed").addEventListener("input", (e) => {
   morpher.secondsEach = Number((e.target as HTMLInputElement).value);
@@ -969,7 +935,11 @@ function showDanceHint(styleOk = true): void {
   $("dance-hint").textContent = styleOk ? music : `${music} · the style has a problem`;
   const play = $<HTMLButtonElement>("music-play");
   play.disabled = !player.active || player.live;
-  play.textContent = player.live ? "Listening" : player.paused ? "Play" : "Pause";
+  const state = player.live ? "live" : player.active && !player.paused ? "pause" : "play";
+  play.dataset["state"] = state;
+  play.setAttribute("aria-label", { live: "Listening", pause: "Pause", play: "Play" }[state]);
+  const label = $("music-button").querySelector(".label")!;
+  label.textContent = player.active ? player.name : "Music";
 }
 
 /** Starts some music, reporting what went wrong if it can't. */
@@ -983,6 +953,7 @@ async function playMusic(start: () => Promise<void>): Promise<void> {
 }
 
 const musicInput = $<HTMLInputElement>("music-input");
+dropdown($("music-button"), $("music-menu"));
 $("music-file").addEventListener("click", () => musicInput.click());
 musicInput.addEventListener("change", () => {
   const file = musicInput.files?.[0];
@@ -1247,9 +1218,32 @@ window.addEventListener("drop", async (e) => {
 
 $("reset").addEventListener("click", () => view.resetView());
 
-$("picture").addEventListener("click", async () => {
+async function savePicture(): Promise<void> {
   const blob = await view.picture(2);
   if (blob) await saveBlob(blob, `${creatureName()}.png`, "PNG pictures", ".png");
+}
+$("picture").addEventListener("click", () => void savePicture());
+$("picture-bar").addEventListener("click", () => void savePicture());
+
+dropdown($("file-button"), $("file-menu"));
+dropdown($("camera-button"), $("camera-menu"));
+
+/** The keys the app answers to, for the menu item and the ? key. */
+function showShortcuts(): void {
+  void tell(
+    [
+      "F: full screen, in View, Morph and Dance (Esc or F again to leave)",
+      "[ and ]: the previous or next creature, while dancing",
+      "1 to 9: the dance styles in the Style menu, while dancing",
+      "?: this list",
+    ].join("\n"),
+  );
+}
+$("shortcuts").addEventListener("click", showShortcuts);
+
+$("inputs-toggle").addEventListener("click", () => {
+  const open = $("inputs-section").classList.toggle("open");
+  $("inputs-toggle").setAttribute("aria-expanded", String(open));
 });
 
 // ---------- looking from each side, and full screen ----------
@@ -1258,13 +1252,26 @@ for (const b of document.querySelectorAll<HTMLButtonElement>("[data-side]")) {
   b.addEventListener("click", () => view.viewFrom(b.dataset["side"] as Side));
 }
 
-/** The view fills the screen, as a video does; Esc or F brings the page back. */
+/**
+ * Only the creature and its tools fill the screen, as a video does; Esc or F brings the page back.
+ * Browsers that can't make the page full screen (phones, mostly) still hide everything else.
+ */
 function toggleFullscreen(): void {
   if (document.fullscreenElement) void document.exitFullscreen();
-  else void stage.requestFullscreen?.();
+  else if (app.classList.contains("full")) setFull(false);
+  else if (app.requestFullscreen) void app.requestFullscreen().catch(() => setFull(true));
+  else setFull(true);
 }
 
-const stage = canvas.parentElement!;
+function setFull(full: boolean): void {
+  app.classList.toggle("full", full);
+  $("fullscreen").setAttribute("aria-pressed", String(full));
+  if (full) showTools();
+  else {
+    clearTimeout(toolsTimer);
+    app.classList.remove("awake");
+  }
+}
 
 // In full screen the tools only show while the mouse moves (not while it drags the creature
 // round), or for a moment after a tap, and fade a moment after, unless the mouse is resting on
@@ -1273,41 +1280,37 @@ const TOOLS_SHOW_MS = 2000;
 const canHover = matchMedia("(hover: hover)");
 let toolsTimer = 0;
 function showTools(): void {
-  stage.classList.add("awake");
+  app.classList.add("awake");
   clearTimeout(toolsTimer);
   toolsTimer = window.setTimeout(() => {
-    if (canHover.matches && stage.querySelector(".tools:hover, .views:hover")) showTools();
-    else stage.classList.remove("awake");
+    if (canHover.matches && app.querySelector(".modebar:hover, .corner:hover, .menu:not([hidden])"))
+      showTools();
+    else app.classList.remove("awake");
   }, TOOLS_SHOW_MS);
 }
-stage.addEventListener("pointermove", (e) => {
-  if (document.fullscreenElement === stage && e.pointerType === "mouse" && e.buttons === 0)
-    showTools();
+app.addEventListener("pointermove", (e) => {
+  if (app.classList.contains("full") && e.pointerType === "mouse" && e.buttons === 0) showTools();
 });
-stage.addEventListener("pointerdown", (e) => {
-  if (document.fullscreenElement === stage && e.pointerType !== "mouse") showTools();
+app.addEventListener("pointerdown", (e) => {
+  if (app.classList.contains("full") && e.pointerType !== "mouse") showTools();
 });
 
 $("fullscreen").addEventListener("click", toggleFullscreen);
-document.addEventListener("fullscreenchange", () => {
-  const full = document.fullscreenElement === stage;
-  $("fullscreen").setAttribute("aria-pressed", String(full));
-  if (full) showTools();
-  else {
-    clearTimeout(toolsTimer);
-    stage.classList.remove("awake");
-  }
-});
+document.addEventListener("fullscreenchange", () => setFull(document.fullscreenElement === app));
 window.addEventListener("keydown", (e) => {
   const typing =
     e.target instanceof HTMLElement &&
     (e.target.isContentEditable || ["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName));
   const asking = document.querySelector("dialog[open]") !== null;
   if (typing || asking || e.ctrlKey || e.metaKey || e.altKey) return;
-  if ((e.key === "f" || e.key === "F") && mode !== "breed" && mode !== "patterns") {
+  if (e.key === "Escape" && app.classList.contains("full") && !document.fullscreenElement) {
+    setFull(false);
+  }
+  if ((e.key === "f" || e.key === "F") && ["view", "morph", "dance"].includes(mode)) {
     e.preventDefault();
     toggleFullscreen();
   }
+  if (e.key === "?") showShortcuts();
   // [ and ] switch creatures while dancing, so it can be done in full screen.
   if (mode === "dance" && (e.key === "[" || e.key === "]")) stepCreature(e.key === "]" ? 1 : -1);
   // Number keys switch styles while dancing, as the original's function keys did.

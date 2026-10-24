@@ -52,12 +52,23 @@ export function showInfo(p: CheckResult, variant?: string): void {
   $("description").textContent = file.description
     .map((c) => c.text.replace(/^\/\/\s?/, ""))
     .join(" ");
+  // Over the creature too, where the panel isn't shown (on a phone, or with the panel closed).
+  $("stage-name").textContent = name.textContent;
 }
 
 /** Lists problems: those in the program, and those from building what's on show. */
 export function showProblems(p: CheckResult, problems: readonly Diagnostic[]): void {
   $("problems").replaceChildren(...problems.map((d) => problemItem(p, d)));
   $("problems-section").hidden = problems.length === 0;
+  const errors = problems.filter((d) => d.severity === "error").length;
+  const status = $("dock-status");
+  status.textContent =
+    problems.length === 0
+      ? "No problems"
+      : errors > 0
+        ? `${errors} error${errors === 1 ? "" : "s"}`
+        : `${problems.length} warning${problems.length === 1 ? "" : "s"}`;
+  status.className = `dock-status ${errors > 0 ? "error" : problems.length > 0 ? "warning" : "ok"}`;
 }
 
 export function showStatus(text: string): void {
@@ -263,5 +274,6 @@ export function showGenes(
     rows.push(groupRow(group, members.length, children), ...children);
   }
   $("genes").replaceChildren(...rows);
+  $("gene-count").textContent = genes.length > 0 ? String(genes.length) : "";
   $("no-genes").hidden = genes.length > 0;
 }
