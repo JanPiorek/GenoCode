@@ -249,6 +249,7 @@
 
       <main class="stage" id="stage">
         <canvas id="view" aria-label="The creature"></canvas>
+        <div id="record-mark" class="record-mark" aria-hidden="true" hidden></div>
         <div class="stage-title" id="stage-title">
           <span id="stage-name" class="stage-name"></span>
           <span id="view-hint" class="hint">Drag to turn it · scroll or pinch to zoom</span>
@@ -431,6 +432,40 @@
               <span class="hint">Speed</span>
               <input id="speed" type="range" min="0.5" max="10" step="0.5" value="3" />
             </label>
+            <!-- Moved into the Dance tools while dancing. -->
+            <div class="pop" id="record-tools">
+              <button
+                id="record-button"
+                type="button"
+                class="ibtn"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                title="Make a video of the creature, to keep or share"
+              >
+                <span class="rec-dot" aria-hidden="true"></span>
+                <span class="label" id="record-label">Video</span>
+              </button>
+              <div id="record-menu" class="menu glass up" role="menu" hidden>
+                <div class="menu-head">Record a video</div>
+                <button type="button" role="menuitem" data-shape="tall">
+                  <span class="shape tall" aria-hidden="true"></span>
+                  <span>Tall<small>Shorts, TikTok, Reels</small></span>
+                </button>
+                <button type="button" role="menuitem" data-shape="square">
+                  <span class="shape square" aria-hidden="true"></span>
+                  <span>Square<small>Instagram posts</small></span>
+                </button>
+                <button type="button" role="menuitem" data-shape="wide">
+                  <span class="shape wide" aria-hidden="true"></span>
+                  <span>Wide<small>YouTube, a computer screen</small></span>
+                </button>
+                <label class="menu-check" id="record-whole-row">
+                  <input id="record-whole" type="checkbox" checked />
+                  The whole song, from the start
+                </label>
+                <p class="menu-note" id="record-note"></p>
+              </div>
+            </div>
           </div>
 
           <div class="tools" id="dance-tools" hidden>

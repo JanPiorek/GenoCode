@@ -177,6 +177,10 @@ finishes, breed the ones you like, and **Copy code** or **Use as background**.
   **File** menu). Opening a background or dance file while a creature is on show offers to put it
   into the creature.
 - **Picture** in View saves a picture of the creature as it's shown.
+- **Video** in Morph and Dance records a video of the creature, with the music while it dances.
+  Pick a shape (tall for Shorts, TikTok and Reels; square; or wide); the creature takes that shape
+  while recording, and **Stop** ends it. With a music file, tick **The whole song, from the start**
+  to record the song from beginning to end. Then save the video, or share it from a phone.
 
 ## Where next
 

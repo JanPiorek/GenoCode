@@ -606,6 +606,15 @@ export class CreatureView {
     this.requestFrame();
   }
 
+  /**
+   * Draws `ratio` pixels for each pixel of the canvas as shown, as when filming it at a set size;
+   * without one, as many as the screen has.
+   */
+  setPixelRatio(ratio?: number): void {
+    this.renderer.setPixelRatio(ratio ?? window.devicePixelRatio);
+    this.resize();
+  }
+
   private resize(): void {
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
