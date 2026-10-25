@@ -2596,6 +2596,12 @@ blur(p, across, down)
 
 **Returns:** picture.
 
+**Remarks**
+
+- Wrapped round the pattern's final `value`, as here, it waits until a second pattern has been
+  mixed in (with [mixed](#mixed)), so both patterns are blurred. A pattern mixed in as the second
+  one comes in without it.
+
 **Example**
 
 ```
@@ -2603,6 +2609,8 @@ pattern Streaks
 
 value blur(clouds(), 40, 2)
 ```
+
+**See also:** [zoom_blur](#zoom_blur), [Your own patterns](LANGUAGE.md#141-your-own-patterns)
 
 ### zoom_blur
 
@@ -2619,6 +2627,12 @@ zoom_blur(p, s)
 
 **Returns:** picture.
 
+**Remarks**
+
+- Wrapped round the pattern's final `value`, as here, it waits until a second pattern has been
+  mixed in (with [mixed](#mixed)), so both patterns are streaked. A pattern mixed in as the second
+  one comes in without it.
+
 **Example**
 
 ```
@@ -2626,6 +2640,8 @@ pattern Rush
 
 value zoom_blur(clouds(), 0.5)
 ```
+
+**See also:** [blur](#blur), [Your own patterns](LANGUAGE.md#141-your-own-patterns)
 
 ### stretch
 
