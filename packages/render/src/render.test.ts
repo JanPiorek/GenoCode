@@ -84,6 +84,24 @@ describe("framing", () => {
     expect(at("bottom")).toEqual([1, +(2 - d).toFixed(2), 3]);
   });
 
+  it("orbits the camera for a view, keeping the front at the bottom when seen from above", () => {
+    const bounds = { centre: [1, 2, 3] as [number, number, number], radius: 2 };
+    const round = (v: number[]) => v.map((x) => +x.toFixed(2));
+    for (const [view, side] of [
+      [{ yaw: 0, pitch: 0 }, "front"],
+      [{ yaw: 90, pitch: 0 }, "right"],
+      [{ yaw: 180, pitch: 0 }, "back"],
+      [{ yaw: -90, pitch: 0 }, "left"],
+      [{ yaw: 0, pitch: 90 }, "top"],
+    ] as const) {
+      expect(round(frameCamera(bounds, 1, view).position)).toEqual(
+        round(frameCamera(bounds, 1, side).position),
+      );
+    }
+    expect(round(frameCamera(bounds, 1, { yaw: 0, pitch: 90 }).up)).toEqual([0, 0, -1]);
+    expect(round(frameCamera(bounds, 1, { yaw: 30, pitch: 0 }).up)).toEqual([0, 1, 0]);
+  });
+
   it("ramps backgrounds from the bottom up", () => {
     expect(backgroundRamp(undefined, 2)).toEqual([
       DEFAULT_BACKGROUND.bottom,
@@ -108,6 +126,24 @@ describe("software renderer", () => {
     expect(b).toBeLessThan(40);
     const corner = pixel(img, 0, 0);
     expect(corner.slice(0, 3)).toEqual(DEFAULT_BACKGROUND.top.map((c) => Math.round(c * 255)));
+  });
+
+  it("lights every side as the front is, the lights turning with the camera", () => {
+    const ball = shapes("colour red\nlay");
+    const brightness = (view: { yaw: number; pitch: number }) => {
+      const img = rasterize(ball, { width: 48, height: 48, view });
+      let sum = 0;
+      for (let i = 0; i < img.data.length; i += 4) sum += img.data[i]!;
+      return sum;
+    };
+    const front = brightness({ yaw: 0, pitch: 0 });
+    for (const view of [
+      { yaw: 180, pitch: 0 },
+      { yaw: 90, pitch: 0 },
+      { yaw: 0, pitch: -90 },
+    ]) {
+      expect(Math.abs(brightness(view) - front) / front).toBeLessThan(0.03);
+    }
   });
 
   it("draws mirror images for symmetric creatures", () => {

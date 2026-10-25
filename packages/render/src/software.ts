@@ -3,7 +3,16 @@
 
 import { toRgb, type LaidShape, type Pattern, type Value } from "@genocode/core";
 import { creatureBounds, shapeGeometry } from "./geometry.js";
-import { backgroundRamp, FIELD_OF_VIEW, frameCamera, LIGHTS, shininess, type Rgb } from "./look.js";
+import {
+  backgroundRamp,
+  FIELD_OF_VIEW,
+  frameCamera,
+  LIGHTS,
+  shininess,
+  type CameraPlacement,
+  type Rgb,
+  type View,
+} from "./look.js";
 import { patternPixels, patternSheen, TEXTURE_SIZE } from "./texture.js";
 
 /** How big a pattern background is drawn, in pixels along each side. */
@@ -16,6 +25,8 @@ export interface RasterOptions {
   background?: Value | undefined;
   /** Samples per pixel along each side, for smoother edges. Default 2. */
   supersample?: number;
+  /** Where the creature is seen from; the front, from a little above, if left out. */
+  view?: View | undefined;
 }
 
 export interface Image {
@@ -63,6 +74,27 @@ function normalMatrix(m: readonly number[]): number[] | undefined {
     bc[2] / det,
     ca[2] / det,
     ab[2] / det,
+  ];
+}
+
+/** The camera's right, up and back, the way to it from what it looks at. */
+function cameraAxes(cam: CameraPlacement): { right: V3; up: V3; back: V3 } {
+  const forward = normalise(sub(cam.target, cam.position));
+  const right = normalise(cross(forward, cam.up));
+  return { right, up: cross(right, forward), back: [-forward[0], -forward[1], -forward[2]] };
+}
+
+/** A direction turned from one camera's axes to another's, as if fixed to the camera. */
+function turnWith(
+  d: V3,
+  from: ReturnType<typeof cameraAxes>,
+  to: ReturnType<typeof cameraAxes>,
+): V3 {
+  const [x, y, z] = [dot(d, from.right), dot(d, from.up), dot(d, from.back)];
+  return [
+    to.right[0] * x + to.up[0] * y + to.back[0] * z,
+    to.right[1] * x + to.up[1] * y + to.back[1] * z,
+    to.right[2] * x + to.up[2] * y + to.back[2] * z,
   ];
 }
 
@@ -144,13 +176,19 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
     }
   }
 
-  const cam = frameCamera(creatureBounds(shapes), options.width / options.height);
+  const bounds = creatureBounds(shapes);
+  const aspect = options.width / options.height;
+  const cam = frameCamera(bounds, aspect, options.view);
   const eye = cam.position;
-  const forward = normalise(sub(cam.target, eye));
-  const right = normalise(cross(forward, [0, 1, 0]));
-  const up = cross(right, forward);
+  const axes = cameraAxes(cam);
+  const { right, up } = axes;
+  const forward: V3 = [-axes.back[0], -axes.back[1], -axes.back[2]];
   const focal = H / 2 / Math.tan((FIELD_OF_VIEW * Math.PI) / 360);
-  const lights = [LIGHTS.key, LIGHTS.fill];
+  // The lights turn with the camera, as in the app, so every side is lit as the front is.
+  const front = options.view ? cameraAxes(frameCamera(bounds, aspect)) : undefined;
+  const lights = [LIGHTS.key, LIGHTS.fill].map((l) =>
+    front ? { ...l, direction: turnWith(l.direction, front, axes) } : l,
+  );
 
   const opaque = shapes.filter((s) => s.colour.a >= 0.999);
   const seeThrough = shapes
