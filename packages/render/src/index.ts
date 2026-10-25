@@ -11,6 +11,7 @@ export {
   LIGHTS,
   type CameraPlacement,
   type Side,
+  type View,
 } from "./look.js";
 export { rasterize, type Image, type RasterOptions } from "./software.js";
 export {

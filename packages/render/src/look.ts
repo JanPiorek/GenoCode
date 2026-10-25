@@ -6,9 +6,13 @@ import type { Bounds } from "./geometry.js";
 
 export const FIELD_OF_VIEW = 40;
 
+type V3 = [number, number, number];
+
 export interface CameraPlacement {
   position: [number, number, number];
   target: [number, number, number];
+  /** Which way is up in the picture. */
+  up: [number, number, number];
   near: number;
   far: number;
 }
@@ -27,19 +31,48 @@ const SIDES: Record<Side, [number, number, number]> = {
 };
 
 /**
- * Looks at the creature's face (the turtle starts facing +z, towards the viewer), from a little
- * above; or, given a side, straight at that side.
+ * A way to see the creature from, in degrees. Yaw takes the camera round it: 0 is the front, 90
+ * its right side, 180 the back. Pitch raises the camera: 90 looks straight down from above, with
+ * the front at the bottom of the picture, and -90 straight up from below.
  */
-export function frameCamera(bounds: Bounds, aspect: number, side?: Side): CameraPlacement {
+export interface View {
+  yaw: number;
+  pitch: number;
+}
+
+/** For a view: the way from the creature to the camera, and which way is up in the picture. */
+function viewAxes(view: View): { back: V3; up: V3 } {
+  const yaw = (view.yaw * Math.PI) / 180;
+  const pitch = (view.pitch * Math.PI) / 180;
+  const level = Math.cos(pitch);
+  return {
+    back: [Math.sin(yaw) * level, Math.sin(pitch), Math.cos(yaw) * level],
+    up: [-Math.sin(pitch) * Math.sin(yaw), level, -Math.sin(pitch) * Math.cos(yaw)],
+  };
+}
+
+/**
+ * Looks at the creature's face (the turtle starts facing +z, towards the viewer), from a little
+ * above; or, given a side or a view, from there.
+ */
+export function frameCamera(bounds: Bounds, aspect: number, side?: Side | View): CameraPlacement {
   const half = (FIELD_OF_VIEW * Math.PI) / 360;
   // The narrower of the two directions decides how far back the camera goes.
   const fit = Math.min(Math.sin(half), Math.sin(Math.atan(Math.tan(half) * aspect)));
   const distance = (bounds.radius / fit) * 1.1;
   const [x, y, z] = bounds.centre;
-  const [dx, dy, dz] = side ? SIDES[side] : [0, 0.3 * (bounds.radius / distance), 1];
+  const { back, up } =
+    typeof side === "object"
+      ? viewAxes(side)
+      : {
+          back: side ? SIDES[side] : ([0, 0.3 * (bounds.radius / distance), 1] as V3),
+          up: [0, 1, 0] as V3,
+        };
+  const [dx, dy, dz] = back;
   return {
     position: [x + dx * distance, y + dy * distance, z + dz * distance],
     target: [x, y, z],
+    up,
     near: Math.max(distance - bounds.radius * 2, distance / 1000),
     far: distance + bounds.radius * 4,
   };
