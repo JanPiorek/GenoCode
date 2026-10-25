@@ -20,8 +20,11 @@ const PADLOCK = (shackle: string, body: string) =>
 const UNLOCKED_ICON = PADLOCK("M5 7V4.8a3 3 0 0 1 5.8-1.1", "");
 const LOCKED_ICON = PADLOCK("M5 7V5a3 3 0 0 1 6 0v2", 'fill="currentColor"');
 
-/** Full names of the genes the user has locked. */
-export const locked = new Set<string>();
+/**
+ * The genes the user has locked, by full name, with the value each was locked at. The whole
+ * breeding grid keeps that value, variants and all.
+ */
+export const locked = new Map<string, Value>();
 
 function lineCol(p: CheckResult, d: Diagnostic): string {
   const at = p.lines.position(d.span.start);
@@ -142,7 +145,7 @@ function geneRow(
   setLock();
   lock.addEventListener("click", () => {
     if (locked.has(g.fullName)) locked.delete(g.fullName);
-    else locked.add(g.fullName);
+    else locked.set(g.fullName, values.get(g.fullName) ?? g.value);
     setLock();
   });
   lockCell.append(lock);

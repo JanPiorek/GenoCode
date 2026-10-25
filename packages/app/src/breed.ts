@@ -6,8 +6,11 @@ import {
   familySpread,
   geneDistance,
   mutate,
+  valuesEqual,
   type CheckResult,
+  type GeneInfo,
   type GeneSpread,
+  type Value,
 } from "@genocode/core";
 import { creatureBounds, onFieldReady, Thumbnails } from "@genocode/render";
 import { buildCreature, type Creature } from "./creature.js";
@@ -23,6 +26,28 @@ const TRIES = 3;
 const MAX_GROWTH = 4;
 /** Children closer than this to a parent or another tile (`geneDistance`) look the same. */
 const MIN_DISTANCE = 0.004;
+
+/** Whether a locked value still suits the gene, which may have changed since it was locked. */
+function suits(g: GeneInfo, v: Value): boolean {
+  if (g.options) return g.options.some((o) => valuesEqual(o, v));
+  const w = g.value;
+  return (
+    typeof v === typeof w && (typeof v !== "object" || typeof w !== "object" || v.type === w.type)
+  );
+}
+
+/** The creature with its locked genes at the values they were locked at. */
+export function pinned(c: Creature): Creature {
+  let values: Map<string, Value> | undefined;
+  for (const g of c.program.genes) {
+    const v = locked.get(g.fullName);
+    if (v === undefined || !suits(g, v)) continue;
+    if (valuesEqual(v, c.values.get(g.fullName) ?? g.value)) continue;
+    values ??= new Map(c.values);
+    values.set(g.fullName, v);
+  }
+  return values ? { ...c, values } : c;
+}
 
 export interface BreederEvents {
   /** A tile was clicked: show its genes. */
@@ -90,7 +115,15 @@ export class Breeder {
    * Starts a new grid from a creature's family: the creature and its variants, filled up with
    * mutations of them. A creature without variants starts with mutations of itself.
    */
-  start(family: Creature[], strength: number): void {
+  start(whole: Creature[], strength: number): void {
+    // Variants that set a locked gene take its locked value too; one that then looks just like an
+    // earlier one is left out.
+    const genes = whole[0]!.program.genes;
+    const family: Creature[] = [];
+    for (const c of whole.map(pinned)) {
+      if (!family.some((f) => geneDistance(genes, f.values, c.values) < MIN_DISTANCE))
+        family.push(c);
+    }
     this.history.length = 0;
     this.selected.clear();
     this.selected.add(0);
@@ -138,9 +171,9 @@ export class Breeder {
       const values = breed(
         { genes: a.program.genes, values: a.values },
         { genes: b.program.genes, values: b.values },
-        { random: Math.random, locked },
+        { random: Math.random, locked: new Set(locked.keys()) },
       );
-      return { child: { program: a.program, values }, parents: [a, b] };
+      return { child: pinned({ program: a.program, values }), parents: [a, b] };
     });
     this.show(kept, children);
   }
@@ -174,10 +207,10 @@ export class Breeder {
     const values = mutate(p.program.genes, p.values, {
       strength,
       random: Math.random,
-      locked,
+      locked: new Set(locked.keys()),
       spread: this.spread,
     });
-    return { child: { program: p.program, values }, parents: [p] };
+    return { child: pinned({ program: p.program, values }), parents: [p] };
   }
 
   /**
