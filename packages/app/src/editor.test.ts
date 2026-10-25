@@ -1,6 +1,6 @@
-import { EditorState } from "@codemirror/state";
+import { EditorSelection, EditorState } from "@codemirror/state";
 import { describe, expect, it } from "vitest";
-import { colour } from "./editor.js";
+import { colour, swatches, uses } from "./editor.js";
 
 /** Each coloured word of `text` and its colour. */
 function colours(text: string): [string, string][] {
@@ -37,5 +37,38 @@ describe("the editor's colours", () => {
     expect(colourOf(text, "value")).toEqual([]);
     expect(colourOf(text, "picture")).toEqual([]);
     expect(colourOf(text, "clouds")).toEqual([]);
+  });
+});
+
+describe("the editor's marks", () => {
+  const TEXT = "creature C\ngene size = 1 in 0..2\nforward size\nforward size * 2\n";
+
+  /** The marked words and their classes, with the cursor at `at`. */
+  function marked(at: number): [string, string][] {
+    const state = EditorState.create({ doc: TEXT, selection: EditorSelection.cursor(at) });
+    const out: [string, string][] = [];
+    uses(state).between(0, TEXT.length, (from, to, d) => {
+      out.push([TEXT.slice(from, to), String(d.spec.class)]);
+    });
+    return out;
+  }
+
+  it("marks every use of the name at the cursor, and where it's defined", () => {
+    expect(marked(TEXT.lastIndexOf("size") + 1)).toEqual([
+      ["size", "g-use g-definition"],
+      ["size", "g-use"],
+      ["size", "g-use"],
+    ]);
+    expect(marked(TEXT.indexOf("forward") + 1)).toEqual([]);
+    expect(marked(TEXT.indexOf("size") + 1)).toHaveLength(3);
+  });
+
+  it("puts a swatch before each colour written out", () => {
+    const text = "creature C\ncolour hsv(120, 1, 1)\ncolour #ff0000\ncolour red\n";
+    const at: number[] = [];
+    swatches(EditorState.create({ doc: text })).between(0, text.length, (from) => {
+      at.push(from);
+    });
+    expect(at).toEqual([text.indexOf("hsv"), text.indexOf("#ff"), text.indexOf("red")]);
   });
 });
