@@ -275,9 +275,26 @@ export function buildBackground(
 export interface PatternResult {
   /** The grey picture, or undefined if the pattern failed. */
   picture: Picture | undefined;
+  /**
+   * With `holdFinish`: the blurs around the pattern's `value`, held back so that they're done
+   * after it's mixed with another pattern. Without, nothing is held back and this does nothing.
+   */
+  finish: (p: Picture) => Picture;
   diagnostics: Diagnostic[];
   printed: string[];
 }
+
+export interface PatternOptions extends BuildOptions {
+  /**
+   * Leaves out the `blur` and `zoom_blur` calls wrapped around the pattern's `value`, giving them
+   * as `finish` instead (section 14.1): a mixed pattern is blurred after the mixing, as the
+   * built-in kinds are.
+   */
+  holdFinish?: boolean;
+}
+
+/** The finishing blurs a pattern's `value` is wrapped in, outermost last. */
+const FINISHES = new Set(["blur", "zoom_blur"]);
 
 /**
  * Draws a pattern written in GenoCode (section 14.1): its picture for a recipe's `seed`, on a
@@ -289,17 +306,22 @@ export function buildPattern(
   name: string,
   seed: number | (() => number),
   canvas: Canvas,
-  options: BuildOptions = {},
+  options: PatternOptions = {},
 ): PatternResult {
   const run = new Run(program, options);
   const items = program.patterns.get(name);
+  const none = (p: Picture) => p;
   if (!program.ok || items === undefined) {
-    return { picture: undefined, diagnostics: [], printed: [] };
+    return { picture: undefined, finish: none, diagnostics: [], printed: [] };
   }
-  run.guarded(() => run.runPattern(items, name, seed, canvas));
+  const steps: ((p: Picture) => Picture)[] = [];
+  run.guarded(() =>
+    run.runPattern(items, name, seed, canvas, options.holdFinish ? steps : undefined),
+  );
   const v = run.value;
   return {
     picture: !run.failed && v !== undefined && isPicture(v) ? v : undefined,
+    finish: (p) => steps.reduce((q, step) => step(q), p),
     diagnostics: run.finish(),
     printed: run.printed,
   };
@@ -491,13 +513,52 @@ class Run {
     this.execItems(this.program.file.items, this.module);
   }
 
-  runPattern(items: Stmt[], name: string, seed: number | (() => number), canvas: Canvas): void {
+  /** Runs a pattern. With `finish`, the blurs around its `value` are put there, not done. */
+  runPattern(
+    items: Stmt[],
+    name: string,
+    seed: number | (() => number),
+    canvas: Canvas,
+    finish?: ((p: Picture) => Picture)[],
+  ): void {
     // `random` draws from the recipe's seed, afresh for each picture (section 18.5).
     this.random = typeof seed === "number" ? mulberry32(seed) : seed;
     this.canvas = canvas;
     const env = new Env(undefined);
     this.bindGenes(env, `pattern:${name}`);
-    this.execItems(items, new Env(env));
+    const inner = new Env(env);
+    const last = items[items.length - 1];
+    if (finish === undefined || last?.kind !== "Value") {
+      this.execItems(items, inner);
+      return;
+    }
+    this.execItems(items.slice(0, -1), inner);
+    this.tick(last.span);
+    this.value = this.holdingFinish(last.value, inner, finish);
+  }
+
+  /**
+   * A pattern's `value`, without the `blur` and `zoom_blur` calls wrapped around it, which go into
+   * `finish`. Everything is worked out in the order it would be anyway, so random numbers drawn in
+   * their arguments stay the same.
+   */
+  private holdingFinish(e: Expr, env: Env, finish: ((p: Picture) => Picture)[]): Value {
+    if (
+      e.kind !== "Call" ||
+      e.callee.kind !== "Name" ||
+      !FINISHES.has(e.callee.name) ||
+      env.lookup(e.callee.name) !== undefined ||
+      this.program.functions.has(e.callee.name) ||
+      e.args.length === 0
+    ) {
+      return this.eval(e, env);
+    }
+    const builtin = PICTURE_FUNCTIONS.get(e.callee.name)!;
+    const inner = this.holdingFinish(e.args[0]!, env, finish);
+    const rest = e.args.slice(1).map((a) => this.eval(a, env));
+    const context = this.builtinContext();
+    finish.push((p) => builtin.call([p, ...rest], context) as Picture);
+    return inner;
   }
 
   runSection(items: Stmt[], section: "background" | "dance"): void {

@@ -29,6 +29,7 @@ export {
   MUSIC_FIELDS,
   silence,
   type BackgroundResult,
+  type PatternOptions,
   type PatternResult,
   type DanceResult,
   type DanceStyle,

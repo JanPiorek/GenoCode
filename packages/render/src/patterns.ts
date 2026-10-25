@@ -337,7 +337,8 @@ function checkedSource(text: string): CheckResult {
 
 /**
  * A built-in kind, or a pattern written in GenoCode (docs/LANGUAGE.md section 14.1), drawn by
- * running its code with the same random numbers and canvas a built-in kind would get. A pattern
+ * running its code with the same random numbers and canvas a built-in kind would get. The blurs
+ * around its `value` are its finish, done after any mixing as a built-in kind's are. A pattern
  * that fails to draw gives a dark picture.
  */
 function maker(kind: string, source: PatternSource | undefined): Maker {
@@ -345,9 +346,19 @@ function maker(kind: string, source: PatternSource | undefined): Maker {
   return (c, rng) => {
     const program = source ? checkedSource(source.text) : undefined;
     const built = program
-      ? buildPattern(program, kind, rng, c, { genes: new Map(source!.genes) })
+      ? buildPattern(program, kind, rng, c, { genes: new Map(source!.genes), holdFinish: true })
       : undefined;
-    return { v: built?.picture?.v.slice() ?? new Float32Array(c.size * c.size), finish: plain };
+    if (!built?.picture) return { v: new Float32Array(c.size * c.size), finish: plain };
+    return {
+      v: built.picture.v.slice(),
+      finish: (v, size) => {
+        try {
+          return built.finish({ type: "picture", size, v }).v;
+        } catch {
+          return v;
+        }
+      },
+    };
   };
 }
 
