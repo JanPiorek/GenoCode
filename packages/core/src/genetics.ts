@@ -1,11 +1,12 @@
 // Mutating, breeding and morphing genes (docs/LANGUAGE.md section 19), and writing a creature's
 // gene values back into its program, which is how a bred creature is saved.
 
-import type { CheckResult } from "./checker.js";
+import { check, type CheckResult } from "./checker.js";
 import type { Stmt } from "./ast.js";
 import { hueDelta, mixHue, wrapHue } from "./colour.js";
 import { formatText } from "./format.js";
 import { inHueArc, type GeneInfo, type HueArc } from "./genes.js";
+import { KEYWORDS } from "./lexer.js";
 import {
   formatValue,
   isColour,
@@ -377,6 +378,54 @@ export function geneEdits(
     edits.push({ start: span.start, end: span.end, text: geneLiteral(g, v) });
   }
   return edits.sort((p, q) => p.start - q.start);
+}
+
+const NAME = /^[\p{L}_][\p{L}\p{N}_]*$/u;
+
+/**
+ * The edit that adds a variant called `name` (section 6.6), setting the genes in `values` one to a
+ * line, after the creature's last variant or else at the end. With no values, its block is empty,
+ * ready for genes to be set in it (`variantEdits`). An error says why the name can't be used.
+ */
+export function addVariant(
+  program: CheckResult,
+  name: string,
+  values: GeneValues,
+): { edits: { start: number; end: number; text: string }[] } | { error: string } {
+  if (!NAME.test(name)) {
+    return {
+      error: `\`${name}\` isn't a name: use letters, digits and _, not starting with a digit.`,
+    };
+  }
+  if (KEYWORDS.has(name)) return { error: `\`${name}\` is a keyword.` };
+  if (program.variants.some((v) => v.name === name)) {
+    return { error: `There's already a variant called \`${name}\`.` };
+  }
+  const set = program.genes.flatMap((g) => {
+    const v = values.get(g.fullName);
+    return v === undefined ? [] : [{ name: g.fullName, value: geneLiteral(g, v) }];
+  });
+  const width = Math.max(0, ...set.map((s) => s.name.length));
+  const lines = set.map((s) => `  ${s.name.padEnd(width)} = ${s.value}\n`).join("");
+  const block = `variant ${name} {\n${lines}}`;
+  const text = program.text;
+  const last = program.variants[program.variants.length - 1];
+  let edit: { start: number; end: number; text: string };
+  if (last) {
+    edit = { start: last.decl.span.end, end: last.decl.span.end, text: `\n\n${block}` };
+  } else {
+    const gap = text.endsWith("\n\n") ? "" : text.endsWith("\n") ? "\n" : "\n\n";
+    edit = { start: text.length, end: text.length, text: `${gap}${block}\n` };
+  }
+  // The name mustn't make anything else wrong.
+  const after = check(text.slice(0, edit.start) + edit.text + text.slice(edit.end));
+  const errors = (p: CheckResult) => p.diagnostics.filter((d) => d.severity === "error");
+  if (errors(after).length > errors(program).length) {
+    const before = new Set(errors(program).map((d) => d.message));
+    const fresh = errors(after).find((d) => !before.has(d.message));
+    return { error: `Can't make a variant called \`${name}\`: ${fresh?.message ?? "it clashes."}` };
+  }
+  return { edits: [edit] };
 }
 
 /**

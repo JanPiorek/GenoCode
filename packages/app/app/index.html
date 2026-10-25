@@ -411,6 +411,19 @@
               </svg>
               Keep parents
             </label>
+            <span class="sep"></span>
+            <button
+              id="add-variant"
+              type="button"
+              class="ibtn"
+              aria-label="Add as variant"
+              title="Add the creature you picked to the open creature as a variant"
+            >
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span class="label">Add as variant</span>
+            </button>
           </div>
 
           <div class="tools" id="morph-tools" hidden>
@@ -607,6 +620,15 @@
             <h2>Genes <span id="gene-count" class="count"></span></h2>
             <table id="genes"></table>
             <p id="no-genes" class="hint" hidden>This creature has no genes.</p>
+            <button id="make-variant" type="button" class="ibtn solid make-variant" hidden>
+              <svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="6" r="3" />
+                <circle cx="18" cy="18" r="3" />
+                <path d="M9 11l6-4M9 13l6 4" />
+              </svg>
+              Make a variant…
+            </button>
           </section>
           <section id="inputs-section" class="inputs-section" hidden>
             <h2>

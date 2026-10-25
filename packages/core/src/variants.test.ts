@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { check } from "./checker.js";
 import { formatText } from "./format.js";
 import { completionsAt, helpAt } from "./help.js";
-import { variantEdits } from "./genetics.js";
+import { addVariant, variantEdits } from "./genetics.js";
 import { build } from "./interpreter.js";
 import { checked } from "./test-helpers.js";
 import { hsv } from "./colour.js";
@@ -160,5 +160,46 @@ describe("variantEdits", () => {
     const [e] = variantEdits(p, "V", new Map([["n", 5]]));
     expect(p.text.slice(e!.start, e!.end)).toBe("4");
     expect(e!.start).toBeGreaterThan(p.text.indexOf("variant V"));
+  });
+});
+
+describe("addVariant", () => {
+  const added = (variants: string, name: string, values: Record<string, Value>) => {
+    const p = checked(CREATURE + variants);
+    const result = addVariant(p, name, new Map(Object.entries(values)));
+    if ("error" in result) return result.error;
+    let text = p.text;
+    for (const e of result.edits) text = text.slice(0, e.start) + e.text + text.slice(e.end);
+    expect(check(text).diagnostics).toEqual([]);
+    return text.slice(CREATURE.length);
+  };
+
+  it("adds a variant at the end, its genes one to a line and lined up", () => {
+    expect(added("", "Big", { size: 2, "leg.reach": 3, plump: false })).toBe(
+      "\nvariant Big {\n  size      = 2\n  plump     = false\n  leg.reach = 3\n}\n",
+    );
+  });
+
+  it("adds it after the last variant, before anything that follows", () => {
+    expect(added("\nvariant A { n = 2 }\n// the end\n", "B", { n: 4 })).toBe(
+      "\nvariant A { n = 2 }\n\nvariant B {\n  n = 4\n}\n// the end\n",
+    );
+  });
+
+  it("adds an empty one, which genes can then be set in", () => {
+    const text = added("", "Empty", {}) as string;
+    expect(text).toBe("\nvariant Empty {\n}\n");
+    const p = checked(CREATURE + text);
+    let out = p.text;
+    for (const e of variantEdits(p, "Empty", new Map([["n", 5]])).reverse()) {
+      out = out.slice(0, e.start) + e.text + out.slice(e.end);
+    }
+    expect(out.slice(CREATURE.length)).toBe("\nvariant Empty {\n  n = 5\n}\n");
+  });
+
+  it("refuses names it can't use", () => {
+    expect(added("", "2big", {})).toContain("isn't a name");
+    expect(added("", "repeat", {})).toBe("`repeat` is a keyword.");
+    expect(added("\nvariant A { n = 2 }\n", "A", {})).toBe("There's already a variant called `A`.");
   });
 });

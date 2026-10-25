@@ -8,12 +8,15 @@
 // this browser.
 
 import {
+  addVariant,
   check,
   format,
   geneEdits,
   KEYWORDS,
   MUSIC_FIELDS,
   patternsOf,
+  valuesEqual,
+  valuesOf,
   variantEdits,
   type CheckResult,
   type Diagnostic,
@@ -103,6 +106,12 @@ type Source = { kind: "example" | "mine"; name: string } | { kind: "other" };
 let source: Source = { kind: "other" };
 /** The text as last opened or saved, to tell whether there are changes to lose. */
 let savedAs = "";
+/** Said in Breed's hint until the next click in the grid or its tools. */
+let breedNote = "";
+/** The last version opened or saved, checked, to see which genes have changed since. */
+let savedProgram: CheckResult | undefined;
+/** The variant menu's last entry, which makes a new variant. */
+const NEW_VARIANT = "+new";
 
 /** The latest text, as checked, whether or not it has errors. */
 let program: CheckResult | undefined;
@@ -199,7 +208,10 @@ function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Val
     setMode("view");
     return;
   }
-  if (mode === "breed" && current) breeder.start(familyOf(current), strength());
+  // The grid stays while it holds this very program, such as after adding one of it as a variant.
+  if (mode === "breed" && current && !breeder.holds(current)) {
+    breeder.start(familyOf(current), strength());
+  }
   if (mode === "morph" && current) startMorph();
   // A new creature while dancing keeps the style it's danced to.
   if (mode === "dance" && current) startDance(true);
@@ -252,11 +264,15 @@ function pickShown(): void {
   shown ??= current;
 }
 
-/** Lists the creature and its variants in the View's menu, which is hidden when it has none. */
+/**
+ * Lists the creature and its variants in the View's menu, and a way to make a new one. It's hidden
+ * for creatures without genes.
+ */
 function fillVariantMenu(): void {
   const variants = current?.program.variants ?? [];
-  $("variant-field").hidden = variants.length === 0;
-  $("variant-sep").hidden = variants.length === 0;
+  const none = !current || current.program.genes.length === 0;
+  $("variant-field").hidden = none;
+  $("variant-sep").hidden = none;
   const option = (value: string, label: string) => {
     const o = document.createElement("option");
     o.value = value;
@@ -266,6 +282,7 @@ function fillVariantMenu(): void {
   variantSelect.replaceChildren(
     option("", `${current?.program.file.name ?? "The creature"} itself`),
     ...variants.map((v) => option(`:${v.name}`, v.name)),
+    option(NEW_VARIANT, "New variant…"),
   );
   variantSelect.value = shown?.variant === undefined ? "" : `:${shown.variant}`;
 }
@@ -292,8 +309,184 @@ function chooseVariant(name: string | undefined, reveal: boolean): void {
 }
 
 variantSelect.addEventListener("change", () => {
+  if (variantSelect.value === NEW_VARIANT) {
+    variantSelect.value = shown?.variant === undefined ? "" : `:${shown.variant}`;
+    void newVariant();
+    return;
+  }
   const name = variantSelect.value === "" ? undefined : variantSelect.value.slice(1);
   chooseVariant(name, true);
+});
+
+// ---------- making variants ----------
+
+type Edit = { start: number; end: number; text: string };
+
+/** Asks for a new variant's name, refusing ones the creature can't take. */
+function askVariantName(p: CheckResult, message: string): Promise<string | undefined> {
+  return askText(message, "Make variant", {
+    placeholder: "A name, such as Spotty",
+    check(text) {
+      const name = text.trim();
+      if (name === "") return { problem: "" };
+      const added = addVariant(p, name, new Map());
+      return "error" in added ? { problem: added.error } : undefined;
+    },
+  });
+}
+
+/** Adds a variant with these edits, and shows it (in View, with the cursor in its block). */
+function putInVariant(name: string, edits: Edit[]): void {
+  editor.applyEdits([...edits].sort((a, b) => a.start - b.start));
+  variant = name;
+  show(editor.text, true, current?.values);
+  if (mode === "view") chooseVariant(name, true);
+}
+
+/** An empty variant, from the variant menu: the gene controls then set its genes. */
+async function newVariant(): Promise<void> {
+  if (!current || current.program.text !== editor.text) return;
+  const p = current.program;
+  const name = await askVariantName(
+    p,
+    "Name the new variant. It starts out as the creature itself; the genes you change then go into it.",
+  );
+  if (!name || editor.text !== p.text) return;
+  const added = addVariant(p, name, new Map());
+  if (!("error" in added)) putInVariant(name, added.edits);
+}
+
+/**
+ * The gene changes made since the creature was opened or saved, as a new variant would hold them,
+ * and the edits that put back what was changed. For the creature itself, its own genes go back;
+ * for a variant, the variant goes back as it was. Undefined when nothing has changed.
+ */
+function changesSinceSaved(): { values: Map<string, Value>; putBack: Edit[] } | undefined {
+  if (!current || !shown || current.program !== program || program.text !== editor.text) {
+    return undefined;
+  }
+  if (savedAs === "") return undefined;
+  if (savedProgram?.text !== savedAs) savedProgram = check(savedAs);
+  const base = savedProgram;
+  const p = current.program;
+  const was = new Map(base.genes.map((g) => [g.fullName, g]));
+  const same = (g: (typeof p.genes)[number]) => was.get(g.fullName)?.kind === g.kind;
+  if (shown.variant === undefined) {
+    const values = new Map<string, Value>();
+    const back = new Map<string, Value>();
+    for (const g of p.genes) {
+      const v = shown.values.get(g.fullName);
+      const before = was.get(g.fullName)?.value;
+      if (!same(g) || v === undefined || before === undefined || valuesEqual(v, before)) continue;
+      values.set(g.fullName, v);
+      back.set(g.fullName, before);
+    }
+    return values.size > 0 ? { values, putBack: geneEdits(p, back) } : undefined;
+  }
+  // A variant: the new one is a copy of it as it is now.
+  const name = shown.variant;
+  const values = new Map<string, Value>();
+  for (const g of p.genes) {
+    const v = shown.values.get(g.fullName);
+    if (v !== undefined && !valuesEqual(v, g.value)) values.set(g.fullName, v);
+  }
+  const before = base.variants.find((v) => v.name === name);
+  // A variant made since saving is copied as it is, and left alone.
+  if (!before) return values.size > 0 ? { values, putBack: [] } : undefined;
+  const beforeValues = valuesOf(base.genes, before.values);
+  const setBack = new Map<string, Value>();
+  const unset: string[] = [];
+  for (const g of p.genes) {
+    const v = shown.values.get(g.fullName);
+    const old = beforeValues.get(g.fullName);
+    if (!same(g) || v === undefined || old === undefined || valuesEqual(v, old)) continue;
+    const own = before.values.get(g.fullName);
+    if (own === undefined) unset.push(g.fullName);
+    else setBack.set(g.fullName, own);
+  }
+  if (setBack.size === 0 && unset.length === 0) return undefined;
+  return { values, putBack: variantEdits(p, name, setBack, unset) };
+}
+
+/** The genes panel's Make a variant button: shown with the gene controls, active after changes. */
+function showMakeVariant(editable: boolean): void {
+  const button = $<HTMLButtonElement>("make-variant");
+  button.hidden = !editable || mode !== "view" || !current || current.program.genes.length === 0;
+  if (button.hidden) return;
+  const changed = changesSinceSaved() !== undefined;
+  button.disabled = !changed;
+  button.title = !changed
+    ? "Change some genes first: their new values can then become a variant of the creature"
+    : variantMessage(true);
+}
+
+/** What Make a variant does with the changes there are: as a tooltip, or as the dialog says it. */
+function variantMessage(short: boolean): string {
+  const from = shown?.variant;
+  const putsBack = (changesSinceSaved()?.putBack.length ?? 0) > 0;
+  if (from === undefined) {
+    return short
+      ? "Put the gene values you've changed into a new variant, and set the creature's own genes back"
+      : "Name the new variant. It gets the gene values you've changed since the creature was opened or saved, and the creature's own genes go back to how they were.";
+  }
+  if (short) {
+    return putsBack
+      ? `Copy ${from} as it is now into a new variant, and set ${from} back as it was`
+      : `Copy ${from} into a new variant`;
+  }
+  return putsBack
+    ? `Name the new variant. It's a copy of ${from} as it is now, and ${from} goes back to how it was.`
+    : `Name the new variant. It's a copy of ${from}.`;
+}
+
+$("make-variant").addEventListener("click", async () => {
+  const changes = changesSinceSaved();
+  if (!changes || !current || !shown) return;
+  const p = current.program;
+  const name = await askVariantName(p, variantMessage(false));
+  if (!name || editor.text !== p.text) return;
+  const added = addVariant(p, name, changes.values);
+  if (!("error" in added)) putInVariant(name, [...added.edits, ...changes.putBack]);
+});
+
+/** Breed's Add as variant: the picked creature joins the open one's family, and the grid stays. */
+$("add-variant").addEventListener("click", async () => {
+  const [child] = breeder.selection;
+  if (
+    !current ||
+    !child ||
+    breeder.selection.length !== 1 ||
+    current.program.text !== editor.text
+  ) {
+    return;
+  }
+  const p = current.program;
+  const values = new Map<string, Value>();
+  for (const g of p.genes) {
+    const v = child.values.get(g.fullName);
+    if (v !== undefined && !valuesEqual(v, g.value)) values.set(g.fullName, v);
+  }
+  if (values.size === 0) {
+    await tell(
+      "This one has the same genes as the creature itself, so it can't be a variant of it.",
+    );
+    return;
+  }
+  const name = await askVariantName(
+    p,
+    "Name the new variant. The creature you picked is added to the open one as a variant, and you can keep breeding.",
+  );
+  if (!name || editor.text !== p.text) return;
+  const added = addVariant(p, name, values);
+  if ("error" in added) return;
+  let text = p.text;
+  for (const e of [...added.edits].reverse()) {
+    text = text.slice(0, e.start) + e.text + text.slice(e.end);
+  }
+  breeder.adopt(checkText(text));
+  putInVariant(name, added.edits);
+  breedNote = `Added ${name} as a variant`;
+  enableTools();
 });
 
 /**
@@ -334,6 +527,7 @@ function showCurrent(keepView: boolean, panel = true): void {
       editable ? geneEditing : undefined,
       editable ? variantGenes() : undefined,
     );
+    showMakeVariant(editable);
     inputs.show(live);
   }
   const frame = (keep: boolean) => {
@@ -472,6 +666,7 @@ $("new").addEventListener("click", async () => {
 
 const breeder = new Breeder(grid, {
   inspect(c) {
+    breedNote = "";
     showGenes(c.program.genes, c.values);
     enableTools();
   },
@@ -527,6 +722,8 @@ function setMode(next: Mode): void {
     $(`${m}-tools`).hidden = mode !== m;
     $(`${m}-hint`).hidden = mode !== m;
   }
+  // Shown again by the View, with the gene controls.
+  if (mode !== "view") $("make-variant").hidden = true;
   shell.setMode(mode);
   const pictureless = mode === "breed" || mode === "patterns" || mode === "library";
   canvas.hidden = pictureless;
@@ -619,10 +816,12 @@ function enableTools(): void {
   $<HTMLButtonElement>("mutate").disabled = chosen < 1;
   $<HTMLButtonElement>("breed").disabled = chosen < 2;
   $<HTMLButtonElement>("back").disabled = !breeder.canGoBack;
+  $<HTMLButtonElement>("add-variant").disabled = chosen !== 1;
   $("breed-hint").textContent =
-    chosen === 0
+    breedNote ||
+    (chosen === 0
       ? "Click creatures to choose parents · double-click to open one"
-      : `${chosen} parent${chosen === 1 ? "" : "s"} chosen`;
+      : `${chosen} parent${chosen === 1 ? "" : "s"} chosen`);
 }
 
 for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
@@ -634,16 +833,19 @@ for (const b of document.querySelectorAll<HTMLButtonElement>("[data-go]")) {
 }
 
 $("mutate").addEventListener("click", () => {
+  breedNote = "";
   if (current && !current.program.breedable) return;
   breeder.mutateSelection(strength(), keepParents());
   enableTools();
 });
 $("breed").addEventListener("click", () => {
+  breedNote = "";
   if (current && !current.program.breedable) return;
   breeder.breedSelection(keepParents());
   enableTools();
 });
 $("back").addEventListener("click", () => {
+  breedNote = "";
   breeder.back();
   enableTools();
 });

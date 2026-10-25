@@ -137,6 +137,14 @@ Add that line at the end of the snowman and press **Morph**: the snowman grows i
 and back. In **Dance**, music carries it through the same loop. Pick a music file, or the
 microphone, and a dance style.
 
+The app can write variants for you too:
+
+- After moving some gene sliders, **Make a variant…** under the genes puts the new values into a
+  variant and sets the creature's own genes back.
+- **New variant…** at the bottom of the variant menu makes an empty variant; the sliders then set
+  its genes.
+- In **Breed**, pick one creature and press **Add as variant** to keep it in the family.
+
 Creatures can also read the music directly: `music.bass`, `music.level` and the others run from 0
 to 1 as the music plays, and `time` counts the seconds. For example, `grow 1 + 0.2 * music.bass`
 makes everything swell with the bass.
