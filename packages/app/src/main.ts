@@ -52,7 +52,14 @@ import {
   withBackground,
   withDefinition,
 } from "./patterns.js";
-import { showGenes, showInfo, showProblems, showStatus, type VariantGenes } from "./panel.js";
+import {
+  locked,
+  showGenes,
+  showInfo,
+  showProblems,
+  showStatus,
+  type VariantGenes,
+} from "./panel.js";
 import { CreaturePicker, type PickerEntry } from "./picker.js";
 import { canRecord, LONGEST, VideoRecorder, type Video, type VideoShape } from "./recorder.js";
 import { dropdown, Shell, type Mode } from "./shell.js";
@@ -234,6 +241,8 @@ const geneEditing: GeneEditing = {
   change(g, v) {
     if (!current || !shown || current.program.text !== editor.text) return;
     shown.values.set(g.fullName, v);
+    // A locked gene changed by hand stays locked at its new value.
+    if (locked.has(g.fullName)) locked.set(g.fullName, v);
     const values = new Map([[g.fullName, v]]);
     editor.applyEdits(
       shown.variant === undefined
