@@ -1,6 +1,6 @@
 # The GenoCode language
 
-Version 0.10, as built by `@genocode/core` 0.10.
+Version 0.11, as built by `@genocode/core` 0.11.
 
 This document is the definition of GenoCode. When the implementation and this document disagree,
 this document is right and the implementation is fixed, unless the document is changed first.
