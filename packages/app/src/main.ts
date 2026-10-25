@@ -123,6 +123,8 @@ let variant: string | undefined;
 let shown: Creature | undefined;
 let liveFrame = 0;
 let watchTimer = 0;
+/** Whether the music was playing when Dance was left, to carry on when it's back. */
+let musicWasPlaying = false;
 
 const editor = new CodeEditor(
   codeSection,
@@ -714,6 +716,14 @@ function showPanes(): void {
 
 function setMode(next: Mode): void {
   recorder.stop();
+  // Music only moves the creature in Dance, so a song (not live music) waits there for it.
+  if (mode === "dance" && next !== "dance") {
+    musicWasPlaying = player.active && !player.live && !player.paused;
+    if (musicWasPlaying) void player.togglePause();
+  } else if (next === "dance" && mode !== "dance" && musicWasPlaying) {
+    musicWasPlaying = false;
+    if (player.paused) void playMusic(() => player.togglePause());
+  }
   mode = next;
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
     b.setAttribute("aria-pressed", String(b.dataset["mode"] === mode));
