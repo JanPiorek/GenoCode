@@ -52,6 +52,7 @@ export {
   morph,
   mutate,
   valuesOf,
+  addVariant,
   variantEdits,
   writeGenes,
   type GeneSet,
@@ -93,6 +94,7 @@ export {
   FINISHES,
   MIX_WAYS,
   NO_PATTERN,
+  valuesEqual,
 } from "./values.js";
 export type {
   Colour,

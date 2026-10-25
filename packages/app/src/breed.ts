@@ -1,7 +1,14 @@
 // The breeding grid: a generation of creatures shown as tiles. Select parents, then mutate or
 // breed them into the next generation (docs/LANGUAGE.md section 19).
 
-import { breed, familySpread, geneDistance, mutate, type GeneSpread } from "@genocode/core";
+import {
+  breed,
+  familySpread,
+  geneDistance,
+  mutate,
+  type CheckResult,
+  type GeneSpread,
+} from "@genocode/core";
 import { creatureBounds, onFieldReady, Thumbnails } from "@genocode/render";
 import { buildCreature, type Creature } from "./creature.js";
 import { locked } from "./panel.js";
@@ -61,6 +68,17 @@ export class Breeder {
 
   get selection(): Creature[] {
     return [...this.selected].sort((a, b) => a - b).map((i) => this.generation[i]!);
+  }
+
+  /**
+   * Moves the grid over to a new version of its creature's program with the same genes, such as
+   * one with a variant added, keeping every tile and the generations before.
+   */
+  adopt(program: CheckResult): void {
+    const move = (c: Creature): Creature => ({ ...c, program });
+    this.generation = this.generation.map(move);
+    for (const h of this.history) h.generation = h.generation.map(move);
+    this.render();
   }
 
   /** True when the grid already holds creatures of this program. */
