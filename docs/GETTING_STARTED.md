@@ -18,7 +18,7 @@ and each mode's tools float in a bar under it:
   or **Breed** for a new grid. Double-click one to open it.
 - **Morph** blends a creature into its variants and back, in a loop.
 - **Dance** moves the creature to music: a music file, a web address, the microphone or another
-  browser tab.
+  browser tab. A song pauses when you leave Dance, and carries on when you come back.
 - **Patterns** designs the textures and backgrounds creatures wear.
 - **Library** has the creatures that come with GenoCode, and everything you've saved in the browser.
 
