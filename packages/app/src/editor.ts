@@ -1,24 +1,40 @@
-// The code editor: CodeMirror 6 with GenoCode's colours, problems, completions and hover help, all
-// worked out by @genocode/core, so they match what the creature does.
+// The code editor: CodeMirror 6 with GenoCode's colours, problems, completions, hover help, going to
+// where a name is defined, renaming and colour pickers, all worked out by @genocode/core, so they
+// match what the creature does.
 
 import { autocompletion, type Completion, type CompletionContext } from "@codemirror/autocomplete";
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
 import { linter, type Diagnostic as LintDiagnostic } from "@codemirror/lint";
 import { Annotation, EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
-import { Decoration, EditorView, hoverTooltip, keymap, type DecorationSet } from "@codemirror/view";
+import {
+  Decoration,
+  EditorView,
+  hoverTooltip,
+  keymap,
+  WidgetType,
+  type DecorationSet,
+} from "@codemirror/view";
 import {
   BUILTIN_CONSTANTS,
   BUILTIN_FUNCTIONS,
+  colourLiterals,
   completionsAt,
   helpAt,
+  hexColour,
   lex,
   PICTURE_FUNCTIONS,
+  rename,
+  symbolAt,
+  toRgb,
+  writeColour,
+  type ColourLiteral,
   type CompletionKind,
   type Token,
 } from "@genocode/core";
 import { basicSetup } from "codemirror";
 import { checkText } from "./creature.js";
+import { askText, tell } from "./dialog.js";
 
 /** Marks changes made by the app rather than typed, such as opening a file. */
 const fromApp = Annotation.define<boolean>();
@@ -131,10 +147,162 @@ const help = hoverTooltip((view, pos) => {
       section.className = "g-section";
       section.textContent = `LANGUAGE.md § ${found.help.section}`;
       dom.append(title, text, section);
+      if (symbolAt(checkText(view.state.doc.toString()), pos)) {
+        const keys = document.createElement("p");
+        keys.className = "g-section";
+        keys.textContent = "F12 or Ctrl+click: jump to where it's defined · F2: rename it";
+        dom.append(keys);
+      }
       return { dom };
     },
   };
 });
+
+/** Marks every use of the name the cursor is on, and more strongly where it's defined. */
+export function uses(state: EditorState): DecorationSet {
+  const { main } = state.selection;
+  if (!main.empty) return Decoration.none;
+  const found = symbolAt(checkText(state.doc.toString()), main.head);
+  if (!found) return Decoration.none;
+  return Decoration.set(
+    found.spans.map((s) =>
+      Decoration.mark({
+        class: s.start === found.declaration.start ? "g-use g-definition" : "g-use",
+      }).range(s.start, s.end),
+    ),
+  );
+}
+
+const usesField = StateField.define<DecorationSet>({
+  create: uses,
+  update: (value, tr) => (tr.docChanged || tr.selection ? uses(tr.state) : value),
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+/** Moves the cursor to where the name at `at` is defined, selecting it. False if there's no name. */
+function goToDefinition(view: EditorView, at = view.state.selection.main.head): boolean {
+  const found = symbolAt(checkText(view.state.doc.toString()), at);
+  if (!found) return false;
+  view.dispatch({
+    selection: { anchor: found.declaration.start, head: found.declaration.end },
+    scrollIntoView: true,
+  });
+  return true;
+}
+
+/** Asks for a new name for the name at the cursor and writes it everywhere the name is used. */
+async function renameAtCursor(view: EditorView): Promise<void> {
+  const at = view.state.selection.main.head;
+  const program = checkText(view.state.doc.toString());
+  const found = symbolAt(program, at);
+  if (!found) {
+    await tell("Put the cursor on the name of a gene, part, function or variable to rename it.");
+    view.focus();
+    return;
+  }
+  const name = await askText(`Rename \`${found.name}\` everywhere it's used, to:`, "Rename", {
+    value: found.name,
+    check(text) {
+      const result = rename(program, at, text.trim());
+      if ("error" in result) return { problem: result.error };
+      return result.warning ? { warning: result.warning, ok: "Rename anyway" } : undefined;
+    },
+  });
+  view.focus();
+  // Nothing to do, or the text changed while the dialog was open.
+  if (!name || name === found.name || view.state.doc.toString() !== program.text) return;
+  const result = rename(program, at, name);
+  if ("error" in result) return;
+  view.dispatch({
+    changes: result.edits.map((e) => ({ from: e.span.start, to: e.span.end, insert: e.text })),
+  });
+}
+
+/** A small square of a colour written in the code, which opens a colour picker when clicked. */
+class Swatch extends WidgetType {
+  constructor(
+    readonly start: number,
+    readonly css: string,
+  ) {
+    super();
+  }
+
+  override eq(other: Swatch): boolean {
+    return other.start === this.start && other.css === this.css;
+  }
+
+  toDOM(view: EditorView): HTMLElement {
+    const box = document.createElement("span");
+    box.className = "g-swatch";
+    box.style.background = this.css;
+    box.title = "Pick a colour";
+    box.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      pickColour(view, this.start, box);
+    });
+    return box;
+  }
+
+  override ignoreEvent(): boolean {
+    return true;
+  }
+}
+
+/** The colour as CSS, with its alpha. */
+function cssColour(c: ColourLiteral["colour"]): string {
+  const [r, g, b] = toRgb(c).map((x) => Math.round(Math.min(Math.max(x, 0), 1) * 255));
+  return `rgba(${r}, ${g}, ${b}, ${c.a})`;
+}
+
+/** A swatch before every colour written out in the code. */
+export function swatches(state: EditorState): DecorationSet {
+  return Decoration.set(
+    colourLiterals(state.doc.toString()).map((l) =>
+      Decoration.widget({ widget: new Swatch(l.span.start, cssColour(l.colour)), side: -1 }).range(
+        l.span.start,
+      ),
+    ),
+  );
+}
+
+const swatchesField = StateField.define<DecorationSet>({
+  create: swatches,
+  update: (value, tr) => (tr.docChanged ? swatches(tr.state) : value),
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+/** The browser's colour picker, kept for the next colour once it's been used. */
+let picker: HTMLInputElement | undefined;
+
+/**
+ * Opens the browser's colour picker for the colour written at `start`. Each colour picked is
+ * written in its place, the same way it was written (hsv, rgb, hex, or hex in place of a name), and
+ * keeping its alpha.
+ */
+function pickColour(view: EditorView, start: number, near: HTMLElement): void {
+  const at = () => colourLiterals(view.state.doc.toString()).find((l) => l.span.start === start);
+  const found = at();
+  if (!found) return;
+  picker?.remove();
+  const input = document.createElement("input");
+  picker = input;
+  input.type = "color";
+  input.className = "g-colour-picker";
+  input.value = writeColour({ ...found.colour, a: 1 }, "hex") ?? "#000000";
+  const box = near.getBoundingClientRect();
+  input.style.left = `${box.left}px`;
+  input.style.top = `${box.bottom}px`;
+  document.body.append(input);
+  input.addEventListener("input", () => {
+    const now = at();
+    if (!now) return;
+    const picked = { ...hexColour(input.value), a: now.colour.a };
+    const text = writeColour(picked, now.form, now.alpha) ?? writeColour(picked, "hex", now.alpha);
+    if (text === undefined) return;
+    view.dispatch({ changes: { from: now.span.start, to: now.span.end, insert: text } });
+  });
+  input.click();
+}
 
 const COMPLETION_TYPES: Record<CompletionKind, string> = {
   keyword: "keyword",
@@ -208,11 +376,34 @@ export class CodeEditor {
       state: EditorState.create({
         extensions: [
           basicSetup,
-          keymap.of([indentWithTab]),
+          keymap.of([
+            indentWithTab,
+            { key: "F12", run: (view) => goToDefinition(view) },
+            {
+              key: "F2",
+              run: (view) => {
+                void renameAtCursor(view);
+                return true;
+              },
+            },
+          ]),
+          EditorView.domEventHandlers({
+            // Ctrl+click (⌘+click on a Mac) on a name jumps to where it's defined; anywhere else
+            // it does what it always does.
+            mousedown(event, view) {
+              if (event.button !== 0 || !(event.ctrlKey || event.metaKey)) return false;
+              const at = view.posAtCoords({ x: event.clientX, y: event.clientY });
+              if (at === null || !goToDefinition(view, at)) return false;
+              event.preventDefault();
+              return true;
+            },
+          }),
           indentUnit.of("  "),
           EditorView.lineWrapping,
           autocompletion({ override: [complete] }),
           colours,
+          usesField,
+          swatchesField,
           problems,
           help,
           theme,

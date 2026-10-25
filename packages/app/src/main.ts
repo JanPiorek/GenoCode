@@ -1319,6 +1319,8 @@ function showShortcuts(): void {
       "F: full screen, in View, Morph and Dance (Esc or F again to leave)",
       "[ and ]: the previous or next creature, while dancing",
       "1 to 9: the dance styles in the Style menu, while dancing",
+      "F12 or Ctrl+click (⌘+click on a Mac) on a name in the code: jump to where it's defined",
+      "F2 on a name in the code: rename it everywhere it's used",
       "?: this list",
     ].join("\n"),
   );

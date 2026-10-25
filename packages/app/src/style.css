@@ -1104,6 +1104,36 @@ input[type="range"] {
   color: #8fb3ff;
 }
 
+.g-use {
+  background: #ffffff12;
+  border-radius: 2px;
+}
+.g-definition {
+  background: #ffffff24;
+}
+
+.g-swatch {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 3px;
+  border: 1px solid #ffffff55;
+  border-radius: 2px;
+  vertical-align: -1px;
+  cursor: pointer;
+}
+
+/* The browser's colour picker opens from here, beside the swatch; the input itself isn't seen. */
+.g-colour-picker {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .g-help {
   max-width: 420px;
   padding: 6px 10px;
