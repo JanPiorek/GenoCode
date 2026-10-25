@@ -39,11 +39,26 @@ describe.each(PATTERN_KINDS)("%s, written in GenoCode", (kind) => {
     expect(difference(built, written)).toBeLessThan(1e-5);
   });
 
+  // Lightning's finish isn't a blur around its `value` but a glow drawn from the mixed picture,
+  // which pattern code can't hold back; the others are blurred after mixing, as built-in kinds are.
+  const mixesAlike = kind !== "lightning";
+
+  it.each(["blend", "mask", "carve"] as const)(
+    "is mixed with %s as the built-in kind is",
+    (way) => {
+      for (const seed of [1, 2, 3]) {
+        const built = drawField(kind, seed, { way, kind: "cells", amount: 0.6 }, 64).v;
+        const written = drawField(name, seed, { way, kind: "cells", amount: 0.6 }, 64, source).v;
+        if (mixesAlike) expect(difference(built, written), `seed ${seed}`).toBeLessThan(1e-5);
+        else expect(written.every((v) => v >= 0 && v <= 1)).toBe(true);
+      }
+    },
+  );
+
   it("can be mixed into a built-in kind", () => {
     const built = drawField("marble", 2, { way: "blend", kind, amount: 0.5 }, 64).v;
     const written = drawField("marble", 2, { way: "blend", kind: name, amount: 0.5, source }, 64).v;
-    // The built-in kinds are mixed in before their last blur; GenoCode patterns after it.
-    expect(written.length).toBe(built.length);
-    expect(written.every((v) => v >= 0 && v <= 1)).toBe(true);
+    if (mixesAlike) expect(difference(built, written)).toBeLessThan(1e-5);
+    else expect(written.every((v) => v >= 0 && v <= 1)).toBe(true);
   });
 });

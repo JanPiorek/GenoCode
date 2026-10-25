@@ -823,9 +823,20 @@ lay
   function. It works everywhere a kind does: `pattern(Ripples, …)`, `mixed(p, warp, Ripples, 0.5)`
   and kind genes (`gene kind = Ripples from [marble, Ripples]`). The creature's background can use
   it too.
-- When a pattern is mixed ([section 14](#14-textures)), the second pattern's picture is mixed in
-  as its `value` gives it. With `warp`, the pixels' `x` and `y` are pushed about before the code
-  sees them, so every pattern bends without having to know.
+- **When a pattern is mixed** ([section 14](#14-textures)), the `blur` and `zoom_blur` calls
+  wrapped round its final `value` wait until after the mixing, as the built-in kinds' blurs do. In
+  a pattern that ends
+
+  ```
+  value zoom_blur(blur(rays, 2), 0.3)
+  ```
+
+  the second pattern is mixed into `rays`, and then the mix is blurred and zoom-blurred, so both
+  patterns are softened. A pattern mixed in as the second one comes in without those blurs. On its
+  own, unmixed, a pattern looks just as its code says.
+
+- With `warp`, the pixels' `x` and `y` are pushed about before the code sees them, so every pattern
+  bends without having to know.
 - The pictures are drawn in the app's own time, not every frame: a pattern can't read `time` or
   `music`. Its colours can still follow them, because the hue, scheme, finish and wear only
   recolour it.

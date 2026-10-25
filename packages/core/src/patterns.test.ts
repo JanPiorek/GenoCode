@@ -86,6 +86,18 @@ describe("pattern files", () => {
     expect(draw(8)).not.toEqual(draw(16));
   });
 
+  it("hold back the blurs around their value, for mixing, when asked", () => {
+    const text = `${RIPPLES.replace("value picture {", "let rings_picture = picture {")}value zoom_blur(blur(rings_picture, random(1, 2)), 0.3)\n`;
+    const program = check(text);
+    expect(program.diagnostics).toEqual([]);
+    const full = buildPattern(program, "Ripples", 4, canvas());
+    const held = buildPattern(program, "Ripples", 4, canvas(), { holdFinish: true });
+    expect(held.picture!.v).not.toEqual(full.picture!.v);
+    expect(held.finish(held.picture!).v).toEqual(full.picture!.v);
+    // Without holding back, there's nothing left to do.
+    expect(full.finish(full.picture!)).toBe(full.picture);
+  });
+
   it("don't give a creature a seed gene when they use random", () => {
     expect(check(SHELL).genes.map((g) => g.fullName)).not.toContain("seed");
   });
