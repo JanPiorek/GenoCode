@@ -1405,7 +1405,11 @@ input[type="color"].gene-control {
   background: none;
 }
 
-.gene-control select {
+/* The select is the control itself, so it gets the block display above;
+   keep its text and arrow on one line, on a line of its own. */
+select.gene-control {
+  display: flex;
+  width: fit-content;
   padding: 4px 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
