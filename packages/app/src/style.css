@@ -69,6 +69,14 @@ a.button {
   cursor: pointer;
 }
 
+/* The open list of a select is drawn by the browser; give it the dark
+   panel colours or it shows light text on a white list. */
+select option,
+select optgroup {
+  background: var(--raised);
+  color: var(--text);
+}
+
 :focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
@@ -257,12 +265,6 @@ a.button {
   color: var(--text);
   font-weight: 500;
   text-overflow: ellipsis;
-}
-
-.chip-select select option,
-.chip-select select optgroup {
-  background: var(--raised);
-  color: var(--text);
 }
 
 /* A labelled slider in a tool bar. */
