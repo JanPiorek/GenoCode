@@ -39,6 +39,8 @@ describe.each(files)("%s", (file) => {
     () => {
       expect(colourJumps(program)).toEqual([]);
     },
+    // Building a creature hundreds of times takes several seconds on a slow machine.
+    60_000,
   );
 });
 
