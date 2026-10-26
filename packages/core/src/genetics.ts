@@ -336,13 +336,27 @@ function morphGene(g: GeneInfo, x: Value, y: Value, t: number): Value {
   if (isColour(x) && isColour(y)) {
     return {
       type: "colour",
-      h: mixHue(x.h, y.h, t),
+      h: morphHue(x.h, y.h, t, g.hue),
       s: x.s + (y.s - x.s) * t,
       v: x.v + (y.v - x.v) * t,
       a: x.a + (y.a - x.a) * t,
     };
   }
   return t < 0.5 ? x : y;
+}
+
+/**
+ * Hue while morphing: along the gene's arc, so a hue never crosses 0° unless the arc does. Going
+ * the short way instead would cross 0° whenever it's shorter, and spectrums, which blend hue
+ * numbers in a straight line, would jump to the other side of the circle as it did. A hue off
+ * the arc goes the short way.
+ */
+function morphHue(x: number, y: number, t: number, arc: HueArc | undefined): number {
+  const start = arc?.whole === false ? arc.start : 0;
+  if (arc?.whole === false && !(inHueArc(x, arc) && inHueArc(y, arc))) return mixHue(x, y, t);
+  const p = wrapHue(x - start);
+  const q = wrapHue(y - start);
+  return wrapHue(start + p + (q - p) * t);
 }
 
 // ---------- writing genes into the program ----------

@@ -304,6 +304,23 @@ describe("morph", () => {
     const q = { genes: g, values: new Map<string, Value>([["k", 2]]) };
     expect(morph({ genes: g }, q, 0.3).values.get("k")).toBeCloseTo(1.3);
   });
+
+  it("moves hue along the gene's arc, never across 0° unless the arc does", () => {
+    const hueAt = (decl: string, from: number, to: number, t: number) => {
+      const g = genesOf(decl);
+      const at = (h: number) => ({
+        genes: g,
+        values: new Map<string, Value>([["c", { type: "colour", h, s: 1, v: 1, a: 1 }]]),
+      });
+      return (morph(at(from), at(to), t).values.get("c") as { h: number }).h;
+    };
+    const whole = "gene c = red in hsv(0, 0, 0)..hsv(360, 1, 1)";
+    expect(hueAt(whole, 350, 10, 0.5)).toBeCloseTo(180);
+    expect(hueAt(whole, 10, 350, 0.25)).toBeCloseTo(95);
+    const reds = "gene c = red in hsv(330, 0, 0)..hsv(30, 1, 1)";
+    expect(hueAt(reds, 340, 20, 0.5)).toBeCloseTo(0);
+    expect(hueAt(reds, 340, 20, 0.25)).toBeCloseTo(350);
+  });
 });
 
 describe("writeGenes", () => {
