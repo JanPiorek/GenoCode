@@ -77,6 +77,56 @@ select optgroup {
   color: var(--text);
 }
 
+/* Where the browser lets us draw the open list ourselves, give every list
+   the same roomy look whatever the size of its select. Other browsers keep
+   their own list with the colours above. */
+@supports (appearance: base-select) {
+  select,
+  ::picker(select) {
+    appearance: base-select;
+  }
+
+  select {
+    align-items: center;
+    gap: 6px;
+  }
+
+  select::picker-icon {
+    content: "";
+    width: 14px;
+    height: 14px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa3b8' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+      center / 14px no-repeat;
+  }
+
+  ::picker(select) {
+    min-width: max(anchor-size(width), 140px);
+    max-height: min(480px, 70vh);
+    margin-top: 4px;
+    padding: 4px 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: var(--raised);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.5);
+  }
+
+  select option {
+    padding: 8px 16px;
+    background: none;
+  }
+
+  select option::checkmark {
+    display: none;
+  }
+
+  select option:hover,
+  select option:focus-visible {
+    outline: none;
+    background: #99c9ff;
+    color: var(--bg);
+  }
+}
+
 :focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
@@ -265,6 +315,17 @@ select optgroup {
   color: var(--text);
   font-weight: 500;
   text-overflow: ellipsis;
+}
+
+/* The chip draws its own arrow; still use the drawn list where there is one. */
+@supports (appearance: base-select) {
+  .chip-select select {
+    appearance: base-select;
+  }
+
+  .chip-select select::picker-icon {
+    display: none;
+  }
 }
 
 /* A labelled slider in a tool bar. */
