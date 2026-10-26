@@ -637,9 +637,25 @@ Whichever form it's written in, a colour is a value of **hue, saturation, value 
 ranges, blending and gradients all work on those four channels, with hue on a circle. Alpha is
 opacity: 1 is solid and 0 is invisible.
 
-**Blending two colours** (in `mix`, `smoothmix`, gradients and morphing) blends saturation, value
-and alpha in a straight line, and hue the short way round the circle. Hues exactly 180 degrees
-apart blend in the increasing direction. Spectrums ([13.3](#133-gradients)) are the one exception.
+**Blending two colours** (in `mix`, `smoothmix` and gradients) blends saturation, value and alpha
+in a straight line, and hue the short way round the circle. Hues exactly 180 degrees apart blend in
+the increasing direction. Spectrums ([13.3](#133-gradients)) and morphing
+([19.3](#193-morphing)) are the exceptions.
+
+**Blends that move.** When the colours being blended change, because genes morph or the music or
+time moves them, the short way switches sides as their hues pass 180 degrees apart, and every
+colour in between jumps to the other side of the circle at once. To keep such a blend steady,
+blend the hue numbers instead: `mix` on two numbers is a straight line, so the hue never switches
+sides.
+
+```
+let top = hue + spread * music.level   // hue and spread are number genes
+repeat 10 as i {
+  colour hsv(mix(hue, top, i / 9), 0.8, 1)   // always goes up from hue, however far apart the ends get
+  lay
+  forward 1
+}
+```
 
 The named colours are:
 
@@ -1216,14 +1232,20 @@ Morphing makes the in-between creature at position `t` (from 0 to 1) between A a
 A's when `t < ½` and B's when `t ≥ ½`. Each gene in that program takes the value below, using the
 other creature's matched gene (same full name and kind); an unmatched gene keeps its own value.
 
-| Gene                              | Value at `t`                                                                 |
-| --------------------------------- | ---------------------------------------------------------------------------- |
-| number, stepped number            | `(1 − t)·A + t·B`. Stepped numbers are **not** rounded, so morphs are smooth |
-| log number                        | `A × (B / A)^t`                                                              |
-| vector, colour                    | each axis or channel separately. Hue goes the short way round                |
-| bool, choice, part choice, `seed` | A's value when `t < ½`, B's when `t ≥ ½`                                     |
+| Gene                              | Value at `t`                                                                      |
+| --------------------------------- | --------------------------------------------------------------------------------- |
+| number, stepped number            | `(1 − t)·A + t·B`. Stepped numbers are **not** rounded, so morphs are smooth      |
+| log number                        | `A × (B / A)^t`                                                                   |
+| vector, colour                    | each axis or channel separately. Hue moves along the gene's range of hues (below) |
+| bool, choice, part choice, `seed` | A's value when `t < ½`, B's when `t ≥ ½`                                          |
 
 Values aren't limited to either creature's range while morphing.
+
+A colour gene's hue moves along its range of hues, so it never crosses 0° unless the range does:
+from 350° to 10° it goes down through every hue when the range is the whole circle, and up through
+red when the range is `hsv(330, …)..hsv(30, …)`. That keeps spectrums ([13.3](#133-gradients)) of
+colour genes smooth all through a morph, since a spectrum's colours would jump to the other side of
+the circle when a hue crossed 0°. A hue outside its range goes the short way.
 
 A morph through several creatures (a loop) is a chain of these morphs between neighbours. When A
 and B share a program, a morph is smooth all the way; when their programs differ, the creature
