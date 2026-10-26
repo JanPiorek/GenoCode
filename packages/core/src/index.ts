@@ -61,6 +61,7 @@ export {
   type GeneValues,
   type MutateOptions,
 } from "./genetics.js";
+export { colourJumps, type ColourJump, type JumpOptions } from "./jumps.js";
 export {
   completionsAt,
   constantHelp,
