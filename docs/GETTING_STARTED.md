@@ -13,12 +13,13 @@ and each mode's tools float in a bar under it:
 - **View** shows the creature, with its code beside it (**Code**, under the modes, shows and hides
   it). Change the code and the creature follows as you type. The **Genes** panel on the right has
   a slider for every gene, to try other values. On a phone, pull up the sheet under the creature
-  for the genes, the code and the blocks.
-- **Breed** shows a grid of variations. Click creatures to choose them as parents, then **Mutate**
-  or **Breed** for a new grid. Double-click one to open it.
+  for the genes, the code and the blocks. On a computer, the bar under the creature has shortcuts
+  to **Morph**, **Dance**, **Breed** and **Picture**.
 - **Morph** blends a creature into its variants and back, in a loop.
 - **Dance** moves the creature to music: a music file, a web address, the microphone or another
   browser tab. A song pauses when you leave Dance, and carries on when you come back.
+- **Breed** shows a grid of variations. Click creatures to choose them as parents, then **Mutate**
+  or **Breed** for a new grid. Double-click one to open it.
 - **Patterns** designs the textures and backgrounds creatures wear.
 - **Library** has the creatures that come with GenoCode, and everything you've saved in the browser.
 
@@ -184,7 +185,7 @@ finishes, breed the ones you like, and **Copy code** or **Use as background**.
 - **Download** saves the `.genie` file, and **Open a .genie file** opens one (all three are in the
   **File** menu). Opening a background or dance file while a creature is on show offers to put it
   into the creature.
-- **Picture** in View saves a picture of the creature as it's shown.
+- **Picture** in View (or **File › Save a picture…**) saves a picture of the creature as it's shown.
 - **Video** in Morph and Dance records a video of the creature, with the music while it dances.
   Pick a shape (tall for Shorts, TikTok and Reels; square; or wide); the creature takes that shape
   while recording, and **Stop** ends it. With a music file, tick **The whole song, from the start**
