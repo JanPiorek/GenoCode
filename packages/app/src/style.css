@@ -2124,7 +2124,7 @@ select.gene-control {
     order: 1;
   }
 
-  /* View: the variant and a picture; the tab bar already has Breed and Dance. */
+  /* View: the variant and a picture; the tab bar already has Morph, Dance and Breed. */
   #view-tools [data-go] {
     display: none;
   }
