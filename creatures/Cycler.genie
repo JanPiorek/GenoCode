@@ -2,9 +2,9 @@ creature Cycler
 // One big ball wearing banded clouds. The palette turns with time, and as the creature morphs
 // round its members the bands themselves flow across the clouds, without ever jumping back.
 
-gene speed  = 60 in -360..360  // how many degrees round the colour wheel the palette turns each second
-gene hue    = 200   in 0..360
-gene scheme = dusk  from [jewel, duotone, split, analogous, pastel, dusk, electric]
+gene speed  = 60   in -360..360  // how many degrees round the colour wheel the palette turns each second
+gene hue    = 200  in 0..360
+gene scheme = dusk from [jewel, duotone, split, analogous, pastel, dusk, electric]
 gene finish = iridescent from [matte, metallic, iridescent, pearl, satin]
 
 shape ball
