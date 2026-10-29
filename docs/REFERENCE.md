@@ -162,8 +162,8 @@ variant Name { gene = value; … }
 ```
 creature Cobra
 
-gene hood  = 1.2 in 0.5..2
-gene coils = 3   in 1..6 step 1
+gene hood = 1.2 in 0.5..2
+gene coils = 3 in 1..6 step 1
 
 grow hood
 repeat coils {
@@ -239,13 +239,13 @@ or `pattern` body. Not inside `if`, loops, `branch`, `symmetric`, `lay { }` or `
 ```
 creature Critter
 
-gene petals = 7    in 3..16 step 1  // how many limbs
-gene size   = 1    in 0.1..10 log
-gene skin   = hsv(120, 0.6, 0.9) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)
-gene warm   = hsv(20, 0.8, 1) in hsv(300, 0.5, 0.5)..hsv(40, 1, 1)
-gene spiky  = true
-gene body   = cone from [ball, cone, tube]
-gene limb   = leg  from [leg, fin]
+gene petals = 7 in 3..16 step 1  // how many limbs
+gene size = 1 in 0.1..10 log
+gene skin = hsv(120, 0.6, 0.9) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)
+gene warm = hsv(20, 0.8, 1) in hsv(300, 0.5, 0.5)..hsv(40, 1, 1)
+gene spiky = true
+gene body = cone from [ball, cone, tube]
+gene limb = leg from [leg, fin]
 
 grow size
 shape body
@@ -703,7 +703,7 @@ move offset
 **Example**
 
 ```
-move (1, 2, 0)   // one to the side, two up
+move (1, 2, 0)  // one to the side, two up
 lay
 ```
 
@@ -731,7 +731,7 @@ pitch angle
 **Example**
 
 ```
-pitch -90   // now heading up
+pitch -90  // now heading up
 forward 3
 lay
 ```
@@ -846,7 +846,7 @@ grow factors
 ```
 grow 2
 lay
-lay { grow (1, 0.2, 3) }   // a flat slab, this shape only
+lay { grow (1, 0.2, 3) }  // a flat slab, this shape only
 ```
 
 **See also:** [mirror](#mirror), [Growing and mirroring](LANGUAGE.md#114-growing-and-mirroring)
@@ -876,7 +876,7 @@ mirror z
 
 ```
 mirror x
-yaw 30      // turns the other way now
+yaw 30  // turns the other way now
 forward 2
 lay
 ```
@@ -973,7 +973,7 @@ reshape { … }
 reshape { grow (1, 0.3, 4) }
 lay
 forward 2
-lay   // both shapes long and flat
+lay  // both shapes long and flat
 ```
 
 **See also:** [lay](#lay), [The shape transform](LANGUAGE.md#117-the-shape-transform)
@@ -1033,7 +1033,7 @@ lay { … }
 
 ```
 shape tube
-lay { grow (0.3, 0.3, 4) }   // a long thin tube
+lay { grow (0.3, 0.3, 4) }  // a long thin tube
 ```
 
 **See also:** [shape](#shape), [reshape](#reshape)
@@ -1216,8 +1216,8 @@ background Name
 
 ```
 background {
-  gene hue   = 260 in 0..360
-  gene pulse = 30  in 0..90  // how far the colours shift with the bass
+  gene hue = 260 in 0..360
+  gene pulse = 30 in 0..90  // how far the colours shift with the bass
 
   fill pattern(aurora, hue + pulse * music.bass, 12)
 }
@@ -1528,7 +1528,7 @@ pattern Name
 pattern Ripples
 // Rings that wobble.
 
-gene rings  = 8   in 2..20
+gene rings = 8 in 2..20
 gene wobble = 0.3 in 0..1
 
 let turn = random(0, 360)
@@ -2054,7 +2054,7 @@ and repeating after that.
 **Example**
 
 ```
-yaw 20 * wave(time / 4)   // sways once every 4 seconds
+yaw 20 * wave(time / 4)  // sways once every 4 seconds
 ```
 
 **See also:** [bump](#bump), [sin](#sin)
@@ -2260,7 +2260,7 @@ hsv(h, s, v, a)
 
 ```
 colour hsv(200, 0.8, 1)
-colour hsv(0, 1, 1, 0.5)   // see-through red
+colour hsv(0, 1, 1, 0.5)  // see-through red
 ```
 
 **See also:** [rgb](#rgb), [colour names](#colour-names), [Colours](LANGUAGE.md#131-colours)
@@ -2282,7 +2282,7 @@ rgb(r, g, b, a)
 **Example**
 
 ```
-colour rgb(1, 0.5, 0)   // orange, the same as #ff8000
+colour rgb(1, 0.5, 0)  // orange, the same as #ff8000
 ```
 
 **See also:** [hsv](#hsv)
@@ -2502,7 +2502,7 @@ pattern(kind, hue, seed, scheme, finish)
 **Example**
 
 ```
-gene coat_hue  = 200 in 0..360
+gene coat_hue = 200 in 0..360
 gene coat_kind = marble from [marble, cells, aurora]
 
 texture pattern(coat_kind, coat_hue, 7, dusk, pearl)
@@ -2709,7 +2709,7 @@ when no music is playing.
 **Example**
 
 ```
-roll 45 * time   // turns 45 degrees a second
+roll 45 * time  // turns 45 degrees a second
 lay
 ```
 
@@ -2825,7 +2825,7 @@ parameter, part or function.
 ```
 repeat 50 as i {
   branch {
-    yaw i * 360 / golden   // spreads them like seeds in a sunflower
+    yaw i * 360 / golden  // spreads them like seeds in a sunflower
     forward sqrt(i) * 0.5
     lay
   }

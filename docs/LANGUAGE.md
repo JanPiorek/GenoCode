@@ -68,10 +68,10 @@ every construct in the language corresponds to exactly one block.
 creature Flower
 // Petals laid round the centre, each a squashed cone, in rings that shrink and turn.
 
-gene rings  = 3   in 1..6 step 1  // how many rings of petals
-gene shrink = 0.7 in 0.4..0.95    // each ring's size compared with the ring outside it
-gene twist  = 29  in 0..180       // how far each ring turns from the last
-gene heart  = hsv(47, 0.9, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
+gene rings = 3 in 1..6 step 1  // how many rings of petals
+gene shrink = 0.7 in 0.4..0.95  // each ring's size compared with the ring outside it
+gene twist = 29 in 0..180  // how far each ring turns from the last
+gene heart = hsv(47, 0.9, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
 
 branch {
   shape ball
@@ -88,11 +88,11 @@ repeat rings {
 }
 
 part whorl(scale) {
-  gene petals = 7   in 3..16 step 1
-  gene reach  = 4   in 1.5..7   // how long each petal is
-  gene width  = 1.4 in 0.3..3
-  gene cup    = 23  in -57..69  // how far the petals curl
-  gene petal  = hsv(324, 0.7, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
+  gene petals = 7 in 3..16 step 1
+  gene reach = 4 in 1.5..7  // how long each petal is
+  gene width = 1.4 in 0.3..3
+  gene cup = 23 in -57..69  // how far the petals curl
+  gene petal = hsv(324, 0.7, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
 
   colour petal
   shape cone
@@ -229,14 +229,14 @@ bred and morphed.
 ### 6.1 Declaring genes
 
 ```
-gene twist   = 29 in 0..180                                   // number
-gene petals  = 7 in 3..16 step 1                              // number, in whole steps
-gene size    = 1 in 0.1..10 log                               // number, works by ratios
-gene stretch = (1, 1, 0.2) in (1, 1, 0.1)..(1, 1, 3)          // vector
-gene skin    = hsv(120, 0.6, 0.9) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)   // colour
-gene spiky   = true                                           // bool
-gene body    = cone from [ball, cone, tube]                   // choice
-gene limb    = leg from [leg, fin, wing]                      // part choice
+gene twist = 29 in 0..180  // number
+gene petals = 7 in 3..16 step 1  // number, in whole steps
+gene size = 1 in 0.1..10 log  // number, works by ratios
+gene stretch = (1, 1, 0.2) in (1, 1, 0.1)..(1, 1, 3)  // vector
+gene skin = hsv(120, 0.6, 0.9) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)  // colour
+gene spiky = true  // bool
+gene body = cone from [ball, cone, tube]  // choice
+gene limb = leg from [leg, fin, wing]  // part choice
 ```
 
 | Kind           | Form                     | Rules                                                                                                                                                      |
@@ -324,9 +324,9 @@ members of an evolved population.
 ```
 creature Cobra
 
-gene hood  = 1.2 in 0.5..2  // how wide the hood spreads
-gene coils = 3   in 1..6 step 1
-gene skin  = hsv(120, 0.7, 0.8) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)
+gene hood = 1.2 in 0.5..2  // how wide the hood spreads
+gene coils = 3 in 1..6 step 1
+gene skin = hsv(120, 0.7, 0.8) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)
 
 grow hood
 repeat coils {
@@ -359,9 +359,9 @@ variant Striker {
 ## 7. Variables
 
 ```
-let size = 1          // create a variable
-size = size * 0.9     // change it
-size *= 0.9           // the same. Also += -= /=
+let size = 1  // create a variable
+size = size * 0.9  // change it
+size *= 0.9  // the same. Also += -= /=
 ```
 
 - `let` creates a variable in the current block. Using a name that hasn't been created, or creating
@@ -444,11 +444,11 @@ if petals > 10 {
   shape cube
 }
 
-repeat 5 { … }                       // 5 times
-repeat petals as i { … }             // i = 0, 1, … petals − 1
+repeat 5 { … }  // 5 times
+repeat petals as i { … }  // i = 0, 1, … petals − 1
 
-for i from 1 to segments - 1 { … }   // i = 1, 2, … segments − 1
-for a from 0 to 360 by 45 { … }      // a = 0, 45, … 360
+for i from 1 to segments - 1 { … }  // i = 1, 2, … segments − 1
+for a from 0 to 360 by 45 { … }  // a = 0, 45, … 360
 
 while size > 0.1 { … }
 ```
@@ -464,13 +464,13 @@ while size > 0.1 { … }
 ## 10. Parts and functions
 
 ```
-part leg(reach, bend) {        // draws
+part leg(reach, bend) {  // draws
   forward reach
   pitch bend
   lay
 }
 
-function wave_height(t, h) {    // calculates
+function wave_height(t, h) {  // calculates
   return sin(t * 360) * h
 }
 
@@ -582,9 +582,9 @@ applied to each shape as it's laid, without moving the turtle.
 ```
 reshape { grow (1, 0.3, 4); pitch 10 }
 lay
-lay                               // both shapes squashed and tilted
+lay  // both shapes squashed and tilted
 
-lay { grow (1, 0.3, 4) }          // only this shape
+lay { grow (1, 0.3, 4) }  // only this shape
 ```
 
 - `reshape { … }` changes the shape transform. It applies to every shape laid afterwards, until it
@@ -649,9 +649,9 @@ blend the hue numbers instead: `mix` on two numbers is a straight line, so the h
 sides.
 
 ```
-let top = hue + spread * music.level   // hue and spread are number genes
+let top = hue + spread * music.level  // hue and spread are number genes
 repeat 10 as i {
-  colour hsv(mix(hue, top, i / 9), 0.8, 1)   // always goes up from hue, however far apart the ends get
+  colour hsv(mix(hue, top, i / 9), 0.8, 1)  // always goes up from hue, however far apart the ends get
   lay
   forward 1
 }
@@ -708,7 +708,7 @@ two stops, hue moves in a straight line from one number to the other, never acro
 `gradient(blue, red)` goes the short way, through magenta.
 
 ```
-let flame = spectrum(hsv(60, 1, 1), hsv(0, 1, 1), hsv(280, 1, 0.5))   // yellow, red, then back through every hue to violet
+let flame = spectrum(hsv(60, 1, 1), hsv(0, 1, 1), hsv(280, 1, 0.5))  // yellow, red, then back through every hue to violet
 ```
 
 ## 14. Textures
@@ -717,13 +717,13 @@ Textures are generated from a recipe of a few values, so they can be genes and e
 creature.
 
 ```
-gene skin_kind   = marble from [marble, cells, aurora, plasma]
-gene skin_hue    = 200 in 0..360
-gene skin_seed   = 7 in 0..99 step 1
+gene skin_kind = marble from [marble, cells, aurora, plasma]
+gene skin_hue = 200 in 0..360
+gene skin_seed = 7 in 0..99 step 1
 gene skin_scheme = dusk from [jewel, duotone, split, analogous, pastel, dusk, electric]
 gene skin_finish = pearl from [matte, metallic, iridescent, pearl, satin]
 
-gene skin        = 1 in 0..1   // how much of its texture it wears
+gene skin = 1 in 0..1  // how much of its texture it wears
 
 texture pattern(skin_kind, skin_hue, skin_seed, skin_scheme, skin_finish)
 wear skin
@@ -794,7 +794,7 @@ scheme and a finish:
 creature Shell
 
 pattern Ripples {
-  gene rings  = 8   in 2..20  // how many rings
+  gene rings = 8 in 2..20  // how many rings
   gene wobble = 0.3 in 0..1
 
   let turn = random(0, 360)
@@ -866,7 +866,7 @@ the same name.
 pattern Ripples
 // Rings that wobble.
 
-gene rings  = 8   in 2..20
+gene rings = 8 in 2..20
 gene wobble = 0.3 in 0..1
 
 let turn = random(0, 360)
@@ -888,10 +888,10 @@ A creature can carry the background it's shown against:
 
 ```
 background {
-  gene kind  = aurora from [aurora, plasma, marble, cells]
-  gene hue   = 260 in 0..360
-  gene seed  = 12 in 0..99 step 1
-  gene pulse = 30 in 0..90      // how far the colours shift with the bass
+  gene kind = aurora from [aurora, plasma, marble, cells]
+  gene hue = 260 in 0..360
+  gene seed = 12 in 0..99 step 1
+  gene pulse = 30 in 0..90  // how far the colours shift with the bass
 
   fill pattern(kind, hue + pulse * music.bass, seed)
 }
@@ -913,10 +913,10 @@ place of the braces, form a background file:
 ```
 background Northern_Lights
 
-gene kind  = aurora from [aurora, plasma, marble, cells]
-gene hue   = 260    in 0..360
-gene seed  = 12     in 0..99 step 1
-gene pulse = 30     in 0..90
+gene kind = aurora from [aurora, plasma, marble, cells]
+gene hue = 260 in 0..360
+gene seed = 12 in 0..99 step 1
+gene pulse = 30 in 0..90
 
 fill pattern(kind, hue + pulse * music.bass, seed)
 ```
@@ -943,8 +943,8 @@ A creature can react to time and music through these read-only values:
 | `music.high_hit` | 0–1       | jumps up on each high onset (a hi-hat, a cymbal) and falls back                        |
 
 ```
-gene flap = 30 in 0..70       // how hard the wings beat with the bass
-gene sway = 15 in 0..40       // how far the body sways, music or not
+gene flap = 30 in 0..70  // how hard the wings beat with the bass
+gene sway = 15 in 0..40  // how far the body sways, music or not
 
 yaw sway * wave(time / 4)
 symmetric x {

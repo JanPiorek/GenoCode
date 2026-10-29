@@ -10,12 +10,12 @@ import type { Value } from "./values.js";
 
 const CREATURE = `creature T
 
-gene size  = 1 in 0.5..2
-gene n     = 3 in 1..6 step 1
-gene skin  = hsv(120, 0.5, 0.8) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)
+gene size = 1 in 0.5..2
+gene n = 3 in 1..6 step 1
+gene skin = hsv(120, 0.5, 0.8) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)
 gene plump = true
-gene body  = ball from [ball, cube]
-gene limb  = leg from [leg, fin]
+gene body = ball from [ball, cube]
+gene limb = leg from [leg, fin]
 
 repeat n { limb }
 
@@ -86,11 +86,11 @@ describe("variants", () => {
     expect(withVariant.shapes).toEqual(plain.shapes);
   });
 
-  it("is laid out on one line when it fits, and lined up when it doesn't", () => {
+  it("is laid out on one line when it fits, one setting to a line when it doesn't", () => {
     const text =
       CREATURE + "variant  Big {size=2;n=6}\nvariant Odd {\n leg.reach = 3 // longer\n  n = 2\n}\n";
     expect(formatText(text).text).toContain(
-      "\nvariant Big { size = 2; n = 6 }\n\nvariant Odd {\n  leg.reach = 3  // longer\n  n         = 2\n}\n",
+      "\nvariant Big { size = 2; n = 6 }\n\nvariant Odd {\n  leg.reach = 3  // longer\n  n = 2\n}\n",
     );
   });
 
@@ -135,7 +135,7 @@ describe("variantEdits", () => {
       }),
     ).toBe("\nvariant V {\n    size = 2\n    skin = hsv(70, 1, 1)\n    limb = fin\n}\n");
     expect(edited("\nvariant V {\n  plump  = false\n  n      = 2\n}\n", { size: 2 })).toBe(
-      "\nvariant V {\n  plump  = false\n  n      = 2\n  size   = 2\n}\n",
+      "\nvariant V {\n  plump  = false\n  n      = 2\n  size = 2\n}\n",
     );
     expect(edited("\nvariant V {}\n", { n: 2 })).toBe("\nvariant V { n = 2 }\n");
     expect(edited("\nvariant V {\n}\n", { n: 2 })).toBe("\nvariant V {\n  n = 2\n}\n");
@@ -174,9 +174,9 @@ describe("addVariant", () => {
     return text.slice(CREATURE.length);
   };
 
-  it("adds a variant at the end, its genes one to a line and lined up", () => {
+  it("adds a variant at the end, its genes one to a line", () => {
     expect(added("", "Big", { size: 2, "leg.reach": 3, plump: false })).toBe(
-      "\nvariant Big {\n  size      = 2\n  plump     = false\n  leg.reach = 3\n}\n",
+      "\nvariant Big {\n  size = 2\n  plump = false\n  leg.reach = 3\n}\n",
     );
   });
 

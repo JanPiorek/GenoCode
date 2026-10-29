@@ -4,9 +4,9 @@ dance Whirl
 // off.
 // Inspired by rotator, a DancerDNA music style.
 
-morph   follows music.bass  speed 0.8  settle 0.04
-zoom    follows music.mid_hit  amount 0.5  settle 50
-spin    follows music.bass  from 57.3 to 401  smooth 0.45
-turn    on music.high changes  by 0.24
+morph follows music.bass  speed 0.8  settle 0.04
+zoom follows music.mid_hit  amount 0.5  settle 50
+spin follows music.bass  from 57.3 to 401  smooth 0.45
+turn on music.high changes  by 0.24
 reverse on music.bass drops  by 0.66  on 8 off 4
-flat    on music.mid_hit drops  by 0.86  on 100 off 160
+flat on music.mid_hit drops  by 0.86  on 100 off 160

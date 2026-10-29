@@ -4,25 +4,25 @@ creature Flowerball
 
 gene marbling = 0.5 in 0..1  // how much its petals wear their marble texture, as the Marbled variant does
 
-gene open        = 0.7787 in 0..1       // 0 lays the beads flat in a disc; 1 rounds them into a ball and fills out the petals
-gene gloss       = 1      in 0..1       // how strong the highlights are
-gene focus       = 0.2688 in 0..1       // how tight the highlights are
-gene lift        = 3.833  in -20..20    // how far from the beads the petals grow, as the creature opens
-gene ball_radius = -2.893 in -10..15    // how big the ball the beads round into is; never less than 1
-gene bead_size   = 0.5677 in 0.1..1
-gene curl        = -2.292 in -2.5..2.5  // how far the petals curl
+gene open = 0.7787 in 0..1  // 0 lays the beads flat in a disc; 1 rounds them into a ball and fills out the petals
+gene gloss = 1 in 0..1  // how strong the highlights are
+gene focus = 0.2688 in 0..1  // how tight the highlights are
+gene lift = 3.833 in -20..20  // how far from the beads the petals grow, as the creature opens
+gene ball_radius = -2.893 in -10..15  // how big the ball the beads round into is; never less than 1
+gene bead_size = 0.5677 in 0.1..1
+gene curl = -2.292 in -2.5..2.5  // how far the petals curl
 
 // The beads' colours, from the middle ring out, and the petals', from base to tip, with the
 // gaps between them.
-gene bead_1     = hsv(179.1, 0.74, 0.97) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
-gene bead_2     = hsv(261.3, 0.48, 0.57) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
-gene bead_3     = hsv(283.6, 0.47, 0.05) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
-gene bead_4     = hsv(172.1, 0.7, 0.92) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
-gene bead_gaps  = (0.7718, 0.1893, 0.4874) in (0.01, 0.01, 0.01)..(1, 1, 1)
-gene petal_1    = hsv(4.3, 0.86, 0.02) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
-gene petal_2    = hsv(11.5, 0.95, 0.79) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
-gene petal_3    = hsv(233.6, 0.51, 0.41) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
-gene petal_4    = hsv(247.9, 0.76, 0.09) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+gene bead_1 = hsv(179.1, 0.74, 0.97) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+gene bead_2 = hsv(261.3, 0.48, 0.57) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+gene bead_3 = hsv(283.6, 0.47, 0.05) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+gene bead_4 = hsv(172.1, 0.7, 0.92) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+gene bead_gaps = (0.7718, 0.1893, 0.4874) in (0.01, 0.01, 0.01)..(1, 1, 1)
+gene petal_1 = hsv(4.3, 0.86, 0.02) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+gene petal_2 = hsv(11.5, 0.95, 0.79) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+gene petal_3 = hsv(233.6, 0.51, 0.41) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
+gene petal_4 = hsv(247.9, 0.76, 0.09) in hsv(0, 0.4, 0)..hsv(360, 1, 1)
 gene petal_gaps = (0.4035, 0.6554, 0.3471) in (0.01, 0.01, 0.01)..(1, 1, 1)
 
 let beads = spectrum(bead_1, bead_2 at bead_gaps.x, bead_3 at bead_gaps.x + bead_gaps.y, bead_4 at bead_gaps.x + bead_gaps.y + bead_gaps.z)
@@ -83,266 +83,266 @@ part petal {
 }
 
 variant member_2 {
-  open        = 1
-  focus       = 0.2793
-  lift        = 19.98
+  open = 1
+  focus = 0.2793
+  lift = 19.98
   ball_radius = 1.976
-  bead_size   = 0.6334
-  curl        = -0.1978
-  bead_1      = hsv(127.5, 0.45, 0.3)
-  bead_2      = hsv(40.6, 0.95, 0.73)
-  bead_3      = hsv(333.4, 0.96, 0.21)
-  bead_4      = hsv(174.6, 0.75, 0.91)
-  bead_gaps   = (0.8674, 0.1356, 0.561)
-  petal_1     = hsv(20.8, 0.53, 0.92)
-  petal_2     = hsv(332.4, 0.88, 0.54)
-  petal_3     = hsv(182.5, 0.43, 0.53)
-  petal_4     = hsv(216.7, 0.84, 0.33)
-  petal_gaps  = (0.9659, 0.7316, 0.3366)
+  bead_size = 0.6334
+  curl = -0.1978
+  bead_1 = hsv(127.5, 0.45, 0.3)
+  bead_2 = hsv(40.6, 0.95, 0.73)
+  bead_3 = hsv(333.4, 0.96, 0.21)
+  bead_4 = hsv(174.6, 0.75, 0.91)
+  bead_gaps = (0.8674, 0.1356, 0.561)
+  petal_1 = hsv(20.8, 0.53, 0.92)
+  petal_2 = hsv(332.4, 0.88, 0.54)
+  petal_3 = hsv(182.5, 0.43, 0.53)
+  petal_4 = hsv(216.7, 0.84, 0.33)
+  petal_gaps = (0.9659, 0.7316, 0.3366)
 }
 
 variant member_3 {
-  focus       = 0.2032
-  lift        = -5.974
+  focus = 0.2032
+  lift = -5.974
   ball_radius = -0.6997
-  bead_size   = 0.6782
-  bead_1      = hsv(306.4, 0.88, 0.37)
-  bead_2      = hsv(350.7, 0.95, 0.7)
-  bead_3      = hsv(333.4, 0.96, 0.21)
-  bead_4      = hsv(210, 0.91, 0.69)
-  bead_gaps   = (0.4577, 0.2859, 0.7186)
-  petal_1     = hsv(79.6, 0.88, 0.16)
-  petal_2     = hsv(32.4, 0.92, 0.71)
-  petal_3     = hsv(234.5, 0.57, 0.61)
-  petal_4     = hsv(269.9, 0.77, 0.23)
-  petal_gaps  = (0.739, 0.6554, 0.3471)
+  bead_size = 0.6782
+  bead_1 = hsv(306.4, 0.88, 0.37)
+  bead_2 = hsv(350.7, 0.95, 0.7)
+  bead_3 = hsv(333.4, 0.96, 0.21)
+  bead_4 = hsv(210, 0.91, 0.69)
+  bead_gaps = (0.4577, 0.2859, 0.7186)
+  petal_1 = hsv(79.6, 0.88, 0.16)
+  petal_2 = hsv(32.4, 0.92, 0.71)
+  petal_3 = hsv(234.5, 0.57, 0.61)
+  petal_4 = hsv(269.9, 0.77, 0.23)
+  petal_gaps = (0.739, 0.6554, 0.3471)
 }
 
 variant member_4 {
-  open        = 0.6268
-  focus       = 0.2051
-  lift        = 14.55
+  open = 0.6268
+  focus = 0.2051
+  lift = 14.55
   ball_radius = 0.2507
-  bead_size   = 0.9206
-  curl        = -0.8617
-  bead_1      = hsv(127.5, 0.45, 0.3)
-  bead_2      = hsv(40.6, 0.95, 0.73)
-  bead_3      = hsv(333.4, 0.96, 0.21)
-  bead_4      = hsv(58.7, 0.8, 0.95)
-  bead_gaps   = (0.3025, 0.2437, 0.7186)
-  petal_1     = hsv(284.7, 0.66, 0.3)
-  petal_2     = hsv(2.1, 0.43, 0.96)
-  petal_3     = hsv(90, 0.93, 0.61)
-  petal_4     = hsv(131.5, 0.56, 0.49)
-  petal_gaps  = (0.6292, 0.7316, 0.1457)
+  bead_size = 0.9206
+  curl = -0.8617
+  bead_1 = hsv(127.5, 0.45, 0.3)
+  bead_2 = hsv(40.6, 0.95, 0.73)
+  bead_3 = hsv(333.4, 0.96, 0.21)
+  bead_4 = hsv(58.7, 0.8, 0.95)
+  bead_gaps = (0.3025, 0.2437, 0.7186)
+  petal_1 = hsv(284.7, 0.66, 0.3)
+  petal_2 = hsv(2.1, 0.43, 0.96)
+  petal_3 = hsv(90, 0.93, 0.61)
+  petal_4 = hsv(131.5, 0.56, 0.49)
+  petal_gaps = (0.6292, 0.7316, 0.1457)
 }
 
 variant member_5 {
-  open        = 1
-  focus       = 0.9051
-  lift        = 19.14
+  open = 1
+  focus = 0.9051
+  lift = 19.14
   ball_radius = 15
-  bead_size   = 1
-  curl        = 0.06728
-  bead_1      = hsv(49.3, 0.59, 0.98)
-  bead_2      = hsv(83.1, 0.77, 0.59)
-  bead_3      = hsv(333.4, 0.96, 0.21)
-  bead_4      = hsv(210, 0.91, 0.69)
-  bead_gaps   = (0.1748, 0.5721, 0.7186)
-  petal_1     = hsv(222.1, 0.45, 0.58)
-  petal_2     = hsv(356.1, 0.91, 0.58)
-  petal_3     = hsv(90, 0.93, 0.61)
-  petal_4     = hsv(210.1, 0.57, 0.71)
-  petal_gaps  = (0.8019, 0.4914, 0.1457)
+  bead_size = 1
+  curl = 0.06728
+  bead_1 = hsv(49.3, 0.59, 0.98)
+  bead_2 = hsv(83.1, 0.77, 0.59)
+  bead_3 = hsv(333.4, 0.96, 0.21)
+  bead_4 = hsv(210, 0.91, 0.69)
+  bead_gaps = (0.1748, 0.5721, 0.7186)
+  petal_1 = hsv(222.1, 0.45, 0.58)
+  petal_2 = hsv(356.1, 0.91, 0.58)
+  petal_3 = hsv(90, 0.93, 0.61)
+  petal_4 = hsv(210.1, 0.57, 0.71)
+  petal_gaps = (0.8019, 0.4914, 0.1457)
 }
 
 variant member_6 {
-  open        = 0.6268
-  focus       = 0.2051
-  lift        = 1.632
+  open = 0.6268
+  focus = 0.2051
+  lift = 1.632
   ball_radius = 0.2507
-  bead_size   = 0.9411
-  curl        = -1.309
-  bead_1      = hsv(127.5, 0.45, 0.3)
-  bead_2      = hsv(29.4, 0.94, 0.53)
-  bead_3      = hsv(346.7, 0.85, 0.04)
-  bead_4      = hsv(245.7, 0.96, 0.97)
-  bead_gaps   = (0.8674, 0.4145, 0.7186)
-  petal_1     = hsv(99, 0.5, 0.58)
-  petal_2     = hsv(295.7, 0.75, 0.22)
-  petal_3     = hsv(90, 0.93, 0.61)
-  petal_4     = hsv(210.1, 0.57, 0.71)
-  petal_gaps  = (0.8782, 0.7316, 0.3572)
+  bead_size = 0.9411
+  curl = -1.309
+  bead_1 = hsv(127.5, 0.45, 0.3)
+  bead_2 = hsv(29.4, 0.94, 0.53)
+  bead_3 = hsv(346.7, 0.85, 0.04)
+  bead_4 = hsv(245.7, 0.96, 0.97)
+  bead_gaps = (0.8674, 0.4145, 0.7186)
+  petal_1 = hsv(99, 0.5, 0.58)
+  petal_2 = hsv(295.7, 0.75, 0.22)
+  petal_3 = hsv(90, 0.93, 0.61)
+  petal_4 = hsv(210.1, 0.57, 0.71)
+  petal_gaps = (0.8782, 0.7316, 0.3572)
 }
 
 variant member_7 {
-  open        = 0.9242
-  focus       = 0.4838
-  lift        = -9.984
+  open = 0.9242
+  focus = 0.4838
+  lift = -9.984
   ball_radius = 4.451
-  bead_size   = 0.141
-  curl        = 0.06728
-  bead_1      = hsv(93.4, 0.82, 0.4)
-  bead_2      = hsv(337.2, 0.72, 0.12)
-  bead_3      = hsv(337.9, 0.78, 0.23)
-  bead_4      = hsv(210, 0.91, 0.69)
-  bead_gaps   = (0.4163, 0.1774, 0.3106)
-  petal_1     = hsv(35.6, 0.99, 0.77)
-  petal_2     = hsv(121.8, 0.72, 0.38)
-  petal_3     = hsv(206.4, 0.88, 0.63)
-  petal_4     = hsv(170.5, 0.85, 0.8)
-  petal_gaps  = (0.6668, 0.3843, 0.3471)
+  bead_size = 0.141
+  curl = 0.06728
+  bead_1 = hsv(93.4, 0.82, 0.4)
+  bead_2 = hsv(337.2, 0.72, 0.12)
+  bead_3 = hsv(337.9, 0.78, 0.23)
+  bead_4 = hsv(210, 0.91, 0.69)
+  bead_gaps = (0.4163, 0.1774, 0.3106)
+  petal_1 = hsv(35.6, 0.99, 0.77)
+  petal_2 = hsv(121.8, 0.72, 0.38)
+  petal_3 = hsv(206.4, 0.88, 0.63)
+  petal_4 = hsv(170.5, 0.85, 0.8)
+  petal_gaps = (0.6668, 0.3843, 0.3471)
 }
 
 variant member_8 {
-  open        = 1
-  focus       = 0.2755
-  lift        = -20
+  open = 1
+  focus = 0.2755
+  lift = -20
   ball_radius = 15
-  bead_size   = 1
-  curl        = -0.6755
-  bead_1      = hsv(306.4, 0.88, 0.37)
-  bead_2      = hsv(350.7, 0.95, 0.7)
-  bead_3      = hsv(333.4, 0.96, 0.21)
-  bead_4      = hsv(210, 0.91, 0.69)
-  bead_gaps   = (0.4577, 0.2859, 0.7186)
-  petal_1     = hsv(282.9, 0.73, 0.13)
-  petal_2     = hsv(357.8, 0.83, 1)
-  petal_3     = hsv(229.5, 0.53, 0.57)
-  petal_4     = hsv(153.3, 0.81, 0.99)
-  petal_gaps  = (0.2869, 0.8063, 0.05491)
+  bead_size = 1
+  curl = -0.6755
+  bead_1 = hsv(306.4, 0.88, 0.37)
+  bead_2 = hsv(350.7, 0.95, 0.7)
+  bead_3 = hsv(333.4, 0.96, 0.21)
+  bead_4 = hsv(210, 0.91, 0.69)
+  bead_gaps = (0.4577, 0.2859, 0.7186)
+  petal_1 = hsv(282.9, 0.73, 0.13)
+  petal_2 = hsv(357.8, 0.83, 1)
+  petal_3 = hsv(229.5, 0.53, 0.57)
+  petal_4 = hsv(153.3, 0.81, 0.99)
+  petal_gaps = (0.2869, 0.8063, 0.05491)
 }
 
 variant member_9 {
-  open        = 0.2983
-  focus       = 0.4271
-  lift        = 13.14
+  open = 0.2983
+  focus = 0.4271
+  lift = 13.14
   ball_radius = -9.823
-  bead_size   = 0.2795
-  curl        = 0.06728
-  bead_1      = hsv(115.6, 0.67, 0.83)
-  bead_2      = hsv(333.4, 0.62, 0.29)
-  bead_3      = hsv(55.5, 0.87, 0.88)
-  bead_4      = hsv(210, 0.91, 0.69)
-  bead_gaps   = (0.07948, 0.08401, 0.4)
-  petal_1     = hsv(327.9, 0.99, 0.78)
-  petal_2     = hsv(237.4, 0.61, 0.18)
-  petal_3     = hsv(225.6, 0.75, 0.28)
-  petal_4     = hsv(323.8, 0.6, 0.55)
-  petal_gaps  = (0.9902, 0.5929, 0.3471)
+  bead_size = 0.2795
+  curl = 0.06728
+  bead_1 = hsv(115.6, 0.67, 0.83)
+  bead_2 = hsv(333.4, 0.62, 0.29)
+  bead_3 = hsv(55.5, 0.87, 0.88)
+  bead_4 = hsv(210, 0.91, 0.69)
+  bead_gaps = (0.07948, 0.08401, 0.4)
+  petal_1 = hsv(327.9, 0.99, 0.78)
+  petal_2 = hsv(237.4, 0.61, 0.18)
+  petal_3 = hsv(225.6, 0.75, 0.28)
+  petal_4 = hsv(323.8, 0.6, 0.55)
+  petal_gaps = (0.9902, 0.5929, 0.3471)
 }
 
 variant member_10 {
-  open        = 1
-  focus       = 0.2051
-  lift        = 1.632
+  open = 1
+  focus = 0.2051
+  lift = 1.632
   ball_radius = 4.854
-  bead_size   = 0.9411
-  curl        = -1.309
-  bead_1      = hsv(70.4, 0.55, 0.8)
-  bead_2      = hsv(29.4, 0.94, 0.53)
-  bead_3      = hsv(344.9, 0.87, 0.07)
-  bead_4      = hsv(226.3, 0.93, 0.82)
-  bead_gaps   = (0.4418, 0.4145, 0.7186)
-  petal_1     = hsv(222.1, 0.45, 0.58)
-  petal_2     = hsv(312.8, 0.8, 0.32)
-  petal_3     = hsv(90, 0.93, 0.61)
-  petal_4     = hsv(210.1, 0.57, 0.71)
-  petal_gaps  = (0.8235, 0.7316, 0.3572)
+  bead_size = 0.9411
+  curl = -1.309
+  bead_1 = hsv(70.4, 0.55, 0.8)
+  bead_2 = hsv(29.4, 0.94, 0.53)
+  bead_3 = hsv(344.9, 0.87, 0.07)
+  bead_4 = hsv(226.3, 0.93, 0.82)
+  bead_gaps = (0.4418, 0.4145, 0.7186)
+  petal_1 = hsv(222.1, 0.45, 0.58)
+  petal_2 = hsv(312.8, 0.8, 0.32)
+  petal_3 = hsv(90, 0.93, 0.61)
+  petal_4 = hsv(210.1, 0.57, 0.71)
+  petal_gaps = (0.8235, 0.7316, 0.3572)
 }
 
 variant member_11 {
-  open        = 0.00211
-  focus       = 0.5557
-  lift        = -9.327
+  open = 0.00211
+  focus = 0.5557
+  lift = -9.327
   ball_radius = 9.101
-  bead_size   = 0.366
-  curl        = -0.9057
-  bead_1      = hsv(195.3, 0.74, 0.45)
-  bead_2      = hsv(350.7, 0.95, 0.7)
-  bead_3      = hsv(81.5, 0.89, 0.85)
-  bead_4      = hsv(95.7, 0.41, 0.9)
-  bead_gaps   = (0.7038, 0.2492, 0.09264)
-  petal_1     = hsv(325.5, 0.87, 0.89)
-  petal_2     = hsv(166.6, 0.46, 0.48)
-  petal_3     = hsv(158.8, 0.76, 0.61)
-  petal_4     = hsv(103.8, 0.92, 0.89)
-  petal_gaps  = (0.6191, 0.1621, 0.09194)
+  bead_size = 0.366
+  curl = -0.9057
+  bead_1 = hsv(195.3, 0.74, 0.45)
+  bead_2 = hsv(350.7, 0.95, 0.7)
+  bead_3 = hsv(81.5, 0.89, 0.85)
+  bead_4 = hsv(95.7, 0.41, 0.9)
+  bead_gaps = (0.7038, 0.2492, 0.09264)
+  petal_1 = hsv(325.5, 0.87, 0.89)
+  petal_2 = hsv(166.6, 0.46, 0.48)
+  petal_3 = hsv(158.8, 0.76, 0.61)
+  petal_4 = hsv(103.8, 0.92, 0.89)
+  petal_gaps = (0.6191, 0.1621, 0.09194)
 }
 
 variant member_12 {
-  open        = 0.109
-  focus       = 0.9539
-  lift        = -9.942
+  open = 0.109
+  focus = 0.9539
+  lift = -9.942
   ball_radius = 8.545
-  bead_size   = 0.4245
-  curl        = 0.9677
-  bead_1      = hsv(127.5, 0.45, 0.3)
-  bead_2      = hsv(215.1, 0.97, 0.26)
-  bead_3      = hsv(205.6, 0.5, 0.17)
-  bead_4      = hsv(279.1, 0.94, 0.98)
-  bead_gaps   = (0.818, 0.4155, 0.7862)
-  petal_1     = hsv(15, 0.52, 0.68)
-  petal_2     = hsv(318.3, 0.93, 0.23)
-  petal_3     = hsv(154, 0.86, 0.85)
-  petal_4     = hsv(244.6, 0.81, 0.2)
-  petal_gaps  = (0.6052, 0.7316, 0.9351)
+  bead_size = 0.4245
+  curl = 0.9677
+  bead_1 = hsv(127.5, 0.45, 0.3)
+  bead_2 = hsv(215.1, 0.97, 0.26)
+  bead_3 = hsv(205.6, 0.5, 0.17)
+  bead_4 = hsv(279.1, 0.94, 0.98)
+  bead_gaps = (0.818, 0.4155, 0.7862)
+  petal_1 = hsv(15, 0.52, 0.68)
+  petal_2 = hsv(318.3, 0.93, 0.23)
+  petal_3 = hsv(154, 0.86, 0.85)
+  petal_4 = hsv(244.6, 0.81, 0.2)
+  petal_gaps = (0.6052, 0.7316, 0.9351)
 }
 
 variant member_13 {
-  open        = 0.3177
-  gloss       = 0.6799
-  focus       = 0.763
-  lift        = -18.88
+  open = 0.3177
+  gloss = 0.6799
+  focus = 0.763
+  lift = -18.88
   ball_radius = 8.545
-  bead_size   = 0.4745
-  curl        = 0.928
-  bead_1      = hsv(127.5, 0.45, 0.3)
-  bead_2      = hsv(266.2, 1, 0.09)
-  bead_4      = hsv(279.1, 0.94, 0.98)
-  bead_gaps   = (0.8941, 0.6188, 0.6945)
-  petal_1     = hsv(23, 0.43, 0.67)
-  petal_2     = hsv(277.7, 0.83, 0.39)
-  petal_3     = hsv(171.9, 0.77, 0.66)
-  petal_4     = hsv(278.1, 0.84, 0.16)
-  petal_gaps  = (0.6052, 0.7316, 0.7342)
+  bead_size = 0.4745
+  curl = 0.928
+  bead_1 = hsv(127.5, 0.45, 0.3)
+  bead_2 = hsv(266.2, 1, 0.09)
+  bead_4 = hsv(279.1, 0.94, 0.98)
+  bead_gaps = (0.8941, 0.6188, 0.6945)
+  petal_1 = hsv(23, 0.43, 0.67)
+  petal_2 = hsv(277.7, 0.83, 0.39)
+  petal_3 = hsv(171.9, 0.77, 0.66)
+  petal_4 = hsv(278.1, 0.84, 0.16)
+  petal_gaps = (0.6052, 0.7316, 0.7342)
 }
 
 variant member_14 {
-  open        = 0.1207
-  focus       = 0.2032
-  lift        = 2.729
+  open = 0.1207
+  focus = 0.2032
+  lift = 2.729
   ball_radius = -0.6997
-  bead_size   = 0.8869
-  bead_1      = hsv(306.4, 0.88, 0.37)
-  bead_2      = hsv(350.7, 0.95, 0.7)
-  bead_3      = hsv(333.4, 0.96, 0.21)
-  bead_4      = hsv(210, 0.91, 0.69)
-  bead_gaps   = (0.5545, 0.2859, 0.2851)
-  petal_1     = hsv(79.6, 0.88, 0.16)
-  petal_2     = hsv(28.1, 0.95, 0.62)
-  petal_3     = hsv(41.5, 0.56, 0.39)
-  petal_4     = hsv(44.6, 0.73, 0.12)
-  petal_gaps  = (0.904, 0.6554, 0.8414)
+  bead_size = 0.8869
+  bead_1 = hsv(306.4, 0.88, 0.37)
+  bead_2 = hsv(350.7, 0.95, 0.7)
+  bead_3 = hsv(333.4, 0.96, 0.21)
+  bead_4 = hsv(210, 0.91, 0.69)
+  bead_gaps = (0.5545, 0.2859, 0.2851)
+  petal_1 = hsv(79.6, 0.88, 0.16)
+  petal_2 = hsv(28.1, 0.95, 0.62)
+  petal_3 = hsv(41.5, 0.56, 0.39)
+  petal_4 = hsv(44.6, 0.73, 0.12)
+  petal_gaps = (0.904, 0.6554, 0.8414)
 }
 
 variant member_15 {
-  open        = 0.00211
-  focus       = 0.5557
-  lift        = -9.327
+  open = 0.00211
+  focus = 0.5557
+  lift = -9.327
   ball_radius = -0.7844
-  bead_size   = 0.366
-  curl        = -0.2103
-  bead_1      = hsv(195.3, 0.74, 0.45)
-  bead_2      = hsv(126.3, 0.54, 0.62)
-  bead_3      = hsv(81.5, 0.89, 0.85)
-  bead_4      = hsv(320.1, 0.77, 0.25)
-  bead_gaps   = (0.0589, 0.6918, 0.09264)
-  petal_1     = hsv(207.9, 0.84, 0.4)
-  petal_2     = hsv(306.8, 0.53, 0.1)
-  petal_3     = hsv(212.4, 0.98, 0.8)
-  petal_4     = hsv(103.8, 0.92, 0.89)
-  petal_gaps  = (0.7855, 0.1621, 0.7832)
+  bead_size = 0.366
+  curl = -0.2103
+  bead_1 = hsv(195.3, 0.74, 0.45)
+  bead_2 = hsv(126.3, 0.54, 0.62)
+  bead_3 = hsv(81.5, 0.89, 0.85)
+  bead_4 = hsv(320.1, 0.77, 0.25)
+  bead_gaps = (0.0589, 0.6918, 0.09264)
+  petal_1 = hsv(207.9, 0.84, 0.4)
+  petal_2 = hsv(306.8, 0.53, 0.1)
+  petal_3 = hsv(212.4, 0.98, 0.8)
+  petal_4 = hsv(103.8, 0.92, 0.89)
+  petal_gaps = (0.7855, 0.1621, 0.7832)
 }
 
 variant Marbled { marbling = 1 }

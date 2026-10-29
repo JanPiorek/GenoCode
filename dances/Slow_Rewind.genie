@@ -3,8 +3,8 @@ dance Slow_Rewind
 // the bass turns it; drops in the highs reverse it.
 // Inspired by reversor slow, a DancerDNA music style.
 
-morph   follows music.mid  speed 0.8  settle 0.17
-zoom    follows music.mid_hit  amount 0.5  settle 68.5
-spin    follows music.mid  from 183 to 22.9  smooth 0.6
-turn    on music.bass changes  by 0.53
+morph follows music.mid  speed 0.8  settle 0.17
+zoom follows music.mid_hit  amount 0.5  settle 68.5
+spin follows music.mid  from 183 to 22.9  smooth 0.6
+turn on music.bass changes  by 0.53
 reverse on music.high drops  by 0.51  on 4 off 4
