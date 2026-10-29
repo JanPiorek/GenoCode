@@ -123,8 +123,8 @@ export function backgroundLines(p: Pattern, kinds: readonly string[] = PATTERN_K
   const list = (options: readonly string[]) => `[${options.join(", ")}]`;
   const kindList = list([...new Set([...kinds, p.kind ?? "aurora", p.mix?.kind ?? "vortex"])]);
   const lines = [
-    `gene kind   = ${p.kind} from ${kindList}`,
-    `gene hue    = ${p.hue} in 0..360`,
+    `gene kind = ${p.kind} from ${kindList}`,
+    `gene hue = ${p.hue} in 0..360`,
     `gene layout = ${p.seed} in 0..99 step 1`,
     `gene scheme = ${p.scheme} from ${list(SCHEMES)}`,
     `gene finish = ${p.finish} from ${list(FINISHES)}`,
@@ -133,7 +133,7 @@ export function backgroundLines(p: Pattern, kinds: readonly string[] = PATTERN_K
   if (p.mix) {
     lines.push(
       `gene mixing = ${p.mix.way} from ${list(MIX_WAYS)}`,
-      `gene other  = ${p.mix.kind} from ${kindList}`,
+      `gene other = ${p.mix.kind} from ${kindList}`,
       `gene amount = ${p.mix.amount} in 0..1`,
     );
     fill = `mixed(${fill}, mixing, other, amount)`;

@@ -3,11 +3,11 @@ creature Flapper
 
 breed off
 
-gene body  = hsv(200, 0.7, 0.9) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
-gene tips  = hsv(320, 0.7, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
-gene flap  = 35  in 0..70         // how far the wings beat
-gene speed = 1.5 in 0.2..4 log    // wing beats per second
-gene span  = 6   in 3..12 step 1  // feathers in each wing
+gene body = hsv(200, 0.7, 0.9) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
+gene tips = hsv(320, 0.7, 1) in hsv(0, 0.3, 0.5)..hsv(360, 1, 1)
+gene flap = 35 in 0..70  // how far the wings beat
+gene speed = 1.5 in 0.2..4 log  // wing beats per second
+gene span = 6 in 3..12 step 1  // feathers in each wing
 
 let skin = gradient(body, tips)
 

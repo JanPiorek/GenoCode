@@ -18,8 +18,6 @@ import type { Diagnostic } from "./source.js";
 
 const INDENT = "  ";
 const MAX_ONE_LINE = 100;
-/** Gene values longer than this don't take part in lining up the `in` column. */
-const MAX_ALIGNED_VALUE = 8;
 
 export interface FormatResult {
   /** The formatted text, or undefined if the text has syntax errors. */
@@ -75,9 +73,7 @@ function printComments(out: string[], comments: Comment[], level: number, atStar
 }
 
 function printItems(out: string[], items: Stmt[], level: number, top: boolean): void {
-  let i = 0;
-  while (i < items.length) {
-    const item = items[i]!;
+  items.forEach((item, i) => {
     const first = i === 0;
     const forced = top && !first && (isDefinition(item) || isDefinition(items[i - 1]!));
     const blankGroup = item.leading.length > 0 ? item.leading[0]!.blankBefore : item.blankBefore;
@@ -89,59 +85,8 @@ function printItems(out: string[], items: Stmt[], level: number, top: boolean): 
       if (item.blankBefore) out.push("");
     }
 
-    if (item.kind === "Gene") {
-      // Consecutive genes, with nothing between them, are lined up.
-      let j = i + 1;
-      while (
-        j < items.length &&
-        items[j]!.kind === "Gene" &&
-        items[j]!.leading.length === 0 &&
-        !items[j]!.blankBefore
-      )
-        j++;
-      printGenes(out, items.slice(i, j) as GeneDecl[], level);
-      i = j;
-      continue;
-    }
-
-    if (item.kind === "GeneSetting") {
-      // A variant's settings are lined up too.
-      let j = i + 1;
-      while (
-        j < items.length &&
-        items[j]!.kind === "GeneSetting" &&
-        items[j]!.leading.length === 0 &&
-        !items[j]!.blankBefore
-      )
-        j++;
-      printSettings(out, items.slice(i, j) as GeneSetting[], level);
-      i = j;
-      continue;
-    }
-
-    if (item.kind === "Effect") {
-      // A dance's effect lines are lined up after their names.
-      let j = i + 1;
-      while (
-        j < items.length &&
-        items[j]!.kind === "Effect" &&
-        items[j]!.leading.length === 0 &&
-        !items[j]!.blankBefore
-      )
-        j++;
-      const effects = items.slice(i, j) as Effect[];
-      const nameWidth = Math.max(...effects.map((e) => e.name.length));
-      for (const e of effects) {
-        const line = `${e.name.padEnd(nameWidth)} ${effectSettings(e)}`;
-        out.push(pad(level) + line + (e.trailing ? `  ${e.trailing.text}` : ""));
-      }
-      i = j;
-      continue;
-    }
-
     printStmt(out, item, level);
-    i++;
-  }
+  });
 }
 
 /** Settings that stay with the one before them: `from 45 to 170`, `on 4 off 4`. */
@@ -169,21 +114,6 @@ function effectSettings(e: Effect): string {
   return groups.join("  ");
 }
 
-function printSettings(out: string[], settings: GeneSetting[], level: number): void {
-  const nameWidth = Math.max(...settings.map((s) => s.gene.length));
-  const code = settings.map((s) => `${s.gene.padEnd(nameWidth)} = ${expr(s.value)}`);
-  const commented = code.filter((_, k) => settings[k]!.trailing !== undefined);
-  const commentColumn = commented.length > 0 ? Math.max(...commented.map((c) => c.length)) + 2 : 0;
-  settings.forEach((s, k) => {
-    const line = s.trailing ? code[k]!.padEnd(commentColumn) + s.trailing.text : code[k]!;
-    out.push(pad(level) + line);
-  });
-}
-
-function geneValueText(g: GeneDecl): string {
-  return expr(g.value);
-}
-
 function geneRangeText(g: GeneDecl): string {
   const r = g.range;
   if (r === undefined) return "";
@@ -192,29 +122,6 @@ function geneRangeText(g: GeneDecl): string {
   if (r.step) text += ` step ${expr(r.step)}`;
   if (r.log) text += " log";
   return text;
-}
-
-function printGenes(out: string[], genes: GeneDecl[], level: number): void {
-  const nameWidth = Math.max(...genes.map((g) => g.name.length));
-  const values = genes.map(geneValueText);
-  const short = values.filter(
-    (v, k) => v.length <= MAX_ALIGNED_VALUE && genes[k]!.range !== undefined,
-  );
-  const valueWidth = short.length > 0 ? Math.max(...short.map((v) => v.length)) : 0;
-  const code = genes.map((g, k) => {
-    const value = values[k]!;
-    const range = geneRangeText(g);
-    let line = `gene ${g.name.padEnd(nameWidth)} = `;
-    if (range === "") return line + value;
-    line += value.length <= MAX_ALIGNED_VALUE ? value.padEnd(valueWidth) : value;
-    return `${line} ${range}`;
-  });
-  const commented = code.filter((_, k) => genes[k]!.trailing !== undefined);
-  const commentColumn = commented.length > 0 ? Math.max(...commented.map((c) => c.length)) + 2 : 0;
-  genes.forEach((g, k) => {
-    const line = g.trailing ? code[k]!.padEnd(commentColumn) + g.trailing.text : code[k]!;
-    out.push(pad(level) + line);
-  });
 }
 
 function simpleText(s: Stmt): string | undefined {
@@ -248,7 +155,7 @@ function simpleText(s: Stmt): string | undefined {
     case "Effect":
       return `${s.name} ${effectSettings(s)}`;
     case "Gene":
-      return `gene ${s.name} = ${geneValueText(s)}${s.range ? ` ${geneRangeText(s)}` : ""}`;
+      return `gene ${s.name} = ${expr(s.value)}${s.range ? ` ${geneRangeText(s)}` : ""}`;
     case "GeneSetting":
       return `${s.gene} = ${expr(s.value)}`;
     default:

@@ -19,7 +19,7 @@ const errors = (text: string) =>
 const RIPPLES = `pattern Ripples
 // Rings that wobble.
 
-gene rings  = 8   in 2..20
+gene rings = 8 in 2..20
 gene wobble = 0.3 in 0..1
 
 let turn = random(0, 360)

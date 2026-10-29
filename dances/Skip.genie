@@ -3,8 +3,8 @@ dance Skip
 // highs turn it; drops in the bass reverse it.
 // Inspired by trippety, a DancerDNA music style.
 
-morph   follows music.high  speed 0.88  settle 0.01
-zoom    follows music.high_hit  amount 0.5  settle 94.3
-spin    follows music.bass  from 45.8 to 286  smooth 0
-turn    on music.high changes  by 0.46
+morph follows music.high  speed 0.88  settle 0.01
+zoom follows music.high_hit  amount 0.5  settle 94.3
+spin follows music.bass  from 45.8 to 286  smooth 0
+turn on music.high changes  by 0.46
 reverse on music.bass drops  by 0.43  on 64 off 16

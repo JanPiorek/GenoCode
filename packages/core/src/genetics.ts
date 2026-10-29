@@ -419,8 +419,7 @@ export function addVariant(
     const v = values.get(g.fullName);
     return v === undefined ? [] : [{ name: g.fullName, value: geneLiteral(g, v) }];
   });
-  const width = Math.max(0, ...set.map((s) => s.name.length));
-  const lines = set.map((s) => `  ${s.name.padEnd(width)} = ${s.value}\n`).join("");
+  const lines = set.map((s) => `  ${s.name} = ${s.value}\n`).join("");
   const block = `variant ${name} {\n${lines}}`;
   const text = program.text;
   const last = program.variants[program.variants.length - 1];
@@ -504,10 +503,7 @@ export function variantEdits(
       const indent = first
         ? text.slice(lineStart(first.span.start), first.span.start)
         : `${text.slice(lineStart(found.decl.span.start), found.decl.span.start)}  `;
-      // Lined up with the settings already there, as the formatter does.
-      const width = first ? text.indexOf("=", first.geneSpan.end) - first.span.start : 0;
-      const line = ([name, value]: [string, string]) =>
-        `${indent}${name.padEnd(width - 1)} = ${value}\n`;
+      const line = ([name, value]: [string, string]) => `${indent}${name} = ${value}\n`;
       const at = lineStart(close);
       edits.push({ start: at, end: at, text: added.map(line).join("") });
     }

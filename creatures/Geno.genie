@@ -8,27 +8,27 @@ creature Geno
 
 breed off
 
-gene logo       = 1 in 0..1  // how much the chain keeps the shape of the G
+gene logo = 1 in 0..1  // how much the chain keeps the shape of the G
 gene sea_turtle = 0 in 0..1  // how much it curls into a turtle
-gene helix      = 0 in 0..1  // how much it twists into a double helix
+gene helix = 0 in 0..1  // how much it twists into a double helix
 
-gene beads   = 18   in 12..40 step 1                              // how many balls are in the chain
-gene big     = 1.35 in 0.5..2.5                                   // the first ball's radius
-gene shrink  = 0.41 in 0.2..1                                     // the last ball's radius compared with the first's
-gene start   = hsv(195, 0.75, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)  // the first ball's colour
-gene turn    = 140  in -360..360                                  // how far round the colour wheel the chain goes
-gene gloss   = 0.6  in 0..1
-gene focus   = 0.5  in 0..1
-gene breathe = 0.06 in 0..0.3                                     // how much the balls swell and shrink as time goes by
-gene pulse   = 0.3  in 0..1                                       // how much they swell with the bass
+gene beads = 18 in 12..40 step 1  // how many balls are in the chain
+gene big = 1.35 in 0.5..2.5  // the first ball's radius
+gene shrink = 0.41 in 0.2..1  // the last ball's radius compared with the first's
+gene start = hsv(195, 0.75, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)  // the first ball's colour
+gene turn = 140 in -360..360  // how far round the colour wheel the chain goes
+gene gloss = 0.6 in 0..1
+gene focus = 0.5 in 0..1
+gene breathe = 0.06 in 0..0.3  // how much the balls swell and shrink as time goes by
+gene pulse = 0.3 in 0..1  // how much they swell with the bass
 
-gene shell  = hsv(272, 0.5, 0.34) in hsv(0, 0, 0)..hsv(360, 1, 1)
-gene skin   = hsv(168, 0.45, 0.8) in hsv(0, 0, 0)..hsv(360, 1, 1)
-gene paddle = 25  in 0..60  // how far the flippers sweep
-gene pace   = 0.4 in 0..2   // flipper strokes a second
+gene shell = hsv(272, 0.5, 0.34) in hsv(0, 0, 0)..hsv(360, 1, 1)
+gene skin = hsv(168, 0.45, 0.8) in hsv(0, 0, 0)..hsv(360, 1, 1)
+gene paddle = 25 in 0..60  // how far the flippers sweep
+gene pace = 0.4 in 0..2  // flipper strokes a second
 
-gene twists = 1.25 in 0.5..4     // how many times the helix turns along its span
-gene spin   = 40   in -180..180  // how fast the helix turns, in degrees a second
+gene twists = 1.25 in 0.5..4  // how many times the helix turns along its span
+gene spin = 40 in -180..180  // how fast the helix turns, in degrees a second
 gene base_a = hsv(195, 0.75, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)
 gene base_t = hsv(335, 0.75, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)
 gene base_g = hsv(265, 0.75, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)
@@ -281,7 +281,7 @@ part rung(k, p, thick) {
 }
 
 background {
-  gene top    = hsv(250, 0.55, 0.18) in hsv(0, 0, 0)..hsv(360, 1, 1)
+  gene top = hsv(250, 0.55, 0.18) in hsv(0, 0, 0)..hsv(360, 1, 1)
   gene bottom = hsv(290, 0.45, 0.36) in hsv(0, 0, 0)..hsv(360, 1, 1)
 
   fill gradient(bottom, top)
@@ -291,15 +291,15 @@ background {
 // helix each get seen; the kicks pull it nearer and turn it; drops in the highs send it back the
 // way it came; and now and then the snares turn it face-on, to spin flat like the logo.
 dance {
-  gene drive = 0.5 in 0.1..2   // how many forms a second the music carries it through
+  gene drive = 0.5 in 0.1..2  // how many forms a second the music carries it through
   gene whirl = 120 in 30..360  // how fast it spins at its loudest, in degrees a second
 
-  morph   follows music.level  speed drive  settle 3
-  zoom    follows music.bass_hit  amount 0.4  settle 8
-  spin    follows music.bass  from 20 to whirl  smooth 1
-  turn    on music.bass_hit rises  by 0.5
+  morph follows music.level  speed drive  settle 3
+  zoom follows music.bass_hit  amount 0.4  settle 8
+  spin follows music.bass  from 20 to whirl  smooth 1
+  turn on music.bass_hit rises  by 0.5
   reverse on music.high drops  by 0.6  on 16 off 16
-  flat    on music.mid_hit drops  by 0.7  on 16 off 48
+  flat on music.mid_hit drops  by 0.7  on 16 off 48
 }
 
 variant Turtle { logo = 0; sea_turtle = 1; start = hsv(170, 0.7, 0.95); turn = 120 }

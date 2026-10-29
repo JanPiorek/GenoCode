@@ -16,11 +16,11 @@ describe("formatter", () => {
     );
   });
 
-  it("lines up a dance's effect lines, keeping each setting together", () => {
+  it("keeps each of a dance's effect settings together, two spaces between them", () => {
     const input =
       "dance D\nmorph follows music.mid speed 2\nreverse on music.bass drops by 1 on 4 off 4\nspin follows music.hit from 45 to 170 smooth 0\n";
     expect(fmt(input)).toBe(
-      "dance D\nmorph   follows music.mid  speed 2\nreverse on music.bass drops  by 1  on 4 off 4\nspin    follows music.hit  from 45 to 170  smooth 0\n",
+      "dance D\nmorph follows music.mid  speed 2\nreverse on music.bass drops  by 1  on 4 off 4\nspin follows music.hit  from 45 to 170  smooth 0\n",
     );
   });
 
@@ -44,15 +44,19 @@ describe("formatter", () => {
     }
   });
 
-  it("lines up runs of genes and their comments", () => {
+  it("doesn't line up genes, variant settings or their comments", () => {
     const input =
-      "creature T\ngene a = 1 in 0..2 // one\ngene long_name = 0.25 in 0..1\ngene c = hsv(1, 1, 1) in hsv(0, 0, 0)..hsv(360, 1, 1) // three\n";
+      "creature T\ngene a         = 1    in 0..2   // one\ngene long_name = 0.25 in 0..1\nvariant V {\n  a         = 2   // two\n  long_name = 0.5\n}\n";
     expect(fmt(input)).toBe(
       [
         "creature T",
-        "gene a         = 1    in 0..2                                  // one",
+        "gene a = 1 in 0..2  // one",
         "gene long_name = 0.25 in 0..1",
-        "gene c         = hsv(1, 1, 1) in hsv(0, 0, 0)..hsv(360, 1, 1)  // three",
+        "",
+        "variant V {",
+        "  a = 2  // two",
+        "  long_name = 0.5",
+        "}",
         "",
       ].join("\n"),
     );

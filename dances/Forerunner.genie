@@ -3,8 +3,8 @@ dance Forerunner
 // kicks turn it; drops in the hi-hats reverse it.
 // Inspired by precursal, a DancerDNA music style.
 
-morph   follows music.bass  speed 1.58  settle 0.02
-zoom    follows music.bass  amount 0.5  settle 32.5
-spin    follows music.mid  from 252 to 11.5  smooth 0.25
-turn    on music.bass_hit changes  by 0.53
+morph follows music.bass  speed 1.58  settle 0.02
+zoom follows music.bass  amount 0.5  settle 32.5
+spin follows music.mid  from 252 to 11.5  smooth 0.25
+turn on music.bass_hit changes  by 0.53
 reverse on music.high_hit drops  by 0.57  on 6 off 2

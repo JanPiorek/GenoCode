@@ -64,9 +64,9 @@ the app gives it a slider:
 creature Snowman
 // Balls one on another, each smaller than the last.
 
-gene balls  = 3    in 2..6 step 1  // how many balls
-gene shrink = 0.75 in 0.5..0.95    // each ball's size compared with the one below
-gene snow   = hsv(200, 0.1, 1) in hsv(0, 0, 0.6)..hsv(360, 0.5, 1)
+gene balls = 3 in 2..6 step 1  // how many balls
+gene shrink = 0.75 in 0.5..0.95  // each ball's size compared with the one below
+gene snow = hsv(200, 0.1, 1) in hsv(0, 0, 0.6)..hsv(360, 0.5, 1)
 
 pitch -90
 shape ball
@@ -92,9 +92,9 @@ A **part** is a named piece of a creature that can be laid again and again, with
 creature Snowman
 // Balls one on another, each smaller than the last, with a carrot nose on the top one.
 
-gene balls  = 3    in 2..6 step 1  // how many balls
-gene shrink = 0.75 in 0.5..0.95    // each ball's size compared with the one below
-gene snow   = hsv(200, 0.1, 1) in hsv(0, 0, 0.6)..hsv(360, 0.5, 1)
+gene balls = 3 in 2..6 step 1  // how many balls
+gene shrink = 0.75 in 0.5..0.95  // each ball's size compared with the one below
+gene snow = hsv(200, 0.1, 1) in hsv(0, 0, 0.6)..hsv(360, 0.5, 1)
 
 pitch -90
 shape ball
@@ -109,7 +109,7 @@ back 0.8
 nose
 
 part nose {
-  gene reach  = 1 in 0.3..2
+  gene reach = 1 in 0.3..2
   gene carrot = hsv(28, 0.9, 1) in hsv(0, 0.5, 0.5)..hsv(60, 1, 1)
 
   pitch 90
