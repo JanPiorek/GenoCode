@@ -2,15 +2,15 @@ creature Flowerball
 // A ball of beads in rings, which opens out into a flat disc, crowned by five curling petals.
 // Inspired by Flowerball, a DancerDNA creature.
 
-gene marbling = 0.5 in 0..1  // how much its petals wear their marble texture, as the Marbled variant does
+gene marbling = 0.5 in 0..1 // how much its petals wear their marble texture, as the Marbled variant does
 
-gene open = 0.7787 in 0..1  // 0 lays the beads flat in a disc; 1 rounds them into a ball and fills out the petals
-gene gloss = 1 in 0..1  // how strong the highlights are
-gene focus = 0.2688 in 0..1  // how tight the highlights are
-gene lift = 3.833 in -20..20  // how far from the beads the petals grow, as the creature opens
-gene ball_radius = -2.893 in -10..15  // how big the ball the beads round into is; never less than 1
+gene open = 0.7787 in 0..1 // 0 lays the beads flat in a disc; 1 rounds them into a ball and fills out the petals
+gene gloss = 1 in 0..1 // how strong the highlights are
+gene focus = 0.2688 in 0..1 // how tight the highlights are
+gene lift = 3.833 in -20..20 // how far from the beads the petals grow, as the creature opens
+gene ball_radius = -2.893 in -10..15 // how big the ball the beads round into is; never less than 1
 gene bead_size = 0.5677 in 0.1..1
-gene curl = -2.292 in -2.5..2.5  // how far the petals curl
+gene curl = -2.292 in -2.5..2.5 // how far the petals curl
 
 // The beads' colours, from the middle ring out, and the petals', from base to tip, with the
 // gaps between them.

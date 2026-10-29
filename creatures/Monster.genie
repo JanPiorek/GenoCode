@@ -5,31 +5,31 @@ creature Monster
 gene head_size = 5.51 in 2..8
 gene head_colour = hsv(240.5, 1, 0.29) in hsv(0, 1, 0.2)..hsv(252, 1, 0.6)
 
-gene coral_spread = 1.025 in 0.6..2  // how far out the coral reaches
-gene coral_up = 0.3082 in 0..5  // how tube-like, rather than round, the coral is above
-gene coral_down = 0.3192 in 0..5  // and below
-gene coral_spiral = 0.4302 in -1..1  // how far the coral spirals round
+gene coral_spread = 1.025 in 0.6..2 // how far out the coral reaches
+gene coral_up = 0.3082 in 0..5 // how tube-like, rather than round, the coral is above
+gene coral_down = 0.3192 in 0..5 // and below
+gene coral_spiral = 0.4302 in -1..1 // how far the coral spirals round
 
 gene monster_size = 0.954 in 0.1..2
-gene monster_height = 1.585 in -14.73..10.27  // how far above the coral the monster sits
-gene monster_turn = (-48.1, -58.75, -34.58) in (-171.9, -171.9, -171.9)..(171.9, 171.9, 171.9)  // how it's turned: up, sideways and round
+gene monster_height = 1.585 in -14.73..10.27 // how far above the coral the monster sits
+gene monster_turn = (-48.1, -58.75, -34.58) in (-171.9, -171.9, -171.9)..(171.9, 171.9, 171.9) // how it's turned: up, sideways and round
 gene head_turn = (-16.97, -137.1, 165.5) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8)
 gene head_stretch = (0.8865, 0.9851, 1.007) in (0.8, 0.8, 0.8)..(1.2, 1.2, 1.2)
 
-gene eye_count = 7.933 in 1..35  // how many eyes; the last is cut short to fit
-gene eye_size_waves = 4.726 in 0..8  // how many times the eyes grow and shrink round the head
+gene eye_count = 7.933 in 1..35 // how many eyes; the last is cut short to fit
+gene eye_size_waves = 4.726 in 0..8 // how many times the eyes grow and shrink round the head
 gene eye_size_spread = 0.1634 in -0.6..0.6
 gene eyeball = hsv(89.5, 0.14, 1) in hsv(0, 0, 1)..hsv(360, 0.25, 1)
 gene iris = hsv(172.2, 0.87, 0.81) in hsv(0, 0.4, 0.5)..hsv(252, 1, 1)
-gene dilation = 0.06402 in 0..1  // how wide the pupils are open
-gene slit = 0.5503 in 0..1  // how much taller than wide they are, like a lizard's
+gene dilation = 0.06402 in 0..1 // how wide the pupils are open
+gene slit = 0.5503 in 0..1 // how much taller than wide they are, like a lizard's
 
-gene tentacle_count = 2.692 in 0..4  // how many tentacles; the last is cut short to fit
-gene tentacle_waves = 0.8557 in 0..3  // how many times their length changes round the head
+gene tentacle_count = 2.692 in 0..4 // how many tentacles; the last is cut short to fit
+gene tentacle_waves = 0.8557 in 0..3 // how many times their length changes round the head
 gene tentacle_thickness = 0.4537 in 0.1..1
 gene tentacle_flatness = 0.6459 in 0.3..0.8
 gene tentacle_tip = hsv(132, 0.81, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)
-gene curl = (16.55, 1.925, 5.863) in (-28.65, -28.65, -28.65)..(28.65, 28.65, 28.65)  // how far the tentacles curl: up, sideways and round
+gene curl = (16.55, 1.925, 5.863) in (-28.65, -28.65, -28.65)..(28.65, 28.65, 28.65) // how far the tentacles curl: up, sideways and round
 gene curl_waves = (2.472, 2.779, 1.467) in (0.5, 0.5, 0.5)..(4, 4, 4)
 gene curl_start = (0.2076, 0.1888, 0.04261) in (-0.5, -0.5, -0.5)..(0.5, 0.5, 0.5)
 

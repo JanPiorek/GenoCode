@@ -3,24 +3,24 @@ creature Transformer
 // space, each copy a slightly stretched mirror image of the next.
 // Inspired by Transformer, a DancerDNA creature.
 
-gene mirror_x = (-0.9654, 1.076, 1.073) in (-1.1, 0.9, 0.9)..(-0.9, 1.1, 1.1)  // how the left half is made from the right: -1 is an exact mirror image
-gene mirror_y = (1.058, -1.061, 1.011) in (0.9, -1.1, 0.9)..(1.1, -0.9, 1.1)  // the lower quarter from the upper
-gene mirror_z = (1.006, 0.9291, -1.085) in (0.9, 0.9, -1.1)..(1.1, 1.1, -0.9)  // the back eighth from the front
+gene mirror_x = (-0.9654, 1.076, 1.073) in (-1.1, 0.9, 0.9)..(-0.9, 1.1, 1.1) // how the left half is made from the right: -1 is an exact mirror image
+gene mirror_y = (1.058, -1.061, 1.011) in (0.9, -1.1, 0.9)..(1.1, -0.9, 1.1) // the lower quarter from the upper
+gene mirror_z = (1.006, 0.9291, -1.085) in (0.9, 0.9, -1.1)..(1.1, 1.1, -0.9) // the back eighth from the front
 
-gene reach = (4.991, 11.64, 19.04) in (3, 3, 3)..(20, 20, 20)  // how far the shapes wander: across, up and forward
-gene reach_waves = (0.5784, 0.7485, 0.4928) in (0, 0, 0)..(0.7958, 0.7958, 0.7958)  // how many waves they wander in, from the first shape to the last
-gene reach_start = (0.5995, 0.3055, 0.9678) in (0, 0, 0)..(1, 1, 1)  // where the waves start
-gene size = (1.855, 4.302, 7.492) in (1, 1, 1)..(8, 8, 8)  // how big the shapes grow
+gene reach = (4.991, 11.64, 19.04) in (3, 3, 3)..(20, 20, 20) // how far the shapes wander: across, up and forward
+gene reach_waves = (0.5784, 0.7485, 0.4928) in (0, 0, 0)..(0.7958, 0.7958, 0.7958) // how many waves they wander in, from the first shape to the last
+gene reach_start = (0.5995, 0.3055, 0.9678) in (0, 0, 0)..(1, 1, 1) // where the waves start
+gene size = (1.855, 4.302, 7.492) in (1, 1, 1)..(8, 8, 8) // how big the shapes grow
 gene size_waves = (0.556, 0.4642, 0.7644) in (0, 0, 0)..(0.7958, 0.7958, 0.7958)
 gene size_start = (0.8292, 0.1354, 0.7251) in (0, 0, 0)..(1, 1, 1)
-gene turn = (315.7, -137.7, 163.3) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8)  // how far the shapes turn: up, sideways and round
+gene turn = (315.7, -137.7, 163.3) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8) // how far the shapes turn: up, sideways and round
 gene turn_waves = (0.5032, 0.4259, 0.1233) in (0, 0, 0)..(0.7958, 0.7958, 0.7958)
 gene turn_start = (0.145, 0.6595, 0.1057) in (0, 0, 0)..(1, 1, 1)
 
-gene gloss = 0.4599 in 0..1  // how strong the highlights are
-gene focus = 0.1187 in 0..1  // how tight the highlights are
-gene centre = hsv(238.9, 1, 1) in hsv(0, 1, 1)..hsv(252, 1, 1)  // the colour of shapes near the middle
-gene edge = hsv(56.6, 0.64, 0.3) in hsv(0, 0, 0)..hsv(252, 1, 0.5)  // the colour of the farthest shapes
+gene gloss = 0.4599 in 0..1 // how strong the highlights are
+gene focus = 0.1187 in 0..1 // how tight the highlights are
+gene centre = hsv(238.9, 1, 1) in hsv(0, 1, 1)..hsv(252, 1, 1) // the colour of shapes near the middle
+gene edge = hsv(56.6, 0.64, 0.3) in hsv(0, 0, 0)..hsv(252, 1, 0.5) // the colour of the farthest shapes
 
 let skin = spectrum(centre, edge)
 

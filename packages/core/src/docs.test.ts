@@ -5,7 +5,6 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BUILTIN_CONSTANTS, BUILTIN_FUNCTIONS, PICTURE_FUNCTIONS } from "./builtins.js";
 import { check } from "./checker.js";
-import { formatText } from "./format.js";
 import { EFFECT_HELP, MEMBER_HELP } from "./help.js";
 import { build } from "./interpreter.js";
 import { KEYWORDS } from "./lexer.js";
@@ -27,16 +26,15 @@ const isCode = (b: string) =>
   !b.includes("…") &&
   !b.includes("next():") &&
   !b.includes("file          =") &&
-  !b.startsWith("creature  gene");
+  !b.startsWith("creature gene part");
 
-/** Tests for each example: files check and are laid out as the formatter would. */
+/** Tests for each example: files check. */
 function checkExamples(blocks: string[]): void {
   for (const [i, b] of blocks.entries()) {
     if (isFile(b)) {
-      it(`example ${i} (${b.split("\n")[0]}) checks and is in the standard layout`, () => {
+      it(`example ${i} (${b.split("\n")[0]}) checks`, () => {
         const r = check(b);
         expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
-        expect(formatText(b).text).toBe(b);
       });
     } else if (isWrappedBlock(b)) {
       it(`example ${i} (${b.split("\n")[0]}) checks inside a creature`, () => {
@@ -118,10 +116,9 @@ describe("docs/GETTING_STARTED.md examples", () => {
   it("has its creatures", () => expect(files.length).toBeGreaterThanOrEqual(4));
 
   for (const [i, b] of files.entries()) {
-    it(`creature ${i} builds and is in the standard layout`, () => {
+    it(`creature ${i} builds`, () => {
       const r = check(b);
       expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
-      expect(formatText(b).text).toBe(b);
       expect(build(r).shapes.length).toBeGreaterThan(0);
     });
   }

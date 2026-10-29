@@ -15,9 +15,9 @@ written for you. Creature files use the `.genie` extension.
 ```
 creature Flower
 
-gene rings = 3 in 1..6 step 1  // how many rings of petals
-gene shrink = 0.7 in 0.4..0.95  // each ring's size compared with the ring outside it
-gene twist = 29 in 0..180  // how far each ring turns from the last
+gene rings = 3 in 1..6 step 1 // how many rings of petals
+gene shrink = 0.7 in 0.4..0.95 // each ring's size compared with the ring outside it
+gene twist = 29 in 0..180 // how far each ring turns from the last
 ```
 
 **Status:** early development, heading for a first public release. The web app works: write,

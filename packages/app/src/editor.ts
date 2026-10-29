@@ -25,6 +25,7 @@ import {
   lex,
   PICTURE_FUNCTIONS,
   rename,
+  singleSpaced,
   symbolAt,
   toRgb,
   writeColour,
@@ -398,6 +399,8 @@ export class CodeEditor {
               return true;
             },
           }),
+          // Pasted or dropped code comes in with one space between things.
+          EditorView.clipboardInputFilter.of((text) => singleSpaced(text)),
           indentUnit.of("  "),
           EditorView.lineWrapping,
           autocompletion({ override: [complete] }),

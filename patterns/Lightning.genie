@@ -3,8 +3,8 @@ pattern Lightning
 // `lightning`, written in GenoCode: it draws the same pictures.
 
 let count = 2 + floor(random(0, 3))
-let keenness = random(6, 20)  // how thin the veins are
-let glow = random(2, 7)  // how far the glow spreads
+let keenness = random(6, 20) // how thin the veins are
+let glow = random(2, 7) // how far the glow spreads
 
 let veins = picture {
   value 0

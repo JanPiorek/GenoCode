@@ -3,8 +3,8 @@ dance Groove
 // bass turns it; drops in the bass reverse it.
 // Inspired by default style, a DancerDNA music style.
 
-morph follows music.bass  speed 0.88  settle 0.08
-zoom follows music.mid_hit  amount 0.5  settle 50
-spin follows music.bass_hit  from 45.8 to 172  smooth 0.4
-turn on music.bass changes  by 1
-reverse on music.bass drops  by 1  on 4 off 4
+morph follows music.bass speed 0.88 settle 0.08
+zoom follows music.mid_hit amount 0.5 settle 50
+spin follows music.bass_hit from 45.8 to 172 smooth 0.4
+turn on music.bass changes by 1
+reverse on music.bass drops by 1 on 4 off 4

@@ -321,11 +321,7 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
   ["branch", h("branch { … }", "Runs a block, then puts the turtle back as it was.", "11.5")],
   [
     "lay",
-    h(
-      "lay  /  lay { … }",
-      "Lays the current shape, optionally with an extra shape transform.",
-      "12",
-    ),
+    h("lay / lay { … }", "Lays the current shape, optionally with an extra shape transform.", "12"),
   ],
   [
     "reshape",
@@ -387,7 +383,7 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
   ["around", h("rotate a around v", "The axis that `rotate` turns about.", "11.3")],
   [
     "grow",
-    h("grow k  /  grow (x, y, z)", "Multiplies the turtle's size. Negative values mirror.", "11.4"),
+    h("grow k / grow (x, y, z)", "Multiplies the turtle's size. Negative values mirror.", "11.4"),
   ],
   ["mirror", h("mirror x", "Reverses one of the turtle's axes: x, y or z.", "11.4")],
   ["in", h("gene name = v in min..max", "A gene's range.", "6.1")],
@@ -519,7 +515,7 @@ export const EFFECT_HELP: ReadonlyMap<string, { help: Help; words: ReadonlyMap<s
       "morph",
       {
         help: h(
-          "morph follows x  speed 1  settle 2",
+          "morph follows x speed 1 settle 2",
           "Moves the creature along its morph (the loop through a set of related creatures): " +
             "the louder the input, the faster, and it coasts to a stop when the input is quiet.",
           "17",
@@ -543,7 +539,7 @@ export const EFFECT_HELP: ReadonlyMap<string, { help: Help; words: ReadonlyMap<s
       "zoom",
       {
         help: h(
-          "zoom follows x  amount 0.5  settle 15",
+          "zoom follows x amount 0.5 settle 15",
           "Brings the creature towards the viewer as the input rises; it drifts back when the " +
             "input falls.",
           "17",
@@ -574,7 +570,7 @@ export const EFFECT_HELP: ReadonlyMap<string, { help: Help; words: ReadonlyMap<s
       "spin",
       {
         help: h(
-          "spin follows x  from 45  to 170  smooth 0.4",
+          "spin follows x from 45 to 170 smooth 0.4",
           "Sets how fast the creature spins about its spin axis. The input is read each time " +
             "the axis turns, or all the time if there's no `turn` line.",
           "17",
@@ -601,7 +597,7 @@ export const EFFECT_HELP: ReadonlyMap<string, { help: Help; words: ReadonlyMap<s
       "turn",
       {
         help: h(
-          "turn on x changes  by 0.5",
+          "turn on x changes by 0.5",
           "Gives the spin a new, random axis each time the input triggers. While `flat` is on, " +
             "only drops count.",
           "17",
@@ -613,7 +609,7 @@ export const EFFECT_HELP: ReadonlyMap<string, { help: Help; words: ReadonlyMap<s
       "reverse",
       {
         help: h(
-          "reverse on x drops  by 0.5  on 4  off 4",
+          "reverse on x drops by 0.5 on 4 off 4",
           "Reverses the direction of the morph each time the input triggers.",
           "17",
         ),
@@ -621,7 +617,7 @@ export const EFFECT_HELP: ReadonlyMap<string, { help: Help; words: ReadonlyMap<s
           triggerWords(
             onInput,
             h(
-              "on n  off m",
+              "on n off m",
               "Works in bursts: reverses for `n` triggers, then rests for `m`, starting at work. " +
                 "Without them, it always works.",
               "17",
@@ -634,7 +630,7 @@ export const EFFECT_HELP: ReadonlyMap<string, { help: Help; words: ReadonlyMap<s
       "flat",
       {
         help: h(
-          "flat on x drops  by 0.5  on 24  off 48",
+          "flat on x drops by 0.5 on 24 off 48",
           "Turns the creature face-on and spins it flat, then back to tumbling in 3D, in " +
             "bursts. Each trigger reverses the flat spin.",
           "17",
@@ -643,7 +639,7 @@ export const EFFECT_HELP: ReadonlyMap<string, { help: Help; words: ReadonlyMap<s
           triggerWords(
             onInput,
             h(
-              "on n  off m",
+              "on n off m",
               "Bursts: flat for `n` triggers, then tumbling in 3D for `m`. It starts at rest, " +
                 "tumbling. Default `on 24 off 48`.",
               "17",

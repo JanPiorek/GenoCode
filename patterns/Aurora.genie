@@ -5,7 +5,7 @@ pattern Aurora
 let count = 2 + floor(random(0, 4))
 let bands = []
 repeat count {
-  bands += [(random(1, 4), random(0, 360), random(0.3, 0.8))]  // how wavy, where, how high
+  bands += [(random(1, 4), random(0, 360), random(0.3, 0.8))] // how wavy, where, how high
 }
 let thickness = random(4, 9)
 let wobble = random(0.1, 0.5)

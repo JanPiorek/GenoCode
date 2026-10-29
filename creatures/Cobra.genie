@@ -3,20 +3,20 @@ creature Cobra
 // their sides and a pearl in a ring between them.
 // Inspired by Cobra, a DancerDNA creature.
 
-gene scales = 1 in 0..1  // how much its skin and pearl wear their textures
+gene scales = 1 in 0..1 // how much its skin and pearl wear their textures
 
-gene sway = 28.09 in -28.65..28.65  // how far the body sways from side to side
-gene sway_waves = 2.659 in 1..3  // how many half-waves the sway makes along the body
-gene rise = -3.236 in -28.65..28.65  // how far the body rises and falls
+gene sway = 28.09 in -28.65..28.65 // how far the body sways from side to side
+gene sway_waves = 2.659 in 1..3 // how many half-waves the sway makes along the body
+gene rise = -3.236 in -28.65..28.65 // how far the body rises and falls
 gene rise_waves = 1.111 in 1..3
-gene twist = 3.975 in -28.65..28.65  // how far the body twists
+gene twist = 3.975 in -28.65..28.65 // how far the body twists
 gene twist_waves = 1 in 1..3
-gene taper = 1.083 in 0.9..1.1  // how much bigger each segment is than the last
-gene offset = (0, 2.1, 0.9) in (-10, -10, -10)..(10, 10, 10)  // where its middle is: each member's keeps them all in the middle of the view
-gene size = 0.143 in 0.1..2 log  // how big it is overall: each member's keeps them all about the same size
+gene taper = 1.083 in 0.9..1.1 // how much bigger each segment is than the last
+gene offset = (0, 2.1, 0.9) in (-10, -10, -10)..(10, 10, 10) // where its middle is: each member's keeps them all in the middle of the view
+gene size = 0.143 in 0.1..2 log // how big it is overall: each member's keeps them all about the same size
 
-gene fin = (1.387, 1.316, 0.5628) in (-2, -2, -2)..(2, 2, 2)  // how far the fins reach: sideways, up and back
-gene fin_waves = (2.396, 1.035, 1) in (1, 1, 1)..(3, 3, 3)  // how many half-waves the fins make along the body
+gene fin = (1.387, 1.316, 0.5628) in (-2, -2, -2)..(2, 2, 2) // how far the fins reach: sideways, up and back
+gene fin_waves = (2.396, 1.035, 1) in (1, 1, 1)..(3, 3, 3) // how many half-waves the fins make along the body
 
 // The snakes' colours, from the ends to the middle, and the gaps between them.
 gene skin_1 = hsv(89.9, 0.49, 1) in hsv(0, 0.4, 1)..hsv(356.4, 0.6, 1)
@@ -36,7 +36,7 @@ gene pearl_colour = hsv(40.1, 0.65, 0.95) in hsv(18, 0, 0.4)..hsv(54, 1, 1)
 gene ring_colour = hsv(41.3, 0.92, 0.97) in hsv(21.6, 0, 0.4)..hsv(54, 1, 1)
 gene pearl_size = 2.978 in 1.2..3
 gene ring_size = 1.787 in 1.5..2.5
-gene ring_tilt = (207.7, 52.8, 0) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8)  // how the ring turns: up, sideways and round
+gene ring_tilt = (207.7, 52.8, 0) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8) // how the ring turns: up, sideways and round
 
 gene ball_hue = 125 in 0..360
 gene ball_pulse = 90 in 0..90
@@ -111,11 +111,11 @@ part pearl_ring {
 
 // Its own dance: Wanderer, the style DancerDNA's Cobra was saved with (as far as can be told).
 dance {
-  morph follows music.mid  speed 1.2  settle 0.38
-  zoom follows music.mid_hit  amount 0.5  settle 50
-  spin follows music.level  from 45.8 to 229  smooth 0
-  turn on music.bass changes  by 1
-  reverse on music.bass drops  by 1  on 4 off 4
+  morph follows music.mid speed 1.2 settle 0.38
+  zoom follows music.mid_hit amount 0.5 settle 50
+  spin follows music.level from 45.8 to 229 smooth 0
+  turn on music.bass changes by 1
+  reverse on music.bass drops by 1 on 4 off 4
 }
 
 variant member_2 {

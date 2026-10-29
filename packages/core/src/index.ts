@@ -18,7 +18,7 @@ export {
 } from "./symbols.js";
 export { patternOnBall, patternsOf } from "./wearing.js";
 export { colourLiterals, writeColour, type ColourForm, type ColourLiteral } from "./swatches.js";
-export { format, formatText, type FormatResult } from "./format.js";
+export { format, formatText, singleSpaced, type FormatResult } from "./format.js";
 export {
   build,
   buildBackground,

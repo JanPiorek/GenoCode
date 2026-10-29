@@ -4,9 +4,9 @@ dance Flicker
 // off.
 // Inspired by strobal, a DancerDNA music style.
 
-morph follows music.bass_hit  speed 1.7  settle 0.01
-zoom follows music.mid_hit  amount 0.5  settle 0.48
-spin follows music.mid_hit  from 0 to 493  smooth 0.15
-turn on music.mid_hit changes  by 0.61
-reverse on music.bass drops  by 0.66  on 12 off 4
-flat on music.mid_hit drops  by 0.86  on 100 off 0
+morph follows music.bass_hit speed 1.7 settle 0.01
+zoom follows music.mid_hit amount 0.5 settle 0.48
+spin follows music.mid_hit from 0 to 493 smooth 0.15
+turn on music.mid_hit changes by 0.61
+reverse on music.bass drops by 0.66 on 12 off 4
+flat on music.mid_hit drops by 0.86 on 100 off 0
