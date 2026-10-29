@@ -3,24 +3,24 @@ creature Starfish
 // end of each.
 // Inspired by Starfish, a DancerDNA creature.
 
-gene swirl = 0 in 0..1  // how much it wears its swirling texture, as the Swirled variant does
+gene swirl = 0 in 0..1 // how much it wears its swirling texture, as the Swirled variant does
 
-gene stem_start = -1.961 in -15..15  // how far from the middle the stems start
-gene stride = 0.5112 in -1.5..2  // how far apart the stem's rings are
-gene ring_stretch = 3.633 in 2..5  // how long the rings are drawn out along the stem
-gene ripples = 3.789 in 2.387..3.979  // how many times the rings swell and shrink along the stem
-gene bend = -1.724 in -5.73..5.73  // how far each ring turns sideways from the last
-gene wobbles = 1.58 in 0.955..1.91  // how many times the stem wobbles up and down
+gene stem_start = -1.961 in -15..15 // how far from the middle the stems start
+gene stride = 0.5112 in -1.5..2 // how far apart the stem's rings are
+gene ring_stretch = 3.633 in 2..5 // how long the rings are drawn out along the stem
+gene ripples = 3.789 in 2.387..3.979 // how many times the rings swell and shrink along the stem
+gene bend = -1.724 in -5.73..5.73 // how far each ring turns sideways from the last
+gene wobbles = 1.58 in 0.955..1.91 // how many times the stem wobbles up and down
 gene wobble_start = 0.02209 in -0.5..0.5
 
-gene flower_tilt = 35.67 in -114.6..114.6  // how far the flowers tip up from their stems
-gene flower_out = 16.37 in 15..35  // how far out the flowers are
-gene flower_turn = 12.82 in -57.3..85.94  // how far they turn to the side
-gene petals = 11.18 in 4..15  // how many petals
+gene flower_tilt = 35.67 in -114.6..114.6 // how far the flowers tip up from their stems
+gene flower_out = 16.37 in 15..35 // how far out the flowers are
+gene flower_turn = 12.82 in -57.3..85.94 // how far they turn to the side
+gene petals = 11.18 in 4..15 // how many petals
 gene petal_length = 8.511 in 4..12
-gene petal_rise = 1.944 in -5.73..17.19  // how far each petal tips up from the last
-gene petal_turn = 9.983 in -5.73..85.94  // how far each turns sideways from the last
-gene bud_out = 7.041 in 4..9  // how far out the beads are
+gene petal_rise = 1.944 in -5.73..17.19 // how far each petal tips up from the last
+gene petal_turn = 9.983 in -5.73..85.94 // how far each turns sideways from the last
+gene bud_out = 7.041 in 4..9 // how far out the beads are
 
 // The rings' colours, from the middle out, and the petals' with the gaps between them.
 gene ring_1 = hsv(92.8, 0.66, 0.97) in hsv(0, 0, 0.7)..hsv(360, 1, 1)

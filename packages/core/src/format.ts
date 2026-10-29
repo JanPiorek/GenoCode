@@ -2,7 +2,6 @@
 // brackets, and keeps names, values, structure and comments. The block editor prints code with it.
 
 import {
-  TRIGGER_KINDS,
   type Block,
   type Comment,
   type Effect,
@@ -13,6 +12,7 @@ import {
   type SourceFile,
   type Stmt,
 } from "./ast.js";
+import { lex } from "./lexer.js";
 import { parse } from "./parser.js";
 import type { Diagnostic } from "./source.js";
 
@@ -32,6 +32,30 @@ export function formatText(text: string): FormatResult {
     return { text: undefined, diagnostics: parsed.diagnostics };
   }
   return { text: format(parsed.file), diagnostics: parsed.diagnostics };
+}
+
+/**
+ * Text with one space wherever two or more stand between things on a line, as pasted code gets.
+ * Everything else stays as it is: indentation, line ends, and what's inside strings and comments.
+ * Unlike `formatText`, it works on code with mistakes in it, or only part of a file.
+ */
+export function singleSpaced(text: string): string {
+  const { tokens, comments } = lex(text);
+  const pieces = [
+    ...tokens
+      .filter((t) => t.kind !== "eof" && (t.kind !== "newline" || t.text === ";"))
+      .map((t) => t.span),
+    ...comments.map((c) => c.span),
+  ].sort((a, b) => a.start - b.start);
+  let out = "";
+  let at = 0;
+  for (let k = 1; k < pieces.length; k++) {
+    const gap = text.slice(pieces[k - 1]!.end, pieces[k]!.start);
+    if (gap.length < 2 || !/^[ \t]+$/.test(gap)) continue;
+    out += text.slice(at, pieces[k - 1]!.end) + " ";
+    at = pieces[k]!.start;
+  }
+  return out + text.slice(at);
 }
 
 /** Prints a syntax tree as standard GenoCode text. */
@@ -89,29 +113,9 @@ function printItems(out: string[], items: Stmt[], level: number, top: boolean): 
   });
 }
 
-/** Settings that stay with the one before them: `from 45 to 170`, `on 4 off 4`. */
-const PAIRED: ReadonlyMap<string, string> = new Map([
-  ["to", "from "],
-  ["off", "on "],
-]);
-
-/**
- * An effect line's settings: two spaces between settings, one inside each. A trigger word stays
- * with the input before it: `on music.bass drops  by 1  on 4 off 4`.
- */
+/** An effect line's settings, one space apart: `on music.bass drops by 1 on 4 off 4`. */
 function effectSettings(e: Effect): string {
-  const groups: string[] = [];
-  for (const a of e.args) {
-    const text = effectArg(a);
-    const last = groups[groups.length - 1];
-    const joins =
-      a.kind === "Value" ||
-      TRIGGER_KINDS.has(text) ||
-      (groups.length > 1 && last!.startsWith(PAIRED.get(text) ?? "\0"));
-    if (joins && last !== undefined) groups[groups.length - 1] = `${last} ${text}`;
-    else groups.push(text);
-  }
-  return groups.join("  ");
+  return e.args.map(effectArg).join(" ");
 }
 
 function geneRangeText(g: GeneDecl): string {
@@ -172,7 +176,7 @@ function printStmt(out: string[], s: Stmt, level: number): void {
   if (simple !== undefined) {
     // A `picture { }` in the statement spans lines, indented from the statement's own.
     const text = simple.replace(/\n/g, "\n" + pad(level));
-    out.push(pad(level) + text + (s.trailing ? `  ${s.trailing.text}` : ""));
+    out.push(pad(level) + text + (s.trailing ? ` ${s.trailing.text}` : ""));
     return;
   }
   switch (s.kind) {
@@ -283,7 +287,7 @@ function printBlock(out: string[], header: string, b: Block, level: number, chai
     out.push(`${pad(level)}${header} {}`);
     return;
   }
-  out.push(`${pad(level)}${header} {${b.open ? `  ${b.open.text}` : ""}`);
+  out.push(`${pad(level)}${header} {${b.open ? ` ${b.open.text}` : ""}`);
   printItems(out, b.items, level + 1, false);
   printComments(out, b.endComments, level + 1, b.items.length === 0);
   if (chained) {
@@ -291,7 +295,7 @@ function printBlock(out: string[], header: string, b: Block, level: number, chai
     if (b.close) out.push(pad(level + 1) + b.close.text);
     return;
   }
-  out.push(`${pad(level)}}${b.close ? `  ${b.close.text}` : ""}`);
+  out.push(`${pad(level)}}${b.close ? ` ${b.close.text}` : ""}`);
 }
 
 // ---------- expressions ----------

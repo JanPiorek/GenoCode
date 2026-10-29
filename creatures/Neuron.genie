@@ -3,28 +3,28 @@ creature Neuron
 // loops of field lines.
 // Inspired by Neuron, a DancerDNA creature.
 
-gene turn = (-77.86, 18.88, -140.4) in (-229.2, -229.2, -229.2)..(229.2, 229.2, 229.2)  // how the cell is turned: up, sideways and round
+gene turn = (-77.86, 18.88, -140.4) in (-229.2, -229.2, -229.2)..(229.2, 229.2, 229.2) // how the cell is turned: up, sideways and round
 gene body_size = 2.929 in 2..7
-gene turn_2 = (-86.24, 173.8, -168.6) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8)  // how the second tree turns from the first
-gene turn_3 = (204.1, 343.5, -101.1) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8)  // and the third from the second
+gene turn_2 = (-86.24, 173.8, -168.6) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8) // how the second tree turns from the first
+gene turn_3 = (204.1, 343.5, -101.1) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8) // and the third from the second
 
-gene knot_size = 1.588 in 1.5..4  // how big the knots where the trees fork are
-gene branch_scale = 1.068 in 0.8..3  // how big the smaller branches are, times three
-gene fork = 53.76 in -114.6..114.6  // how far the smaller branches tip out
+gene knot_size = 1.588 in 1.5..4 // how big the knots where the trees fork are
+gene branch_scale = 1.068 in 0.8..3 // how big the smaller branches are, times three
+gene fork = 53.76 in -114.6..114.6 // how far the smaller branches tip out
 
-gene dendrite_length = 10.6 in 0..14  // how many segments each dendrite has; the last is cut short to fit
+gene dendrite_length = 10.6 in 0..14 // how many segments each dendrite has; the last is cut short to fit
 gene stride = 1.088 in 0.9..1.2
-gene wiggle = (21.93, 8.185, 3.105) in (-22.92, -22.92, -22.92)..(22.92, 22.92, 22.92)  // how far a dendrite wiggles: up, sideways and round
+gene wiggle = (21.93, 8.185, 3.105) in (-22.92, -22.92, -22.92)..(22.92, 22.92, 22.92) // how far a dendrite wiggles: up, sideways and round
 gene wiggle_waves = (1.181, 1.006, 1.707) in (1, 1, 1)..(3, 3, 3)
-gene swell = 0.02547 in -0.16..0.16  // how much its segments grow and shrink
+gene swell = 0.02547 in -0.16..0.16 // how much its segments grow and shrink
 gene swell_waves = 1 in 0.1..4
 
 gene field_size = 0.4969 in 0.2..2
 gene field_shift = (-0.1875, 0.1901, 0.3583) in (-0.5, -0.5, -0.5)..(0.5, 0.5, 0.5)
-gene loop_tilt = 18.45 in -171.9..171.9  // how far the field lines swing out
+gene loop_tilt = 18.45 in -171.9..171.9 // how far the field lines swing out
 gene loop_waves = 1 in 1..15
 gene loop_start = 0.02981 in 0..1
-gene loop_swing = -60.11 in -171.9..171.9  // how far they swing round
+gene loop_swing = -60.11 in -171.9..171.9 // how far they swing round
 gene loop_swing_waves = 1.825 in 1..15
 gene loop_swing_start = 0.4572 in 0..1
 
@@ -36,8 +36,8 @@ gene nerve_3 = hsv(19.7, 0.81, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)
 gene nerve_gap_1 = 0.5903 in 0.333..1.5
 gene nerve_gap_2 = 0.3354 in 0.333..1.5
 gene field_hue = 257.7 in 0..360
-gene field_shade = (0.1397, 0.01734, 0.08495) in (0, 0, 0)..(1, 1, 1)  // how bright the field lines are at their ends, and further in
-gene field_light = 0.6858 in 0..1  // how bright they are in the middle
+gene field_shade = (0.1397, 0.01734, 0.08495) in (0, 0, 0)..(1, 1, 1) // how bright the field lines are at their ends, and further in
+gene field_light = 0.6858 in 0..1 // how bright they are in the middle
 gene field_gaps = (0.3759, 0.5049, 0.3476) in (0.25, 0.25, 0.25)..(1, 1, 1)
 
 let nerve = spectrum(nerve_1, nerve_2 at nerve_gap_1, nerve_3 at nerve_gap_1 + nerve_gap_2)

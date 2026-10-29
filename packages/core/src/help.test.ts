@@ -88,21 +88,21 @@ describe("help", () => {
 
   it("explains a dance's effects and their words", () => {
     const dance = (line: string) => `creature T\nlay\ndance {\n  ${line}\n}\n`;
-    const line = "morph follows music.mid  speed 1.2  settle 0.38";
+    const line = "morph follows music.mid speed 1.2 settle 0.38";
     const here = (word: string) =>
       helpHere(dance(line.replace(word, `${word[0]}|${word.slice(1)}`)));
-    expect(here("morph")?.title).toBe("morph follows x  speed 1  settle 2");
+    expect(here("morph")?.title).toBe("morph follows x speed 1 settle 2");
     expect(here("follows")?.title).toBe("follows x");
     expect(here("speed")?.text).toContain("Creatures a second");
     expect(here("settle")?.text).toContain("coast to a stop");
     expect(here("mid")?.title).toBe("music.mid");
-    expect(helpHere(dance("zoom follows music.level  amount 0.5  se|ttle 15"))?.text).toContain(
+    expect(helpHere(dance("zoom follows music.level amount 0.5 se|ttle 15"))?.text).toContain(
       "drift all the way back",
     );
-    expect(helpHere(dance("spin follows music.bass  f|rom 45 to 170"))?.title).toBe("from a");
-    const flat = "flat on music.level drops  by 0.86  on 24 off 48";
+    expect(helpHere(dance("spin follows music.bass f|rom 45 to 170"))?.title).toBe("from a");
+    const flat = "flat on music.level drops by 0.86 on 24 off 48";
     expect(helpHere(dance(flat.replace("on music", "o|n music")))?.title).toBe("on x");
-    expect(helpHere(dance(flat.replace("on 24", "o|n 24")))?.title).toBe("on n  off m");
+    expect(helpHere(dance(flat.replace("on 24", "o|n 24")))?.title).toBe("on n off m");
     expect(helpHere(dance(flat.replace("drops", "dr|ops")))?.title).toBe("drops");
     // Dance files too.
     expect(helpHere("dance D\nsp|in follows music.bass\n")?.title).toContain("spin follows");

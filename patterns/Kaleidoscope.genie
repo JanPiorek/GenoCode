@@ -4,7 +4,7 @@ pattern Kaleidoscope
 
 let folds = 3 + floor(random(0, 14))
 let zoom = random(0.5, 1.2)
-let swirl = random(-2, 2)  // how much the slices bend outwards, in radians
+let swirl = random(-2, 2) // how much the slices bend outwards, in radians
 let slice = 360 / folds
 let mist = clouds(3 + floor(random(0, 4)), 2 + floor(random(0, 3)))
 

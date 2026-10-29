@@ -8,7 +8,7 @@ repeat 5 {
   frequency += [random(3, 16)]
   phase += [random(0, 360)]
 }
-let cx = random(-0.7, 0.7)  // the second centre of rings
+let cx = random(-0.7, 0.7) // the second centre of rings
 let cy = random(-0.7, 0.7)
 let slant = random(0, 180)
 let ax = cos(slant)

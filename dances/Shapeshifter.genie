@@ -3,8 +3,8 @@ dance Shapeshifter
 // middle turns it; drops in the bass reverse it.
 // Inspired by mutator, a DancerDNA music style.
 
-morph follows music.bass  speed 3.22  settle 0.02
-zoom follows music.mid_hit  amount 0.5  settle 10.8
-spin follows music.high_hit  from 115 to 229  smooth 0.15
-turn on music.mid changes  by 0.61
-reverse on music.bass drops  by 0.66  on 12 off 4
+morph follows music.bass speed 3.22 settle 0.02
+zoom follows music.mid_hit amount 0.5 settle 10.8
+spin follows music.high_hit from 115 to 229 smooth 0.15
+turn on music.mid changes by 0.61
+reverse on music.bass drops by 0.66 on 12 off 4

@@ -2,15 +2,15 @@ creature Genes
 // Two strands, each a ladder of beaded curves, side by side like the strands of DNA.
 // Inspired by Genes, a DancerDNA creature.
 
-gene swing = 51.98 in 0..360  // which way the strands point: sideways
-gene tilt = 51.92 in 0..360  // and up
-gene apart = (10, 9.795, 10) in (10, 0, 0)..(10, 25, 25)  // where the second strand is from the first
+gene swing = 51.98 in 0..360 // which way the strands point: sideways
+gene tilt = 51.92 in 0..360 // and up
+gene apart = (10, 9.795, 10) in (10, 0, 0)..(10, 25, 25) // where the second strand is from the first
 
-gene step_1 = (1.202, 0.1621, 0) in (1, 0, 0)..(5, 10, 10)  // how far apart the first strand's curves are
-gene turn_1 = 0 in 0..51.57  // how far each of its curves turns from the last
-gene bend_1 = -38.13 in -179.9..179.9  // how far each bead of a curve bends from the last
-gene gap_1 = 1 in 1..10  // how far apart the beads are
-gene step_2 = (1.425, 0, 0.1562) in (1, 0, 0)..(5, 10, 10)  // the same for the second strand
+gene step_1 = (1.202, 0.1621, 0) in (1, 0, 0)..(5, 10, 10) // how far apart the first strand's curves are
+gene turn_1 = 0 in 0..51.57 // how far each of its curves turns from the last
+gene bend_1 = -38.13 in -179.9..179.9 // how far each bead of a curve bends from the last
+gene gap_1 = 1 in 1..10 // how far apart the beads are
+gene step_2 = (1.425, 0, 0.1562) in (1, 0, 0)..(5, 10, 10) // the same for the second strand
 gene turn_2 = 0 in 0..51.57
 gene bend_2 = -1.146 in -179.9..179.9
 gene gap_2 = 1.167 in 1..10

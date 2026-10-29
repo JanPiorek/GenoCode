@@ -2,10 +2,10 @@ pattern Sunburst
 // A glow from the middle through cloudy mist, streaked outwards. The built-in kind `sunburst`,
 // written in GenoCode: it draws the same pictures.
 
-let weight = random(0.4, 1)  // how much the clouds show
-let glow = random(0.3, 0.9)  // how bright the middle is
+let weight = random(0.4, 1) // how much the clouds show
+let glow = random(0.3, 0.9) // how bright the middle is
 let gamma = random(0.8, 2)
-let zoom = random(0.3, 0.9)  // how far the streaks reach
+let zoom = random(0.3, 0.9) // how far the streaks reach
 let mist = clouds(4 + floor(random(0, 4)), 3 + floor(random(0, 4)))
 
 let light = picture {

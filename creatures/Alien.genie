@@ -2,26 +2,26 @@ creature Alien
 // Four curling horns of rings and balls, one in each quarter, each the mirror image of the next.
 // Inspired by Alien, a DancerDNA creature.
 
-gene gloss = 0.6674 in 0..1  // how strong the highlights are
-gene focus = 0.5846 in 0..1  // how tight the highlights are
-gene shape_size = 1.319 in 0.5..2  // how big every ring and ball is
-gene shape_turn = (41.42, 41.41, 10.24) in (0, 0, 0)..(57.3, 57.3, 57.3)  // how they're turned: up, sideways and round
-gene shape_shift = (0.3771, 0.5821, 0.07524) in (0, 0, 0)..(1, 1, 1)  // which way they're shifted
-gene shift_by = 0.8239 in -1..1  // how far
+gene gloss = 0.6674 in 0..1 // how strong the highlights are
+gene focus = 0.5846 in 0..1 // how tight the highlights are
+gene shape_size = 1.319 in 0.5..2 // how big every ring and ball is
+gene shape_turn = (41.42, 41.41, 10.24) in (0, 0, 0)..(57.3, 57.3, 57.3) // how they're turned: up, sideways and round
+gene shape_shift = (0.3771, 0.5821, 0.07524) in (0, 0, 0)..(1, 1, 1) // which way they're shifted
+gene shift_by = 0.8239 in -1..1 // how far
 
-gene segments = 23.55 in 10..30  // how many segments each horn has; the last is cut short to fit
-gene heading = (0.2934, 0.6555, 0.3884) in (0, 0, 0)..(1, 1, 1)  // which way each segment leads on from the last
-gene stride = -0.9213 in -2..2  // how far
-gene taper = 0.7098 in 0.01..2  // how much bigger each segment is than the last
-gene curl = 17.53 in 0..28.65  // how far each turns up from the last
-gene swerve = 15.04 in 0..28.65  // and sideways
+gene segments = 23.55 in 10..30 // how many segments each horn has; the last is cut short to fit
+gene heading = (0.2934, 0.6555, 0.3884) in (0, 0, 0)..(1, 1, 1) // which way each segment leads on from the last
+gene stride = -0.9213 in -2..2 // how far
+gene taper = 0.7098 in 0.01..2 // how much bigger each segment is than the last
+gene curl = 17.53 in 0..28.65 // how far each turns up from the last
+gene swerve = 15.04 in 0..28.65 // and sideways
 
-gene strand_offset = (1.432, 0.2977, 0.1456) in (0, 0, 0)..(2, 2, 2)  // where a segment's ring and ball are
+gene strand_offset = (1.432, 0.2977, 0.1456) in (0, 0, 0)..(2, 2, 2) // where a segment's ring and ball are
 gene ring_shape = (0.97, 1.011, 0.9497) in (0.8, 0.8, 0.8)..(1.2, 1.2, 1.2)
 gene ball_shape = (1.031, 0.8442, 0.9097) in (0.8, 0.8, 0.8)..(1.2, 1.2, 1.2)
 gene ball_size = 0.6041 in 0.2..0.9
-gene ring_run = 3.86 in 1..8  // how far along their colours the horn's rings go
-gene ball_run = 7.825 in 1..8  // and its balls
+gene ring_run = 3.86 in 1..8 // how far along their colours the horn's rings go
+gene ball_run = 7.825 in 1..8 // and its balls
 
 // The rings' and balls' colours, from the base of a horn out, and the gaps between them.
 gene ring_1 = hsv(279.5, 0.84, 0.67) in hsv(0, 0, 0)..hsv(360, 1, 1)

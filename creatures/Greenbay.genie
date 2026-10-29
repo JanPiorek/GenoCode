@@ -2,26 +2,26 @@ creature Greenbay
 // A frond of leaves and buds, curling and growing segment by segment.
 // Inspired by Greenbay, a DancerDNA creature.
 
-gene tilt = 106 in 45..135  // how far the frond tips up
-gene segments = 20.72 in 1..50  // how many segments it has; the last is cut short to fit
-gene growth = (1.074, 1.027, 1.031) in (1.01, 1.01, 1.01)..(1.1, 1.1, 1.1)  // how much bigger each segment is than the last
-gene twist = 22.7 in -25..25  // how far each segment rolls from the last
+gene tilt = 106 in 45..135 // how far the frond tips up
+gene segments = 20.72 in 1..50 // how many segments it has; the last is cut short to fit
+gene growth = (1.074, 1.027, 1.031) in (1.01, 1.01, 1.01)..(1.1, 1.1, 1.1) // how much bigger each segment is than the last
+gene twist = 22.7 in -25..25 // how far each segment rolls from the last
 
-gene lean = 86.11 in -114.6..114.6  // how far a segment's leaves lean from it
-gene leaf_angle = 58.42 in 45..135  // how far the first leaf tips out
-gene leaf_shape = (0.3589, 1.048, 6.502) in (0.2, 0.8, -0.33)..(1.1, 1.1, 13.68)  // its width, thickness and length
-gene stalk = 2.825 in 0.09..4.1  // how far out the first bud is
-gene leaf_twist = -728.3 in -1718.9..1718.9  // how far the second leaf rolls from the first
+gene lean = 86.11 in -114.6..114.6 // how far a segment's leaves lean from it
+gene leaf_angle = 58.42 in 45..135 // how far the first leaf tips out
+gene leaf_shape = (0.3589, 1.048, 6.502) in (0.2, 0.8, -0.33)..(1.1, 1.1, 13.68) // its width, thickness and length
+gene stalk = 2.825 in 0.09..4.1 // how far out the first bud is
+gene leaf_twist = -728.3 in -1718.9..1718.9 // how far the second leaf rolls from the first
 gene leaf_turn = -15.67 in -25..25
-gene second_leaf = 0.169 in -0.33..13.68  // how long the second leaf is
-gene offset = 3.702 in -0.33..13.68  // how far along the segment its other leaves are
-gene bud_tilt = -95.8 in -286.5..286.5  // how far the middle bud tips
+gene second_leaf = 0.169 in -0.33..13.68 // how long the second leaf is
+gene offset = 3.702 in -0.33..13.68 // how far along the segment its other leaves are
+gene bud_tilt = -95.8 in -286.5..286.5 // how far the middle bud tips
 gene bud_turn = 3.461 in -4..4
-gene bud_stretch = 3.797 in -0.33..13.68  // how long the middle bud and the leaf beyond it are drawn out
-gene far_angle = 113.3 in 45..135  // how far the far leaf tips out
-gene far_leaf = -0.0222 in -0.33..13.68  // how long the far leaf is
-gene far_stalk = 1.25 in 0.09..4.1  // how far out the far bud is
-gene spine = 11.76 in -0.33..13.68  // how far along the segment its last leaf is
+gene bud_stretch = 3.797 in -0.33..13.68 // how long the middle bud and the leaf beyond it are drawn out
+gene far_angle = 113.3 in 45..135 // how far the far leaf tips out
+gene far_leaf = -0.0222 in -0.33..13.68 // how long the far leaf is
+gene far_stalk = 1.25 in 0.09..4.1 // how far out the far bud is
+gene spine = 11.76 in -0.33..13.68 // how far along the segment its last leaf is
 
 // The buds' and leaves' colours, from the first segment to the last, and the gaps between them.
 gene bud_1 = hsv(99.9, 0.94, 1) in hsv(14.4, 0.5, 1)..hsv(237.6, 1, 1)

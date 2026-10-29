@@ -3,8 +3,8 @@ pattern Cells
 // The built-in kind `cells`, written in GenoCode: it draws the same pictures.
 
 let count = 15 + floor(random(0, 136))
-let keenness = random(10, 50) * sqrt(count / 60)  // how thin the walls are
-let shade = random(0.1, 0.7)  // how much the cells darken towards their edges
+let keenness = random(10, 50) * sqrt(count / 60) // how thin the walls are
+let shade = random(0.1, 0.7) // how much the cells darken towards their edges
 let grain = random(0.1, 0.4)
 let px = []
 let py = []

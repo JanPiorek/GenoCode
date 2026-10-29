@@ -2,25 +2,25 @@ creature FlyingFish
 // Three fish swimming in a triangle, with fins, eyes and tails, each chasing a fly.
 // Inspired by FlyingFish, a DancerDNA creature.
 
-gene apart = 32.1 in -20..40  // how far apart the fish are
-gene fly_at = (2.239, 4.799, -3.661) in (-10, -15, -12.13)..(10, 15, 10)  // where each fly is from its fish
-gene stray = 0.2733 in -17..10  // how far the third fish strays up or down
+gene apart = 32.1 in -20..40 // how far apart the fish are
+gene fly_at = (2.239, 4.799, -3.661) in (-10, -15, -12.13)..(10, 15, 10) // where each fly is from its fish
+gene stray = 0.2733 in -17..10 // how far the third fish strays up or down
 
 gene head_shape = ball from [ball, ring]
-gene dive = -8.008 in -65.41..65.41  // how far the fish tip their heads down
-gene bank = 0 in -114.6..114.6  // how far they roll
-gene stride = 0.6983 in 0.2..1  // how far apart the body's segments are
-gene thickness = 1.008 in 1..1.1  // how much longer each segment is than the last
-gene flap = 1.166 in 0..2  // where the body is in its beat, which bends it
-gene swim = -80.53 in -180..180  // where the segments' spacing starts its wave
+gene dive = -8.008 in -65.41..65.41 // how far the fish tip their heads down
+gene bank = 0 in -114.6..114.6 // how far they roll
+gene stride = 0.6983 in 0.2..1 // how far apart the body's segments are
+gene thickness = 1.008 in 1..1.1 // how much longer each segment is than the last
+gene flap = 1.166 in 0..2 // where the body is in its beat, which bends it
+gene swim = -80.53 in -180..180 // where the segments' spacing starts its wave
 
-gene fin_size = -0.05533 in -1..1  // how big the side fins are; never less than 0.2
-gene fin_length = 7.154 in 7..11  // how many beads each fin has
+gene fin_size = -0.05533 in -1..1 // how big the side fins are; never less than 0.2
+gene fin_length = 7.154 in 7..11 // how many beads each fin has
 gene fin_tilt = 33.67 in -57.3..57.3
-gene fin_curl = 1.657 in -22.92..28.65  // how far each bead of a fin turns from the last: up
-gene fin_sweep = 6.333 in -5.73..28.65  // and sideways
+gene fin_curl = 1.657 in -22.92..28.65 // how far each bead of a fin turns from the last: up
+gene fin_sweep = 6.333 in -5.73..28.65 // and sideways
 
-gene fly_length = 8.915 in 5..15  // how many cones the fly has
+gene fly_length = 8.915 in 5..15 // how many cones the fly has
 gene fly_size = 0.2073 in 0.2..1.2
 gene fly_curl = 12.83 in -22.92..28.65
 gene fly_sweep = 16.2 in -5.73..85.95
