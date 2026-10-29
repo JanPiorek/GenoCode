@@ -2,8 +2,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { check } from "./checker.js";
 import { valuesOf } from "./genetics.js";
-import { build } from "./interpreter.js";
+import { build, buildPattern } from "./interpreter.js";
+import { Canvas } from "./picture.js";
 import { applyEdits, rename, symbolAt } from "./symbols.js";
+import type { Pattern } from "./values.js";
 
 const FLOWER = [
   "creature Flower",
@@ -139,8 +141,18 @@ describe("renaming in the starter creatures", () => {
   it.each(files)("%s draws the same with any of its names renamed", (file) => {
     const text = readFileSync(new URL(file, dir), "utf8");
     const before = check(text);
+    // A pattern written in the file carries its code, which has the names in it: what it draws is
+    // compared instead.
+    const drawnPatterns = (_key: string, v: unknown) => {
+      if (typeof v !== "object" || v === null || !("source" in v) || !v.source) return v;
+      const { kind, seed, source, ...rest } = v as Pattern;
+      const picture = buildPattern(check(source!.text), kind!, seed, new Canvas(16), {
+        genes: new Map(source!.genes),
+      }).picture;
+      return { ...rest, seed, picture: picture && Array.from(picture.v) };
+    };
     const shapes = (p: ReturnType<typeof check>) =>
-      JSON.stringify(build(p, { genes: valuesOf(p.genes) }).shapes);
+      JSON.stringify(build(p, { genes: valuesOf(p.genes) }).shapes, drawnPatterns);
     const drawn = shapes(before);
     const declarations = new Map(before.references.map((r) => [r.declaration.start, r]));
     expect(declarations.size).toBeGreaterThan(0);
