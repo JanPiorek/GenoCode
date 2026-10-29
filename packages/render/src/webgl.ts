@@ -548,13 +548,18 @@ export class CreatureView {
     });
   }
 
-  /** Replaces the creature on show. With `keepView`, the camera stays where the viewer left it. */
-  setCreature(shapes: readonly LaidShape[], keepView = false): void {
+  /**
+   * Replaces the creature on show. With `keepView`, the camera stays where the viewer left it.
+   * With `"unless-inside"`, it stays too, unless the new creature has grown round it, such as a much
+   * bigger one pasted over a small one, which would show nothing from inside: that's framed afresh.
+   * A camera zoomed in on purpose stays. Morphing and dancing keep the camera whatever the creature
+   * does.
+   */
+  setCreature(shapes: readonly LaidShape[], keepView: boolean | "unless-inside" = false): void {
     const wasInside = this.cameraInside(this.look.shapes);
     this.look.setCreature(shapes, "high");
-    // A creature that has grown round the camera, such as a much bigger one pasted over a small
-    // one, would show nothing from inside: it's framed afresh. A camera zoomed in stays.
-    if (!keepView || (!wasInside && this.cameraInside(shapes))) this.resetView();
+    const swallowed = keepView === "unless-inside" && !wasInside && this.cameraInside(shapes);
+    if (!keepView || swallowed) this.resetView();
     this.requestFrame();
   }
 

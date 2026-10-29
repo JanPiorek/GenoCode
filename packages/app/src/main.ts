@@ -541,7 +541,7 @@ function showCurrent(keepView: boolean, panel = true): void {
     showMakeVariant(editable);
     inputs.show(live);
   }
-  const frame = (keep: boolean) => {
+  const frame = (keep: boolean | "unless-inside") => {
     const { built, background } = buildCreature(c, inputs.now());
     view.setCreature(built.shapes, keep);
     view.setBackground(background);
@@ -549,7 +549,9 @@ function showCurrent(keepView: boolean, panel = true): void {
     report(built.diagnostics, built.shapes.length, live);
     if (live && inputs.running) liveFrame = requestAnimationFrame(() => frame(true));
   };
-  frame(keepView);
+  // A change to the code that grows the creature round the camera frames it afresh; a live
+  // creature moving on its own doesn't.
+  frame(keepView && "unless-inside");
 }
 
 /** Lists problems and says what's on show. */
