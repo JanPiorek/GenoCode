@@ -3,22 +3,22 @@ creature Breeze
 // depth.
 // Inspired by Breeze, a DancerDNA creature.
 
-gene reach = (1.652, 3, 4.867) in (0, 1, 2)..(5, 5, 6)  // how far the rings wander: across, up and forward
-gene reach_waves = (0.3183, 0.4983, 0.3183) in (0, 0, 0)..(0.7958, 0.7958, 0.7958)  // how many waves they wander in, from the first ring to the last
+gene reach = (1.652, 3, 4.867) in (0, 1, 2)..(5, 5, 6) // how far the rings wander: across, up and forward
+gene reach_waves = (0.3183, 0.4983, 0.3183) in (0, 0, 0)..(0.7958, 0.7958, 0.7958) // how many waves they wander in, from the first ring to the last
 gene reach_start = (0.23, 0.03289, 0.05205) in (0, 0, 0)..(1, 1, 1)
-gene size = (1.359, 1, 0.7441) in (0, 0, 0)..(2, 2, 2)  // how big the rings grow
+gene size = (1.359, 1, 0.7441) in (0, 0, 0)..(2, 2, 2) // how big the rings grow
 gene size_waves = (0.2247, 0.2069, 0.2629) in (0.1592, 0.1592, 0.1592)..(0.3183, 0.3183, 0.3183)
 gene size_start = (0.5685, 0.5697, 0.4083) in (0.2, 0.2, 0.2)..(0.8, 0.8, 0.8)
-gene turn = (-36.23, 54.05, -15.7) in (-171.9, -171.9, -171.9)..(171.9, 171.9, 171.9)  // how far the rings turn: up, sideways and round
+gene turn = (-36.23, 54.05, -15.7) in (-171.9, -171.9, -171.9)..(171.9, 171.9, 171.9) // how far the rings turn: up, sideways and round
 gene turn_waves = (0.199, 0.1399, -0.6864) in (-0.7958, -0.7958, -0.7958)..(0.7958, 0.7958, 0.7958)
 gene turn_start = (0.7319, 0.4213, 0.4487) in (0, 0, 0)..(1, 1, 1)
 
-gene gloss = 0.826 in 0..1  // how strong the highlights are
-gene focus = 0.907 in 0..1  // how tight the highlights are
-gene hue = 189.1 in 0..252  // the rings' hue at mid-height
-gene hue_spread = 65.48 in 0..108  // how much the hue changes towards the top and bottom
+gene gloss = 0.826 in 0..1 // how strong the highlights are
+gene focus = 0.907 in 0..1 // how tight the highlights are
+gene hue = 189.1 in 0..252 // the rings' hue at mid-height
+gene hue_spread = 65.48 in 0..108 // how much the hue changes towards the top and bottom
 gene saturation = 0.7 in 0.5..1
-gene fade = 0.5129 in 0.5..1  // how much darker the rings are at the front and back
+gene fade = 0.5129 in 0.5..1 // how much darker the rings are at the front and back
 
 pitch 90
 shape ball

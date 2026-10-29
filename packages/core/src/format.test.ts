@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatText } from "./format.js";
+import { formatText, singleSpaced } from "./format.js";
 
 function fmt(text: string): string {
   const r = formatText(text);
@@ -16,11 +16,11 @@ describe("formatter", () => {
     );
   });
 
-  it("keeps each of a dance's effect settings together, two spaces between them", () => {
+  it("writes a dance's effect lines with single spaces", () => {
     const input =
-      "dance D\nmorph follows music.mid speed 2\nreverse on music.bass drops by 1 on 4 off 4\nspin follows music.hit from 45 to 170 smooth 0\n";
+      "dance D\nmorph   follows music.mid  speed 2\nreverse on music.bass drops  by 1  on 4 off 4\nspin follows music.hit from 45 to 170 smooth 0\n";
     expect(fmt(input)).toBe(
-      "dance D\nmorph follows music.mid  speed 2\nreverse on music.bass drops  by 1  on 4 off 4\nspin follows music.hit  from 45 to 170  smooth 0\n",
+      "dance D\nmorph follows music.mid speed 2\nreverse on music.bass drops by 1 on 4 off 4\nspin follows music.hit from 45 to 170 smooth 0\n",
     );
   });
 
@@ -50,11 +50,11 @@ describe("formatter", () => {
     expect(fmt(input)).toBe(
       [
         "creature T",
-        "gene a = 1 in 0..2  // one",
+        "gene a = 1 in 0..2 // one",
         "gene long_name = 0.25 in 0..1",
         "",
         "variant V {",
-        "  a = 2  // two",
+        "  a = 2 // two",
         "  long_name = 0.5",
         "}",
         "",
@@ -66,7 +66,7 @@ describe("formatter", () => {
     const input =
       "creature T\n// about\n\n\n// above\nlay   // after\nbranch { // open\n\n  lay\n  // end\n} // close\n// last\n";
     expect(fmt(input)).toBe(
-      "creature T\n// about\n\n// above\nlay  // after\nbranch {  // open\n  lay\n  // end\n}  // close\n// last\n",
+      "creature T\n// about\n\n// above\nlay // after\nbranch { // open\n  lay\n  // end\n} // close\n// last\n",
     );
   });
 
@@ -97,5 +97,27 @@ describe("formatter", () => {
 
   it("refuses text with syntax errors", () => {
     expect(formatText("creature T\nforward (\n").text).toBeUndefined();
+  });
+});
+
+describe("singleSpaced", () => {
+  it("leaves one space between things on a line", () => {
+    expect(singleSpaced("gene hue    = 200   in 0..360    // its colour\n")).toBe(
+      "gene hue = 200 in 0..360 // its colour\n",
+    );
+    expect(singleSpaced("morph   follows music.mid  speed 2;  lay\n")).toBe(
+      "morph follows music.mid speed 2; lay\n",
+    );
+  });
+
+  it("keeps indentation, line ends and what's inside strings and comments", () => {
+    const text = 'part leg {\n    print("a   b")  // two  spaces\n\n  lay   \n}\n';
+    expect(singleSpaced(text)).toBe(
+      'part leg {\n    print("a   b") // two  spaces\n\n  lay   \n}\n',
+    );
+  });
+
+  it("works on code with mistakes in it", () => {
+    expect(singleSpaced("gene  size =  \nlay   (")).toBe("gene size =  \nlay (");
   });
 });

@@ -2,29 +2,29 @@ creature Picstix
 // A ball with three coils of rainbow donuts winding out of it, and sometimes a smaller twin.
 // Inspired by Picstix, a DancerDNA creature.
 
-gene turn = (-275.4, 241.3, 218.1) in (-355.2, -355.2, -355.2)..(355.2, 355.2, 355.2)  // how the creature is turned: up, sideways and round
-gene twin_size = -8.124 in -10..3  // how big the twin is; it's left out below 0
-gene twin_rise = -38.64 in -355.2..355.2  // which way the twin is from the creature: up
-gene twin_swing = 181.8 in -355.2..355.2  // and sideways
+gene turn = (-275.4, 241.3, 218.1) in (-355.2, -355.2, -355.2)..(355.2, 355.2, 355.2) // how the creature is turned: up, sideways and round
+gene twin_size = -8.124 in -10..3 // how big the twin is; it's left out below 0
+gene twin_rise = -38.64 in -355.2..355.2 // which way the twin is from the creature: up
+gene twin_swing = 181.8 in -355.2..355.2 // and sideways
 gene twin_distance = -21.72 in -30..30
-gene twin_turn = (238, -43.79, -330.8) in (-355.2, -355.2, -355.2)..(355.2, 355.2, 355.2)  // how the twin is turned
+gene twin_turn = (238, -43.79, -330.8) in (-355.2, -355.2, -355.2)..(355.2, 355.2, 355.2) // how the twin is turned
 
-gene focus = 0.7547 in 0..1  // how tight the highlights are
+gene focus = 0.7547 in 0..1 // how tight the highlights are
 gene ball_colour = hsv(147.4, 1, 1) in hsv(0, 1, 1)..hsv(360, 1, 1)
 gene ball_turn = -29.8 in -100..100
 gene ball_size = 1.484 in 1..5
-gene colour_run = 8.901 in 1..10  // how far along its band of colours each coil's last donut is
+gene colour_run = 8.901 in 1..10 // how far along its band of colours each coil's last donut is
 
-gene coil_1_turn = -80.95 in -100..100  // which way the first coil starts
-gene coil_1_step = 0.7729 in 0..1  // how far apart its donuts are
-gene coil_1_taper = (0.8629, 0.8304, 1) in (0.75, 0.75, 1)..(1.25, 1.25, 1)  // how much each donut is squashed from the last
-gene coil_1_twist = -242 in -286.5..286.5  // how far each donut rolls from the last
-gene bend_1 = (-138.3, 99.47, 178.9) in (-286.5, -286.5, -286.5)..(286.5, 286.5, 286.5)  // how the second coil turns from the first
+gene coil_1_turn = -80.95 in -100..100 // which way the first coil starts
+gene coil_1_step = 0.7729 in 0..1 // how far apart its donuts are
+gene coil_1_taper = (0.8629, 0.8304, 1) in (0.75, 0.75, 1)..(1.25, 1.25, 1) // how much each donut is squashed from the last
+gene coil_1_twist = -242 in -286.5..286.5 // how far each donut rolls from the last
+gene bend_1 = (-138.3, 99.47, 178.9) in (-286.5, -286.5, -286.5)..(286.5, 286.5, 286.5) // how the second coil turns from the first
 gene coil_2_turn = -47.15 in -100..100
 gene coil_2_step = 0.319 in 0..1
 gene coil_2_taper = (1.123, 1.175, 1) in (0.75, 0.75, 1)..(1.25, 1.25, 1)
 gene coil_2_twist = -95.35 in -286.5..286.5
-gene bend_2 = (-46.71, 189.7, 37.27) in (-286.5, -286.5, -286.5)..(286.5, 286.5, 286.5)  // how the third coil turns from the second
+gene bend_2 = (-46.71, 189.7, 37.27) in (-286.5, -286.5, -286.5)..(286.5, 286.5, 286.5) // how the third coil turns from the second
 gene coil_3_turn = -12.35 in -100..100
 gene coil_3_step = 1.92 in 0..3
 gene coil_3_taper = (1.188, 0.9093, 1) in (0.75, 0.75, 1)..(1.25, 1.25, 1)

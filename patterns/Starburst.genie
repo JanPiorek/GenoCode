@@ -3,7 +3,7 @@ pattern Starburst
 // `starburst`, written in GenoCode: it draws the same pictures.
 
 let count = (12 + floor(random(0, 117))) * 4
-let strength = random(2, 5)  // how few of the rays are bright
+let strength = random(2, 5) // how few of the rays are bright
 let reach = random(0.6, 2)
 let core = random(3, 10)
 let soften = random(1, 3)

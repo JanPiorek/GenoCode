@@ -90,7 +90,7 @@ describe("variants", () => {
     const text =
       CREATURE + "variant  Big {size=2;n=6}\nvariant Odd {\n leg.reach = 3 // longer\n  n = 2\n}\n";
     expect(formatText(text).text).toContain(
-      "\nvariant Big { size = 2; n = 6 }\n\nvariant Odd {\n  leg.reach = 3  // longer\n  n = 2\n}\n",
+      "\nvariant Big { size = 2; n = 6 }\n\nvariant Odd {\n  leg.reach = 3 // longer\n  n = 2\n}\n",
     );
   });
 

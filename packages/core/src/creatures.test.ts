@@ -1,11 +1,10 @@
-// Every starter creature in creatures/ checks, is in the standard layout, builds in each of its
-// variants and keeps its colours steady while morphing; every dance style in dances/ checks and
-// works out.
+// Every starter creature in creatures/ checks, builds in each of its variants and keeps its colours
+// steady while morphing; every dance style in dances/ checks and works out. How they're spaced is up
+// to whoever wrote them.
 
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { check } from "./checker.js";
-import { formatText } from "./format.js";
 import { valuesOf } from "./genetics.js";
 import { build, buildDance } from "./interpreter.js";
 import { colourJumps } from "./jumps.js";
@@ -17,9 +16,8 @@ describe.each(files)("%s", (file) => {
   const text = readFileSync(new URL(file, dir), "utf8");
   const program = check(text);
 
-  it("checks without problems and is in the standard layout", () => {
+  it("checks without problems", () => {
     expect(program.diagnostics.map((d) => d.message)).toEqual([]);
-    expect(formatText(text).text).toBe(text);
   });
 
   it("builds, in every variant", () => {
@@ -51,9 +49,8 @@ describe.each(dances)("dance style %s", (file) => {
   const text = readFileSync(new URL(file, danceDir), "utf8");
   const program = check(text);
 
-  it("checks without problems, is in the standard layout, and works out", () => {
+  it("checks without problems and works out", () => {
     expect(program.diagnostics.map((d) => d.message)).toEqual([]);
-    expect(formatText(text).text).toBe(text);
     const r = buildDance(program, { inputs: { music: { bass: 1, mid: 1, high: 1, level: 1 } } });
     expect(r.diagnostics.map((d) => d.message)).toEqual([]);
     expect(r.style?.morph).toBeDefined();

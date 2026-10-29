@@ -167,7 +167,7 @@ gene coils = 3 in 1..6 step 1
 
 grow hood
 repeat coils {
-  yaw random(-20, 20)  // each coil bends a random way
+  yaw random(-20, 20) // each coil bends a random way
   forward 1
   lay
 }
@@ -176,7 +176,7 @@ variant Coiled { coils = 6; hood = 0.8 }
 
 variant Wide {
   hood = 2
-  seed = 42  // bends its coils other ways
+  seed = 42 // bends its coils other ways
 }
 ```
 
@@ -239,7 +239,7 @@ or `pattern` body. Not inside `if`, loops, `branch`, `symmetric`, `lay { }` or `
 ```
 creature Critter
 
-gene petals = 7 in 3..16 step 1  // how many limbs
+gene petals = 7 in 3..16 step 1 // how many limbs
 gene size = 1 in 0.1..10 log
 gene skin = hsv(120, 0.6, 0.9) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)
 gene warm = hsv(20, 0.8, 1) in hsv(300, 0.5, 0.5)..hsv(40, 1, 1)
@@ -260,7 +260,7 @@ repeat petals as i {
 }
 
 part leg(reach) {
-  gene bend = 30 in 0..90  // how far the legs bend
+  gene bend = 30 in 0..90 // how far the legs bend
   colour warm
   pitch bend
   forward reach
@@ -343,11 +343,11 @@ name /= value
 
 ```
 let reach = 3
-reach *= 0.5  // now 1.5
+reach *= 0.5 // now 1.5
 
 let sizes = []
 repeat 4 as i {
-  sizes += [i + 1]  // now [1, 2, 3, 4]
+  sizes += [i + 1] // now [1, 2, 3, 4]
 }
 ```
 
@@ -703,7 +703,7 @@ move offset
 **Example**
 
 ```
-move (1, 2, 0)  // one to the side, two up
+move (1, 2, 0) // one to the side, two up
 lay
 ```
 
@@ -731,7 +731,7 @@ pitch angle
 **Example**
 
 ```
-pitch -90  // now heading up
+pitch -90 // now heading up
 forward 3
 lay
 ```
@@ -846,7 +846,7 @@ grow factors
 ```
 grow 2
 lay
-lay { grow (1, 0.2, 3) }  // a flat slab, this shape only
+lay { grow (1, 0.2, 3) } // a flat slab, this shape only
 ```
 
 **See also:** [mirror](#mirror), [Growing and mirroring](LANGUAGE.md#114-growing-and-mirroring)
@@ -876,7 +876,7 @@ mirror z
 
 ```
 mirror x
-yaw 30  // turns the other way now
+yaw 30 // turns the other way now
 forward 2
 lay
 ```
@@ -973,7 +973,7 @@ reshape { … }
 reshape { grow (1, 0.3, 4) }
 lay
 forward 2
-lay  // both shapes long and flat
+lay // both shapes long and flat
 ```
 
 **See also:** [lay](#lay), [The shape transform](LANGUAGE.md#117-the-shape-transform)
@@ -1033,7 +1033,7 @@ lay { … }
 
 ```
 shape tube
-lay { grow (0.3, 0.3, 4) }  // a long thin tube
+lay { grow (0.3, 0.3, 4) } // a long thin tube
 ```
 
 **See also:** [shape](#shape), [reshape](#reshape)
@@ -1217,7 +1217,7 @@ background Name
 ```
 background {
   gene hue = 260 in 0..360
-  gene pulse = 30 in 0..90  // how far the colours shift with the bass
+  gene pulse = 30 in 0..90 // how far the colours shift with the bass
 
   fill pattern(aurora, hue + pulse * music.bass, 12)
 }
@@ -1284,7 +1284,7 @@ dance Name
 
 ```
 dance {
-  gene drive = 1.1 in 0.3..3  // how fast the music pushes the morph
+  gene drive = 1.1 in 0.3..3 // how fast the music pushes the morph
 
   morph follows music.mid speed drive settle 2
   zoom follows music.level amount 0.5 settle 15
@@ -2054,7 +2054,7 @@ and repeating after that.
 **Example**
 
 ```
-yaw 20 * wave(time / 4)  // sways once every 4 seconds
+yaw 20 * wave(time / 4) // sways once every 4 seconds
 ```
 
 **See also:** [bump](#bump), [sin](#sin)
@@ -2260,7 +2260,7 @@ hsv(h, s, v, a)
 
 ```
 colour hsv(200, 0.8, 1)
-colour hsv(0, 1, 1, 0.5)  // see-through red
+colour hsv(0, 1, 1, 0.5) // see-through red
 ```
 
 **See also:** [rgb](#rgb), [colour names](#colour-names), [Colours](LANGUAGE.md#131-colours)
@@ -2282,7 +2282,7 @@ rgb(r, g, b, a)
 **Example**
 
 ```
-colour rgb(1, 0.5, 0)  // orange, the same as #ff8000
+colour rgb(1, 0.5, 0) // orange, the same as #ff8000
 ```
 
 **See also:** [hsv](#hsv)
@@ -2327,7 +2327,7 @@ repeat 20 as i {
 }
 
 let flag = gradient(blue, blue at 0.5, white at 0.5, white)
-colour flag(0.7)  // white: past the edge
+colour flag(0.7) // white: past the edge
 lay
 
 background {
@@ -2709,7 +2709,7 @@ when no music is playing.
 **Example**
 
 ```
-roll 45 * time  // turns 45 degrees a second
+roll 45 * time // turns 45 degrees a second
 lay
 ```
 
@@ -2753,7 +2753,7 @@ music.part
 **Example**
 
 ```
-gene flap = 30 in 0..70  // how hard the wings beat with the bass
+gene flap = 30 in 0..70 // how hard the wings beat with the bass
 
 symmetric x {
   roll 10 + flap * music.bass
@@ -2825,7 +2825,7 @@ parameter, part or function.
 ```
 repeat 50 as i {
   branch {
-    yaw i * 360 / golden  // spreads them like seeds in a sunflower
+    yaw i * 360 / golden // spreads them like seeds in a sunflower
     forward sqrt(i) * 0.5
     lay
   }

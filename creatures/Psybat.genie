@@ -3,18 +3,18 @@ creature Psybat
 // with a bone of beads beside it.
 // Inspired by Psybat, a DancerDNA creature.
 
-gene shoulder = 7.692 in -40..60  // how far from the middle each wing starts
-gene spread = 23.93 in -171.9..171.9  // how far the wings turn out to the sides
-gene vane_tilt = 43.04 in -45..45  // how far each rib tips up from the wing
-gene vane_dip = -13.09 in -45..45  // how far its vane tips back down
-gene vane_long = 7.706 in 1..11  // how long the vanes are
-gene vane_out = -0.9186 in -14..14  // how far out along the vane its bead is
-gene bone_grow = 1.038 in 1.01..1.1  // how much bigger the bone's bead is than the vane
-gene bone_roll = 5.653 in -25..25  // how far the bone turns round from the vane
-gene bone_out = -5.682 in -14..14  // how far out the bone's bead is
-gene rib_gap = 0.1545 in -0.5..0.5  // how far apart the ribs are
-gene rib_grow = 1.035 in 1.01..1.1  // how much bigger each rib is than the last
-gene rib_roll = -17.97 in -25..25  // how far each rib turns round from the last
+gene shoulder = 7.692 in -40..60 // how far from the middle each wing starts
+gene spread = 23.93 in -171.9..171.9 // how far the wings turn out to the sides
+gene vane_tilt = 43.04 in -45..45 // how far each rib tips up from the wing
+gene vane_dip = -13.09 in -45..45 // how far its vane tips back down
+gene vane_long = 7.706 in 1..11 // how long the vanes are
+gene vane_out = -0.9186 in -14..14 // how far out along the vane its bead is
+gene bone_grow = 1.038 in 1.01..1.1 // how much bigger the bone's bead is than the vane
+gene bone_roll = 5.653 in -25..25 // how far the bone turns round from the vane
+gene bone_out = -5.682 in -14..14 // how far out the bone's bead is
+gene rib_gap = 0.1545 in -0.5..0.5 // how far apart the ribs are
+gene rib_grow = 1.035 in 1.01..1.1 // how much bigger each rib is than the last
+gene rib_roll = -17.97 in -25..25 // how far each rib turns round from the last
 
 // Each part's two colours, which alternate in stripes across the wing, and how wide the
 // stripes are.

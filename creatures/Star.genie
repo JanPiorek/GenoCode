@@ -2,18 +2,18 @@ creature Star
 // Five arms of interlocking rings, like chains, bending and swelling as they reach out.
 // Inspired by Star, a DancerDNA creature.
 
-gene twist = -29.76 in -45.84..45.84  // how far the arms twist
-gene twist_waves = 1.731 in 0.5..4  // how many half-waves the twist makes along an arm
-gene twist_start = 0.2835 in -1..1  // where along the arm the twist starts
-gene rise = -22.87 in -45.84..45.84  // how far the arms bend up and down
+gene twist = -29.76 in -45.84..45.84 // how far the arms twist
+gene twist_waves = 1.731 in 0.5..4 // how many half-waves the twist makes along an arm
+gene twist_start = 0.2835 in -1..1 // where along the arm the twist starts
+gene rise = -22.87 in -45.84..45.84 // how far the arms bend up and down
 gene rise_waves = 3.569 in 0.5..4
 gene rise_start = 0.7635 in -1..1
-gene sway = -7.982 in -45.84..45.84  // how far the arms bend from side to side
+gene sway = -7.982 in -45.84..45.84 // how far the arms bend from side to side
 gene sway_waves = 2.758 in 0.5..4
 gene sway_start = 0.7958 in -1..1
 
-gene swell = (0.2831, 0.1906, -0.1473) in (-0.4, -0.4, -0.4)..(0.4, 0.4, 0.4)  // how much the links grow and shrink: across, up and along
-gene swell_waves = (4.965, 17.21, 1.795) in (0, 0, 0)..(20, 20, 20)  // how many half-waves the swelling makes along an arm
+gene swell = (0.2831, 0.1906, -0.1473) in (-0.4, -0.4, -0.4)..(0.4, 0.4, 0.4) // how much the links grow and shrink: across, up and along
+gene swell_waves = (4.965, 17.21, 1.795) in (0, 0, 0)..(20, 20, 20) // how many half-waves the swelling makes along an arm
 gene swell_start = (0.1605, -0.7255, -0.9763) in (-1, -1, -1)..(1, 1, 1)
 
 // The colours of the links lying flat and of those standing upright, from the middle out, and

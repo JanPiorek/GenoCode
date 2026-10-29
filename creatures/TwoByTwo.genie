@@ -3,20 +3,20 @@ creature TwoByTwo
 // the other.
 // Inspired by 2by2, a DancerDNA creature.
 
-gene ball_stretch = 0.1725 in -0.33..13.68  // how long the ball is drawn out
-gene arm_start = 0.7768 in 0.09..11.27  // how far from the ball the arms start
-gene arm_1_length = 48.32 in 2..50  // how many petals each arm has; the last is cut short to fit
+gene ball_stretch = 0.1725 in -0.33..13.68 // how long the ball is drawn out
+gene arm_start = 0.7768 in 0.09..11.27 // how far from the ball the arms start
+gene arm_1_length = 48.32 in 2..50 // how many petals each arm has; the last is cut short to fit
 gene arm_2_length = 20.11 in 2..50
-gene first_offset = (-6.349, -2.84, -2.804) in (-44.35, -15, -15)..(15, 15, 15)  // where the arms' second petal is from the first
-gene splay = -16.57 in -40.11..40.11  // how far each petal turns out to the side
-gene lean = -15.12 in -50..50  // how far each petal tips up
-gene petal_tip = -1.711 in -50..50  // how far it tips again, towards its bud
+gene first_offset = (-6.349, -2.84, -2.804) in (-44.35, -15, -15)..(15, 15, 15) // where the arms' second petal is from the first
+gene splay = -16.57 in -40.11..40.11 // how far each petal turns out to the side
+gene lean = -15.12 in -50..50 // how far each petal tips up
+gene petal_tip = -1.711 in -50..50 // how far it tips again, towards its bud
 gene petal_length = 5.908 in -0.33..13.68
-gene bud_out = 3.096 in -4..4.09  // how far out along the petal its bud is
-gene bead_out = -4 in -13.38..4.09  // how far out its bead is
-gene taper = 0.9457 in 0.9..1.1  // how much bigger each petal is than the last
-gene curl = 19.37 in -50..50  // how far each petal turns from the last
-gene colour_run = 2.708 in 1..3  // how far along its colours each arm goes
+gene bud_out = 3.096 in -4..4.09 // how far out along the petal its bud is
+gene bead_out = -4 in -13.38..4.09 // how far out its bead is
+gene taper = 0.9457 in 0.9..1.1 // how much bigger each petal is than the last
+gene curl = 19.37 in -50..50 // how far each petal turns from the last
+gene colour_run = 2.708 in 1..3 // how far along its colours each arm goes
 
 // The petals', buds' and beads' colours, from the ball out, and the gaps between them.
 gene petal_1 = hsv(48, 0.6, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)

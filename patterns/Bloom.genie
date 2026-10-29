@@ -4,7 +4,7 @@ pattern Bloom
 
 let petals = 3 + floor(random(0, 11))
 let inner = 7 + floor(random(0, 15))
-let depth = random(0.05, 0.25)  // how deep the petals are
+let depth = random(0.05, 0.25) // how deep the petals are
 let rings = random(10, 40)
 let decay = random(0.8, 2.5)
 let zoom = random(0.05, 0.3)

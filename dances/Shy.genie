@@ -3,8 +3,8 @@ dance Shy
 // middle turns it; drops in the hi-hats reverse it.
 // Inspired by morph shy, a DancerDNA music style.
 
-morph follows music.high  speed 1.6  settle 1
-zoom follows music.mid_hit  amount 0.5  settle 94.3
-spin follows music.mid  from 22.9 to 218  smooth 0.6
-turn on music.mid changes  by 0.5
-reverse on music.high_hit drops  by 0.49  on 4 off 4
+morph follows music.high speed 1.6 settle 1
+zoom follows music.mid_hit amount 0.5 settle 94.3
+spin follows music.mid from 22.9 to 218 smooth 0.6
+turn on music.mid changes by 0.5
+reverse on music.high_hit drops by 0.49 on 4 off 4

@@ -3,20 +3,20 @@ creature Genie
 // opens out as the genie comes out of its lamp.
 // Inspired by Genie, a DancerDNA creature.
 
-gene out = 0.9594 in 0..1  // how far the genie has come out: 0 keeps it small and tightly wound
-gene gloss = 0.2456 in 0..1  // how strong the highlights are
-gene focus = 0.3574 in 0..1  // how tight the highlights are
+gene out = 0.9594 in 0..1 // how far the genie has come out: 0 keeps it small and tightly wound
+gene gloss = 0.2456 in 0..1 // how strong the highlights are
+gene focus = 0.3574 in 0..1 // how tight the highlights are
 
-gene spiral_angle = 125.3 in 45..135  // how far the spirals' petals tip out
-gene petal_shape = (1, 0.9997, 7.03) in (1, 0.999, -0.322)..(1, 1, 13.68)  // how the petals are drawn out
-gene petal_out = 3.454 in 0.095..4.1  // how far out the beads beyond the petals are
-gene spiral_grow = 1.079 in 1.01..1.1  // how much bigger each turn of a spiral is than the last
-gene spiral_roll = -24.86 in -25..25  // how far each turn rolls from the last
+gene spiral_angle = 125.3 in 45..135 // how far the spirals' petals tip out
+gene petal_shape = (1, 0.9997, 7.03) in (1, 0.999, -0.322)..(1, 1, 13.68) // how the petals are drawn out
+gene petal_out = 3.454 in 0.095..4.1 // how far out the beads beyond the petals are
+gene spiral_grow = 1.079 in 1.01..1.1 // how much bigger each turn of a spiral is than the last
+gene spiral_roll = -24.86 in -25..25 // how far each turn rolls from the last
 
 gene ring_size = 0.5 in 0.1..1
-gene radius = 40.98 in 40..200  // how far out the discs are, when the genie is fully out
+gene radius = 40.98 in 40..200 // how far out the discs are, when the genie is fully out
 gene discs = 96 in 50..100 step 1
-gene ring_spread = 39.72 in 0..45.84  // how far the ring of discs twists open
+gene ring_spread = 39.72 in 0..45.84 // how far the ring of discs twists open
 
 // The colours of the discs round the ring, of the spirals' petals and of their beads, with the
 // gaps between them.

@@ -118,7 +118,7 @@ describe("blocks to code", () => {
     gene.fields!["DESC"] = "new description";
     gene.icons!.comment!.text = "new note\nsecond line";
     expect(format(fromBlocks(state).file!)).toBe(
-      "creature A\n\n// new note\n// second line\ngene size = 1 in 0..2  // new description\n",
+      "creature A\n\n// new note\n// second line\ngene size = 1 in 0..2 // new description\n",
     );
   });
 });

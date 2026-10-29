@@ -3,10 +3,10 @@ creature Jellyfish
 // two rings of glowing cubes.
 // Inspired by Jellyfish, a DancerDNA creature.
 
-gene neon = 0 in 0..1  // how much its bell wears its neon texture, as the Neon variant does
+gene neon = 0 in 0..1 // how much its bell wears its neon texture, as the Neon variant does
 
-gene bell_start = -94.85 in -114.6..114.6  // how far the ribs tip at the top of the bell
-gene bend_1 = 0.4957 in -22.92..22.92  // how far the ribs bend, in two waves added together
+gene bell_start = -94.85 in -114.6..114.6 // how far the ribs tip at the top of the bell
+gene bend_1 = 0.4957 in -22.92..22.92 // how far the ribs bend, in two waves added together
 gene bend_waves_1 = 3.834 in 1..4
 gene bend_start_1 = 0.1518 in -1..1
 gene bend_2 = -1.97 in -22.92..22.92
@@ -15,7 +15,7 @@ gene bend_start_2 = 0.04078 in -1..1
 
 gene glow_size = 1.803 in 0.8..2.5
 gene glow_radius = 34.12 in 20..50
-gene glow_turn = (-0.7045, -7.675, 11.61) in (-57.3, -57.3, -57.3)..(57.3, 57.3, 57.3)  // how far each cube turns from the last: up, sideways and round
+gene glow_turn = (-0.7045, -7.675, 11.61) in (-57.3, -57.3, -57.3)..(57.3, 57.3, 57.3) // how far each cube turns from the last: up, sideways and round
 gene glow_turn_waves = (1.517, 0.7952, 0.5548) in (0, 0, 0)..(2, 2, 2)
 gene glow_turn_start = (0.05573, -0.0008917, 0.1254) in (-0.5, -0.5, -0.5)..(0.5, 0.5, 0.5)
 
@@ -32,7 +32,7 @@ gene bead_3 = hsv(273.5, 0.85, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)
 gene bead_4 = hsv(155.3, 0.88, 1) in hsv(0, 0.4, 1)..hsv(360, 1, 1)
 gene bead_gaps = (0.5986, 0.3542, 0.3142) in (0.25, 0.25, 0.25)..(1, 1, 1)
 gene glow_hue = 104.2 in 0..252
-gene glow_sat = (0.5988, 0.5952, 0.7281) in (0.4, 0.4, 0.4)..(1, 1, 1)  // how strong the glow's colour is: first, middle and last
+gene glow_sat = (0.5988, 0.5952, 0.7281) in (0.4, 0.4, 0.4)..(1, 1, 1) // how strong the glow's colour is: first, middle and last
 gene glow_gap_1 = 0.3773 in 0.33..1
 gene glow_gap_2 = 0.867 in 0.33..1
 

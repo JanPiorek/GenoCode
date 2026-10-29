@@ -3,22 +3,22 @@ creature Octoplant
 // height and depth.
 // Inspired by Octoplant, a DancerDNA creature.
 
-gene reach = (4.492, 13.9, 19.67) in (3, 3, 3)..(20, 20, 20)  // how far the beads wander: across, up and forward
-gene reach_waves = (0.5563, 0.5624, 0.5415) in (0, 0, 0)..(0.7958, 0.7958, 0.7958)  // how many waves they wander in, from the first bead to the last
+gene reach = (4.492, 13.9, 19.67) in (3, 3, 3)..(20, 20, 20) // how far the beads wander: across, up and forward
+gene reach_waves = (0.5563, 0.5624, 0.5415) in (0, 0, 0)..(0.7958, 0.7958, 0.7958) // how many waves they wander in, from the first bead to the last
 gene reach_start = (0.6078, 0.2381, 0.2523) in (0, 0, 0)..(1, 1, 1)
-gene size = (3.837, 7.493, 4.109) in (1, 1, 1)..(8, 8, 8)  // how big the beads grow
+gene size = (3.837, 7.493, 4.109) in (1, 1, 1)..(8, 8, 8) // how big the beads grow
 gene size_waves = (0.4048, 0.221, 0.3398) in (0, 0, 0)..(0.7958, 0.7958, 0.7958)
 gene size_start = (0.5367, 0.964, 0.6883) in (0, 0, 0)..(1, 1, 1)
-gene turn = (-133.5, 78.03, 168.1) in (-171.9, -171.9, -171.9)..(171.9, 171.9, 171.9)  // how far the beads turn: up, sideways and round
+gene turn = (-133.5, 78.03, 168.1) in (-171.9, -171.9, -171.9)..(171.9, 171.9, 171.9) // how far the beads turn: up, sideways and round
 gene turn_waves = (0.5211, 0.2739, 0.7649) in (0, 0, 0)..(0.7958, 0.7958, 0.7958)
 gene turn_start = (0.841, 0.0661, 0.3302) in (0, 0, 0)..(1, 1, 1)
 
-gene gloss = 0.3306 in 0..1  // how strong the highlights are
-gene focus = 0.9986 in 0..1  // how tight the highlights are
-gene hue = 179.4 in 0..252  // the beads' hue at mid-height
-gene hue_spread = 48.21 in 0..108  // how much the hue changes towards the top and bottom
+gene gloss = 0.3306 in 0..1 // how strong the highlights are
+gene focus = 0.9986 in 0..1 // how tight the highlights are
+gene hue = 179.4 in 0..252 // the beads' hue at mid-height
+gene hue_spread = 48.21 in 0..108 // how much the hue changes towards the top and bottom
 gene saturation = 0.5193 in 0.5..1
-gene fade = 0.7613 in 0.5..1  // how much darker the beads are at the front and back
+gene fade = 0.7613 in 0.5..1 // how much darker the beads are at the front and back
 
 pitch 90
 repeat 8 {
