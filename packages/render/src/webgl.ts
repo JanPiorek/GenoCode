@@ -550,9 +550,19 @@ export class CreatureView {
 
   /** Replaces the creature on show. With `keepView`, the camera stays where the viewer left it. */
   setCreature(shapes: readonly LaidShape[], keepView = false): void {
+    const wasInside = this.cameraInside(this.look.shapes);
     this.look.setCreature(shapes, "high");
-    if (!keepView) this.resetView();
+    // A creature that has grown round the camera, such as a much bigger one pasted over a small
+    // one, would show nothing from inside: it's framed afresh. A camera zoomed in stays.
+    if (!keepView || (!wasInside && this.cameraInside(shapes))) this.resetView();
     this.requestFrame();
+  }
+
+  /** Whether the camera is within these shapes' bounds. */
+  private cameraInside(shapes: readonly LaidShape[]): boolean {
+    if (shapes.length === 0) return false;
+    const { centre, radius } = creatureBounds(shapes);
+    return this.camera.position.distanceTo(new Vector3(...centre)) < radius;
   }
 
   /** Shows a background's fill: a colour, a gradient or a pattern. */
