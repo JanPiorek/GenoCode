@@ -221,6 +221,11 @@ function show(text: string, keepView: boolean, carried?: ReadonlyMap<string, Val
   if (mode === "breed" && current && !breeder.holds(current)) {
     breeder.start(familyOf(current), strength());
   }
+  // A background has no creature to morph or dance: it's shown instead.
+  if ((mode === "morph" || mode === "dance") && current && !hasCreature(current)) {
+    setMode("view");
+    return;
+  }
   if (mode === "morph" && current) startMorph();
   // A new creature while dancing keeps the style it's danced to.
   if (mode === "dance" && current) startDance(true);
@@ -422,7 +427,12 @@ function changesSinceSaved(): { values: Map<string, Value>; putBack: Edit[] } | 
 /** The genes panel's Make a variant button: shown with the gene controls, active after changes. */
 function showMakeVariant(editable: boolean): void {
   const button = $<HTMLButtonElement>("make-variant");
-  button.hidden = !editable || mode !== "view" || !current || current.program.genes.length === 0;
+  button.hidden =
+    !editable ||
+    mode !== "view" ||
+    !current ||
+    !hasVariants(current) ||
+    current.program.genes.length === 0;
   if (button.hidden) return;
   const changed = changesSinceSaved() !== undefined;
   button.disabled = !changed;
@@ -816,6 +826,16 @@ function strengthOf(slider: number): number {
   );
 }
 
+/** Whether there's a creature to morph or dance: a pattern is shown on a ball, a background alone isn't. */
+function hasCreature(c: Creature): boolean {
+  return c.program.file.kind !== "background";
+}
+
+/** Only a creature file can hold variants. */
+function hasVariants(c: Creature): boolean {
+  return c.program.file.kind === "creature";
+}
+
 function enableTools(): void {
   const ok = current !== undefined;
   for (const b of document.querySelectorAll<HTMLButtonElement>(
@@ -832,12 +852,29 @@ function enableTools(): void {
       ? "This creature says `breed off`: its children don't keep its look"
       : "Breed new creatures from this one";
   }
+  const bare = current !== undefined && !hasCreature(current);
+  for (const b of document.querySelectorAll<HTMLButtonElement>(
+    "[data-mode=morph], [data-go=morph], [data-mode=dance], [data-go=dance]",
+  )) {
+    const morph = (b.dataset["mode"] ?? b.dataset["go"]) === "morph";
+    if (bare) b.disabled = true;
+    b.title = bare
+      ? `A background on its own has nothing to ${morph ? "morph" : "dance"}`
+      : morph
+        ? "Watch the creature flow through its family"
+        : "Make it dance to music";
+  }
   // `breed off` rules out mutating as well as breeding.
   const chosen = unbred ? 0 : breeder.selection.length;
   $<HTMLButtonElement>("mutate").disabled = chosen < 1;
   $<HTMLButtonElement>("breed").disabled = chosen < 2;
   $<HTMLButtonElement>("back").disabled = !breeder.canGoBack;
-  $<HTMLButtonElement>("add-variant").disabled = chosen !== 1;
+  const addVariant = $<HTMLButtonElement>("add-variant");
+  const variantless = !current || !hasVariants(current);
+  addVariant.disabled = chosen !== 1 || variantless;
+  addVariant.title = variantless
+    ? "Only a creature can have variants: a background, pattern or dance file can't"
+    : "Add the creature you picked to the open creature as a variant";
   $("breed-hint").textContent =
     breedNote ||
     (chosen === 0
