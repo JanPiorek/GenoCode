@@ -870,10 +870,10 @@ function enableTools(): void {
   $<HTMLButtonElement>("breed").disabled = chosen < 2;
   $<HTMLButtonElement>("back").disabled = !breeder.canGoBack;
   const addVariant = $<HTMLButtonElement>("add-variant");
-  const variantless = current !== undefined && !hasVariants(current);
+  const variantless = !current || !hasVariants(current);
   addVariant.disabled = chosen !== 1 || variantless;
   addVariant.title = variantless
-    ? "Only a creature can have variants: a background or pattern file can't"
+    ? "Only a creature can have variants: a background, pattern or dance file can't"
     : "Add the creature you picked to the open creature as a variant";
   $("breed-hint").textContent =
     breedNote ||
