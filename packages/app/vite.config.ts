@@ -60,6 +60,20 @@ function siteFiles(): SiteFile[] {
   return [...files, { path: "sitemap.xml", type: "application/xml", make: () => sitemap(pages) }];
 }
 
+/**
+ * Cloudflare Web Analytics: counts visits to every page, without cookies. Only the build gets it,
+ * so visits while developing aren't counted.
+ */
+const ANALYTICS = `<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "248bb111f7a845ab8bd85e4bf5506cb1"}'></script>`;
+
+/** Adds ANALYTICS to an HTML page's head. */
+const withAnalytics = (html: string) => html.replace("</head>", `${ANALYTICS}\n</head>`);
+
+/** Puts the analytics script in the front page and the app when they're built. */
+function analytics(): Plugin {
+  return { name: "analytics", apply: "build", transformIndexHtml: withAnalytics };
+}
+
 /** Serves the website's pages while developing, and writes them out in the build. */
 function site(): Plugin {
   return {
@@ -84,15 +98,17 @@ function site(): Plugin {
       });
     },
     generateBundle() {
-      for (const f of siteFiles())
-        this.emitFile({ type: "asset", fileName: f.path, source: f.make() });
+      for (const f of siteFiles()) {
+        const source = f.path.endsWith(".html") ? withAnalytics(f.make() as string) : f.make();
+        this.emitFile({ type: "asset", fileName: f.path, source });
+      }
     },
   };
 }
 
 export default defineConfig({
   base: "./",
-  plugins: [blocklyMedia(), site()],
+  plugins: [blocklyMedia(), site(), analytics()],
   resolve: {
     // Use the other packages' sources directly, so changes show up without rebuilding them.
     alias: {
