@@ -126,6 +126,15 @@ describe("turtle", () => {
     expect(run("yaw 90\nforward 2\nprint(turtle.position)").printed[0]).toBe("(2, 0, 1.22465e-16)");
     expect(run("mirror y\nprint(turtle.mirrored, turtle.up)").printed[0]).toBe("true (0, -1, 0)");
   });
+
+  it("marks the focus point where the turtle is, the last one counting", () => {
+    expect(run("lay").focus).toBeUndefined();
+    expect(run("forward 2\nfocuspoint\nforward 1\nlay").focus).toEqual([0, 0, 2]);
+    const head = "part head {\n  forward 3\n  focuspoint\n}\nbranch {\n  head\n}";
+    expect(run(head).focus).toEqual([0, 0, 3]);
+    expect(near(run(`${head}\nyaw 90\nforward 1\nfocuspoint`).focus!)).toEqual([1, 0, 0]);
+    expect(run("forward 1 / 0\nfocuspoint").focus).toBeUndefined();
+  });
 });
 
 describe("control flow, parts and functions", () => {

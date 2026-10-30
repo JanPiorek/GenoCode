@@ -122,6 +122,11 @@ export interface LaidShape {
 
 export interface BuildResult {
   shapes: LaidShape[];
+  /**
+   * Where the camera looks: the turtle's position at the last `focuspoint` (section 11.8), or
+   * undefined if the creature has none and the middle of its shapes is used instead.
+   */
+  focus?: [number, number, number] | undefined;
   diagnostics: Diagnostic[];
   /** What `print` wrote, one entry per call. */
   printed: string[];
@@ -156,7 +161,13 @@ export function build(program: CheckResult, options: BuildOptions = {}): BuildRe
     };
   }
   run.guarded(() => run.runCreature());
-  return { shapes: run.shapes, diagnostics: run.finish(), printed: run.printed, ok: !run.failed };
+  return {
+    shapes: run.shapes,
+    focus: run.focus,
+    diagnostics: run.finish(),
+    printed: run.printed,
+    ok: !run.failed,
+  };
 }
 
 /** Which moves of an input trigger an effect (section 17). */
@@ -403,6 +414,7 @@ const WHITE: Colour = { type: "colour", h: 0, s: 0, v: 1, a: 1 };
 
 class Run {
   shapes: LaidShape[] = [];
+  focus: [number, number, number] | undefined;
   printed: string[] = [];
   failed = false;
   fill: Value | undefined;
@@ -716,6 +728,12 @@ class Run {
         }
         this.lay(s.span);
         this.state.shapeFrame = saved;
+        return;
+      }
+      case "FocusPoint": {
+        const [x, y, z] = this.state.turtle.pos;
+        // Like a shape whose placement isn't finite, a focus point that isn't is left out.
+        if ([x, y, z].every(Number.isFinite)) this.focus = [x, y, z];
         return;
       }
       case "Reshape":

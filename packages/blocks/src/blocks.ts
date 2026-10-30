@@ -539,6 +539,18 @@ export function defineBlocks(): void {
     },
   });
 
+  define("g_focuspoint", {
+    init(this: GBlock) {
+      this.extra = {};
+      this.appendDummyInput().appendField("focus point here");
+      statement(
+        this,
+        HUES.turtle,
+        "Makes where the turtle is the creature's middle: the camera looks here, and a dance turns the creature round here.",
+      );
+    },
+  });
+
   define("g_lay", {
     init(this: GBlock) {
       this.extra = {};

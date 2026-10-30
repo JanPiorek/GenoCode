@@ -64,6 +64,13 @@ describe("framing", () => {
     expect(creatureBounds([])).toEqual({ centre: [0, 0, 0], radius: 1 });
   });
 
+  it("centres the sphere on a focus point, reaching the furthest shape", () => {
+    const b = creatureBounds(shapes("lay\nforward 4\nlay"), [0, 0, 0]);
+    expect(b.centre).toEqual([0, 0, 0]);
+    expect(b.radius).toBeCloseTo(Math.hypot(0.5, 0.5, 4.5));
+    expect(creatureBounds([], [1, 2, 3])).toEqual({ centre: [1, 2, 3], radius: 1 });
+  });
+
   it("places the camera in front of the creature, far enough to see all of it", () => {
     const cam = frameCamera({ centre: [0, 0, 0], radius: 2 }, 1);
     expect(cam.position[2]).toBeGreaterThan(2 / Math.sin((20 * Math.PI) / 180));

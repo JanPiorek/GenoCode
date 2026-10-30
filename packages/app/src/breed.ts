@@ -259,7 +259,7 @@ export class Breeder {
     if (!this.sizes.has(c)) {
       const { built } = buildCreature(c);
       const ok = built.ok && built.shapes.length > 0;
-      this.sizes.set(c, ok ? creatureBounds(built.shapes).radius : undefined);
+      this.sizes.set(c, ok ? creatureBounds(built.shapes, built.focus).radius : undefined);
     }
     return this.sizes.get(c);
   }
@@ -297,7 +297,7 @@ export class Breeder {
         canvas.width = Math.round(canvas.clientWidth * ratio);
         canvas.height = Math.round(canvas.clientHeight * ratio);
         const { built, background } = buildCreature(creature);
-        this.thumbnails.draw(canvas, built.shapes, background);
+        this.thumbnails.draw(canvas, built.shapes, background, built.focus);
       }
       if (k < tiles.length) requestAnimationFrame(step);
     };

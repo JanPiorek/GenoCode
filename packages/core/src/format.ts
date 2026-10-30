@@ -144,6 +144,8 @@ function simpleText(s: Stmt): string | undefined {
       return `print(${s.args.map(expr).join(", ")})`;
     case "Lay":
       return s.block ? undefined : "lay";
+    case "FocusPoint":
+      return "focuspoint";
     case "Command":
       return `${s.command} ${expr(s.value)}`;
     case "Rotate":

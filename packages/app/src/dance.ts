@@ -104,7 +104,7 @@ export class DanceFloor {
     const f = morphAt(this.members, this.dancer.morph / this.members.length);
     const { built, background } = buildCreature(f.creature, inputs);
     f.problems = built.diagnostics;
-    this.view.setCreature(built.shapes, !first);
+    this.view.setCreature(built.shapes, !first, built.focus);
     if (first && this.faceOn) {
       this.view.lockCamera(true);
       this.view.viewFrom("front");

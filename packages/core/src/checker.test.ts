@@ -184,6 +184,9 @@ describe("checker: statements and types", () => {
     rejects("background {\n  let a = 1\n}", "needs a `fill`");
     rejects("background {\n  fill red\n  let a = 1\n}", "must be the last");
     rejects("dance {\n  lay\n}", "dance block can only hold");
+    rejects("function f() {\n  focuspoint\n  return 1\n}", "can't set the focus point");
+    rejects("lay { focuspoint }", "Inside `reshape` and `lay` blocks");
+    rejects("background {\n  focuspoint\n  fill red\n}", "can only hold");
   });
 
   it("checks dance effect lines", () => {

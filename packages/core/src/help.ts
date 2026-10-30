@@ -328,6 +328,14 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
     h("reshape { … }", "Changes the shape transform for every shape laid afterwards.", "11.7"),
   ],
   [
+    "focuspoint",
+    h(
+      "focuspoint",
+      "Marks where the turtle is as the creature's middle: the camera looks there, and a dance turns the creature round it.",
+      "11.8",
+    ),
+  ],
+  [
     "symmetric",
     h(
       "symmetric x { … }",

@@ -21,6 +21,7 @@ export const KEYWORDS: ReadonlySet<string> = new Set([
   "while",
   "branch",
   "lay",
+  "focuspoint",
   "reshape",
   "symmetric",
   "shape",

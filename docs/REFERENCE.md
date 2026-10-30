@@ -35,7 +35,8 @@ are always in degrees.
 3. [Control flow](#3-control-flow): [if](#if), [repeat](#repeat), [for](#for), [while](#while)
 4. [The turtle](#4-the-turtle): [forward](#forward), [back](#back), [move](#move),
    [pitch](#pitch), [yaw](#yaw), [roll](#roll), [rotate](#rotate), [grow](#grow),
-   [mirror](#mirror), [branch](#branch), [symmetric](#symmetric), [reshape](#reshape)
+   [mirror](#mirror), [branch](#branch), [symmetric](#symmetric), [reshape](#reshape),
+   [focuspoint](#focuspoint)
 5. [Shapes and material](#5-shapes-and-material): [shape](#shape), [lay](#lay),
    [colour](#colour), [shine](#shine), [sharpness](#sharpness), [texture](#texture), [wear](#wear)
 6. [Backgrounds](#6-backgrounds): [background](#background), [fill](#fill)
@@ -977,6 +978,36 @@ lay // both shapes long and flat
 ```
 
 **See also:** [lay](#lay), [The shape transform](LANGUAGE.md#117-the-shape-transform)
+
+### focuspoint
+
+Marks where the turtle is as the creature's focus point: the camera looks at it, and a dance turns
+the creature round it. Without one, the focus point is the middle of the creature's shapes.
+
+```text
+focuspoint
+```
+
+**Used in:** creature code. Not in functions or `lay { }`.
+
+**Remarks**
+
+- It doesn't move the turtle.
+- When it runs more than once, the last one counts.
+
+**Example**
+
+```
+lay { grow 4 } // a round body
+branch {
+  forward 3
+  lay // a head on one side
+  focuspoint
+}
+focuspoint // the last one counts: the camera looks at the body, not between body and head
+```
+
+**See also:** [The focus point](LANGUAGE.md#118-the-focus-point)
 
 ## 5. Shapes and material
 

@@ -602,6 +602,29 @@ lay { grow (1, 0.3, 4) } // only this shape
 A shape is placed by taking its geometry ([section 12](#12-shapes)), applying the shape transform,
 and then applying the turtle (its size, its axes and its position, in that order).
 
+### 11.8 The focus point
+
+A creature's **focus point** is its middle as far as the app is concerned: the camera looks at it,
+and a dance turns the creature round it ([section 17](#17-dance-styles)).
+
+```
+lay { grow 4 } // the body
+branch {
+  forward 3
+  lay // the head
+  focuspoint
+}
+focuspoint // the last one counts: the camera looks at the middle of the body
+```
+
+- `focuspoint` marks where the turtle is as the focus point. It doesn't change the turtle.
+- When it runs more than once, the last one counts.
+- It's allowed in a creature's top-level code and its parts, but not in functions, `lay { }` or
+  `reshape { }`, backgrounds, dance blocks or patterns.
+- A creature without `focuspoint`, or whose focus point isn't finite, has its focus point at the
+  middle of its shapes: the centre of the smallest box, lined up with the axes, that holds them
+  all. That middle moves when shapes come and go on one side, which a focus point doesn't.
+
 ## 12. Shapes
 
 | Command     | Effect                                                                                                                                                                       |
@@ -1279,7 +1302,8 @@ creature that uses `random` starts again from seed 0.
 2. **Building.** The top-level statements run once, from the top, with the creature's gene values
    and the current time and music inputs. Every `lay` adds one shape. The result is a list of
    shapes, each with its placement, shape, colour, shine, sharpness, texture and wear.
-3. **Showing.** The app draws the shapes, with the background and dance effects.
+3. **Showing.** The app draws the shapes, with the background and dance effects. Its camera looks
+   at the focus point ([11.8](#118-the-focus-point)), from far enough away to see every shape.
    - A **static** creature (one that doesn't read `time`, `beat` or `music`) is built once for each
      set of gene values. Morph frames can be built in advance.
    - A **live** creature is rebuilt every frame with the current inputs, and while morphing, with
@@ -1299,16 +1323,16 @@ The block editor shows the same program as the text. Both are built from one syn
 parsed into the tree and shown as blocks, and blocks are turned back into the tree and printed as
 text by the standard formatter.
 
-| Construct                                                                                                                            | Block                                                                                                                                     |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `creature Name` and the top-level statements                                                                                         | the creature's main block, with the statements stacked below it                                                                           |
-| `part`, `function`                                                                                                                   | a "define" block with the parameters. Parts then appear as stacking blocks in the palette, and functions as value blocks                  |
-| `gene`                                                                                                                               | a gene block with a slider (numbers), colour pickers (colours), range handles, a switch (bools) or a dropdown (choices) and a description |
-| `background { }`                                                                                                                     | a background block holding its genes and one fill block, with a live preview and an export button                                         |
-| `dance { }`                                                                                                                          | a dance block holding its genes and one block per effect, with an export button                                                           |
-| `let`, assignment, turtle commands, `shape`, `colour`, `shine`, `sharpness`, `texture`, `wear`, `lay`, part calls, `return`, `print` | stacking blocks with slots for values. Labels can be friendlier than the keywords, such as "turn left/right" for `yaw`                    |
-| `if`, `repeat`, `for`, `while`, `branch`, `symmetric`, `lay { }`, `reshape { }`                                                      | blocks that wrap around other blocks                                                                                                      |
-| expressions                                                                                                                          | value blocks that plug into slots: round for numbers, pointed for bools, swatches for colours                                             |
+| Construct                                                                                                                                          | Block                                                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `creature Name` and the top-level statements                                                                                                       | the creature's main block, with the statements stacked below it                                                                           |
+| `part`, `function`                                                                                                                                 | a "define" block with the parameters. Parts then appear as stacking blocks in the palette, and functions as value blocks                  |
+| `gene`                                                                                                                                             | a gene block with a slider (numbers), colour pickers (colours), range handles, a switch (bools) or a dropdown (choices) and a description |
+| `background { }`                                                                                                                                   | a background block holding its genes and one fill block, with a live preview and an export button                                         |
+| `dance { }`                                                                                                                                        | a dance block holding its genes and one block per effect, with an export button                                                           |
+| `let`, assignment, turtle commands, `shape`, `colour`, `shine`, `sharpness`, `texture`, `wear`, `lay`, `focuspoint`, part calls, `return`, `print` | stacking blocks with slots for values. Labels can be friendlier than the keywords, such as "turn left/right" for `yaw`                    |
+| `if`, `repeat`, `for`, `while`, `branch`, `symmetric`, `lay { }`, `reshape { }`                                                                    | blocks that wrap around other blocks                                                                                                      |
+| expressions                                                                                                                                        | value blocks that plug into slots: round for numbers, pointed for bools, swatches for colours                                             |
 
 **Keeping the two in step:**
 
@@ -1358,6 +1382,7 @@ simple        = "let" NAME "=" expr NL
               | "return" [ expr ] NL
               | "print" "(" [ args ] ")" NL
               | "lay" NL
+              | "focuspoint" NL
               | turtle_cmd NL
               | material_cmd NL ;
 compound      = "if" expr block { "else" "if" expr block } [ "else" block ]
