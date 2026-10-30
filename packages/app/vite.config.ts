@@ -61,15 +61,13 @@ function siteFiles(): SiteFile[] {
 }
 
 /**
- * Cloudflare Web Analytics: counts visits to every page, without cookies. Only the website's own
- * build gets it (the Site workflow sets GENOCODE_ANALYTICS), so visits while developing or
- * previewing a local build aren't counted.
+ * Cloudflare Web Analytics: counts visits to every page, without cookies. Only the build gets it,
+ * so visits while developing aren't counted.
  */
 const ANALYTICS = `<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "248bb111f7a845ab8bd85e4bf5506cb1"}'></script>`;
 
-/** Adds ANALYTICS to an HTML page's head, in the website's build. */
-const withAnalytics = (html: string) =>
-  process.env.GENOCODE_ANALYTICS ? html.replace("</head>", `${ANALYTICS}\n</head>`) : html;
+/** Adds ANALYTICS to an HTML page's head. */
+const withAnalytics = (html: string) => html.replace("</head>", `${ANALYTICS}\n</head>`);
 
 /** Puts the analytics script in the front page and the app when they're built. */
 function analytics(): Plugin {
