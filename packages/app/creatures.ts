@@ -73,6 +73,7 @@ function picture(c: Creature, size: number, variant?: string): Uint8Array {
       width: size,
       height: size,
       background: buildBackground(c.program, { inputs }).fill,
+      focus: built.focus,
     });
     png = encodePng(image.width, image.height, image.data);
     pictures.set(key, png);

@@ -1,0 +1,237 @@
+creature Tentacles
+// A round base with tentacles growing out of it at random spots, each out of a hole with a rim
+// round it, and each a chain of segments that shrink and curl towards the tip. The lower down a
+// tentacle grows, the more it curls. No two tentacles are the same length or thickness.
+// The creature and its variants are the stages of one life: morphing through them, each tentacle
+// pushes out of the base tip first, stays a while, then shrinks back into the base and dies, and
+// after a rest it is born again.
+
+gene tentacles = 10 in 5..16 // how many tentacles grow out of the base
+gene shortest = 6 in 4..12 // how many segments the shortest tentacle has
+gene extra = 3 in 1..5 // how many more segments each tentacle has than the next shorter one
+gene segment_length = 1.8 in 1..3 // how long the first segment of each tentacle is
+gene thickest = 2.2 in 1..3.5 // how thick the thickest tentacle is where it leaves the base
+gene thinnest = 0.4 in 0.2..0.8 // how thick the thinnest is, as a share of the thickest
+gene taper = 0.93 in 0.85..0.99 // how much smaller each segment is than the one before it
+gene curl = 7 in -15..15 // how far each segment of the bottom tentacle bends from the one before it; those higher up bend less
+gene sway = 12 in 0..30 // how far the tentacles wave from side to side
+gene sway_waves = 0.8 in 0..2 // how many times they wave from root to tip
+gene writhes = 3 in 1..8 step 1 // how many waves run along a tentacle from root to tip in its life
+gene nod = 6 in 0..20 // how far the tentacles bob up and down as the waves run along them
+gene restless = 0.8 in 0..2 // how much more newborn and dying tentacles writhe than grown ones
+gene coil = 14 in 0..40 // how tightly the tips curl up, most of all while a tentacle is newborn or dying
+
+// The point goes round the middle once in a whole life, so the last variant morphs back into the
+// first without the tentacles' lives running backwards.
+gene age = (1, 0, 0) in (-1, -1, 0)..(1, 1, 0) // how far through its life the creature is, as a point going round the middle
+gene growing = 0.2 in 0.05..0.4 // about how much of its life a tentacle spends growing out of the base
+gene dying = 0.2 in 0.05..0.4 // about how much it spends shrinking back in
+gene dead = 0.1 in 0..0.3 // about how much it stays gone before it's born again
+gene most_lives = 3 in 1..4 step 1 // the most times a tentacle can be born in one of the creature's lives
+
+gene base_size = 9 in 5..14 // how wide the round base is
+
+gene base_colour = hsv(285, 0.55, 0.45) in hsv(0, 0, 0)..hsv(360, 1, 1)
+gene root_colour = hsv(320, 0.6, 0.8) in hsv(0, 0, 0.3)..hsv(360, 1, 1) // the tentacles' colour at the base
+gene tip_colour = hsv(40, 0.7, 1) in hsv(0, 0, 0.3)..hsv(360, 1, 1) // and at their tips
+gene young_colour = hsv(190, 0.3, 1) in hsv(0, 0, 0.3)..hsv(360, 1, 1) // the colour of a newborn tentacle, which fades as it grows up
+gene old_colour = hsv(25, 0.35, 0.4) in hsv(0, 0, 0)..hsv(360, 1, 1) // the colour a tentacle turns as it dies
+gene rim_colour = hsv(300, 0.45, 0.65) in hsv(0, 0, 0)..hsv(360, 1, 1) // the colour of the rims round the holes the tentacles come out of
+gene hole_colour = hsv(285, 0.6, 0.12) in hsv(0, 0, 0)..hsv(360, 1, 1) // the colour inside the holes
+gene joint_darkness = 0.45 in 0..0.9 // how much darker the rings between segments are
+gene gloss = 0.4 in 0..1
+
+let count = round(tentacles)
+// The root starts a third of the way round, a moment when every tentacle is out.
+let life = frac(atan2(age.y, age.x) / 360 + 4 / 3)
+
+shine gloss
+sharpness 0.7
+base
+focuspoint // the camera looks at the middle of the base, and a dance turns the creature round it
+// When the holes wouldn't all fit on the base, every tentacle is made thinner until they do.
+let crowding = 0
+repeat count as i {
+  crowding += (0.9 * thickness_of(i)) ^ 2
+}
+let squeeze = min(1, sqrt(0.35 * base_size ^ 2 / crowding))
+
+// Each tentacle comes out at a random spot on the base. A spot too close to one already taken is
+// tried again, up to 100 times, so the holes don't overlap.
+let spots = []
+repeat count as i {
+  let spot = random_spot()
+  let tries = 0
+  while too_close(spot, i) and tries < 100 {
+    spot = random_spot()
+    tries += 1
+  }
+  spots += [spot]
+}
+
+// Tentacle 0 is the longest; each one after it has fewer segments.
+repeat count as i {
+  // Each tentacle lives by itself, at random: when it's born, how many times it's born in one of
+  // the creature's lives, how long it takes to grow, die and come back, and how its waves start.
+  let birth = random(0, 1)
+  let lives = floor(random(1, most_lives + 1))
+  let timing = (growing * random(0.6, 1.4), dying * random(0.6, 1.4), dead * random(0, 2))
+  let total = timing.x + timing.y + timing.z
+  if total > 0.9 {
+    timing = timing * (0.9 / total)
+  }
+  let phase = random(0, 1)
+  let thickness = thickness_of(i) * squeeze
+  let spot = spots[i]
+  branch {
+    yaw atan2(spot.x, spot.z)
+    pitch -asin(spot.y)
+    hole(thickness)
+    tentacle((1 - spot.y) / 2, shortest + (count - 1 - i) * round(extra), thickness, frac(life * lives + birth), timing, phase)
+  }
+}
+
+// A random point on a ball 1 across, equally likely anywhere on it.
+function random_spot() {
+  let height = random(-1, 1)
+  let round_it = random(0, 360)
+  let across = sqrt(1 - height * height)
+  return (across * sin(round_it), height, across * cos(round_it))
+}
+
+// Whether a spot for tentacle i is so close to one already taken that the rims of their holes would
+// touch. A rim is 1.8 times as wide as its tentacle.
+function too_close(spot, i) {
+  repeat length(spots) as j {
+    let apart = 1.1 * 0.9 * (thickness_of(i) + thickness_of(j)) * squeeze / (base_size / 2)
+    if dot(spot, spots[j]) > cos(degrees(apart)) {
+      return true
+    }
+  }
+  return false
+}
+
+// Thicknesses are evenly spaced from thinnest to thickest, handed out in a mixed-up order (by
+// where frac(i × golden) falls among the others) so thickness doesn't follow length or place.
+function thickness_of(i) {
+  let place = 0
+  repeat count as j {
+    if frac(j * golden) < frac(i * golden) {
+      place = place + 1
+    }
+  }
+  return thickest * mix(1, thinnest, place / (count - 1))
+}
+
+// How much of a tentacle is out of the base at that age (0 at its birth to 1): 0 dead, 1 fully
+// grown. timing is the share of its life it spends growing, dying and gone.
+function grown(own_age, timing) {
+  let alive = 1 - timing.z
+  if own_age < timing.x {
+    return smoothmix(0, 1, own_age / timing.x)
+  } else if own_age < alive - timing.y {
+    return 1
+  } else if own_age < alive {
+    return smoothmix(1, 0, (own_age - (alive - timing.y)) / timing.y)
+  }
+  return 0
+}
+
+// A tentacle's colour, paled towards the young colour while it's newborn and faded towards the old
+// colour as it dies.
+function aged(skin, youth, oldness) {
+  return mix(mix(skin, young_colour, youth), old_colour, oldness)
+}
+
+part base {
+  //colour base_colour
+  texture mixed(pattern(marble, 316, 0, pastel, iridescent), warp, kaleidoscope, 0.38)
+  lay { grow base_size }
+  texture none
+}
+
+// Where a tentacle comes out, facing straight out of the base: a dark hole with a rim round it,
+// just wide enough for the tentacle. It stays there while the tentacle is dead.
+part hole(thickness) {
+  branch {
+    forward base_size * 0.49
+    grow thickness
+    colour hole_colour
+    texture pattern(marble, 4, 78, pastel)
+    lay { grow (1.1, 1.1, 0.1) }
+    colour rim_colour
+    shape ring
+    lay { grow (1.8, 1.8, 2) }
+  }
+}
+
+// out is how far down the base the tentacle grows: 0 on top, 1 at the bottom. A
+// tentacle that is only partly grown shows just its tip end: the segments nearest the root are
+// still inside the base, so it pushes out tip first and sinks back in tip last. As it lives,
+// waves run along it from root to tip, and its colour goes from young to grown to old.
+part tentacle(out, segments, thickness, own_age, timing, phase) {
+  let amount = grown(own_age, timing)
+  if amount <= 0 {
+    return
+  }
+  let hidden = segments * (1 - amount)
+  let youth = 1 - smoothmix(0, 1, own_age / (timing.x + 0.15))
+  let oldness = smoothmix(0, 1, (own_age - (1 - timing.z - timing.y - 0.15)) / (timing.y + 0.15))
+  let writhing = 1 + restless * (1 - amount)
+  let first = floor(hidden)
+  // The root starts just inside the hole, so the first segment comes out of it.
+  forward base_size * 0.45
+  grow thickness * taper ^ first
+  for k from first to segments - 1 {
+    let along = k / max(segments - 1, 1)
+    let stretch = segment_length / thickness
+    // Only part of the first segment out of the base is showing: it is that much as long, bends
+    // only that much, and narrows as it starts.
+    let showing = 1
+    if k == first {
+      showing = 1 - (hidden - first)
+    }
+    let width = min(1, showing * 3)
+    forward stretch * showing / 2
+    let skin = aged(mix(root_colour, tip_colour, along), youth, oldness)
+    colour skin
+    shape ball
+    lay { grow (width, width, stretch * 1.15 * showing) }
+    forward stretch * showing / 2
+    shape ring
+    colour hsv(skin.hue, skin.sat, skin.val * (1 - joint_darkness))
+    lay { grow 1.05 * width }
+    // Like a real tentacle, it's stiff at the root and bends more and more towards the tip.
+    let swing = sway_waves * along - writhes * own_age + phase
+    let bendy = mix(0.5, 1.5, along)
+    let coiling = coil * mix(0.4, 1, out) * along * along * (0.4 + youth + oldness)
+    pitch (curl * out + nod * writhing * bendy * wave(swing + 0.25) + coiling) * showing
+    yaw sway * mix(0.3, 1, out) * writhing * bendy * wave(swing) * showing
+    grow taper
+  }
+  // The tip comes out of the base first, growing to full size as the first segment appears.
+  let tip = min(1, segments * amount)
+  shape cone
+  colour aged(tip_colour, youth, oldness)
+  forward 0.6 * tip
+  lay { grow (0.9 * tip, 0.9 * tip, 1.2 * tip) }
+}
+
+dance {
+  morph follows music.bass speed 0.944 settle 0.05
+  zoom follows music.mid_hit amount 0.5 settle 6.49
+  spin follows music.mid from 57.3 to 195 smooth 0
+  turn on music.mid changes by 0.58
+  reverse on music.bass drops by 0.41 on 132 off 132
+}
+
+// The rest of the life, a sixth of the way round at a time.
+variant member_2 { age = (0.5, 0.866, 0) }
+
+variant member_3 { age = (-0.5, 0.866, 0) }
+
+variant member_4 { age = (-1, 0, 0) }
+
+variant member_5 { age = (-0.5, -0.866, 0) }
+
+variant member_6 { age = (0.5, -0.866, 0) }
