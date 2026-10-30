@@ -54,7 +54,13 @@ header { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; pad
   border-bottom: 1px solid var(--line); background: var(--panel); }
 header a { color: var(--text); text-decoration: none; }
 header a[aria-current] { color: var(--accent); }
-.brand { display: flex; gap: 8px; align-items: center; font-weight: 700; margin-right: 8px; }
+.brand { display: flex; gap: 8px; align-items: center; letter-spacing: 0.02em; margin-right: 8px; }
+/* The name as in the logo, like the front page (src/landing.css). */
+.wordmark { font-size: 1.35em; background: linear-gradient(90deg, #40cfff, #ff408f);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 6px rgb(64 207 255 / 0.35)) drop-shadow(0 0 10px rgb(255 64 143 / 0.25)); }
+.wordmark b { font-weight: 700; } .wordmark span { font-weight: 400; }
+header .button { margin-left: auto; padding: 6px 14px; white-space: nowrap; }
 main { max-width: 820px; margin: 0 auto; padding: 8px 16px 64px; }
 main.wide { max-width: 1160px; }
 footer { border-top: 1px solid var(--line); padding: 12px 16px 24px; text-align: center;
@@ -76,6 +82,7 @@ h2 { border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-top: 2em;
 .button:hover { border-color: var(--muted); }
 .button.primary { background: linear-gradient(90deg, #2a8fd6, #d63f8f); border-color: transparent;
   color: #fff; font-weight: 600; }
+.button.primary:hover { filter: brightness(1.12); }
 .muted { color: var(--muted); }
 `;
 
@@ -130,9 +137,9 @@ ${image}
 </head>
 <body>
 <header>
-<a class="brand" href="${up || "./"}"><img src="${up}favicon.svg" alt="" width="24" height="24">GenoCode</a>
-${nav}
-<a href="${up}app/">Open the app</a>
+<a class="brand" href="${up || "./"}"><img src="${up}favicon.svg" alt="" width="28" height="28"><span class="wordmark"><b>Geno</b><span>Code</span></span></a>
+${nav}<a href="https://github.com/genocode-org/GenoCode">GitHub</a>
+<a class="button primary" href="${up}app/">Open the app</a>
 </header>
 <main${page.wide ? ' class="wide"' : ""}>
 ${page.body}
