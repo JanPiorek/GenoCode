@@ -27,6 +27,8 @@ export interface RasterOptions {
   supersample?: number;
   /** Where the creature is seen from; the front, from a little above, if left out. */
   view?: View | undefined;
+  /** The creature's focus point (`BuildResult.focus`), where the camera looks; if left out, the middle of its shapes. */
+  focus?: readonly [number, number, number] | undefined;
 }
 
 export interface Image {
@@ -176,7 +178,7 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
     }
   }
 
-  const bounds = creatureBounds(shapes);
+  const bounds = creatureBounds(shapes, options.focus);
   const aspect = options.width / options.height;
   const cam = frameCamera(bounds, aspect, options.view);
   const eye = cam.position;

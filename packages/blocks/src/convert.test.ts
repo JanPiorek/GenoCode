@@ -28,6 +28,11 @@ describe("code to blocks and back", () => {
     }
   }
 
+  it("keeps a focus point", () => {
+    const text = "creature Focus\n\nlay\nbranch {\n  forward 3\n  focuspoint\n}\n";
+    expect(roundTrip(text)).toBe(text);
+  });
+
   it("keeps comments everywhere they can be", () => {
     const text = [
       "// before the header",

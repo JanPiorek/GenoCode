@@ -83,7 +83,7 @@ export class Morpher {
     const f = morphAt(this.members, this.position);
     const { built, background } = buildCreature(f.creature, { time: (now - this.started) / 1000 });
     f.problems = built.diagnostics;
-    this.view.setCreature(built.shapes, !first);
+    this.view.setCreature(built.shapes, !first, built.focus);
     this.view.setBackground(background);
     this.onFrame(f);
     this.frame = requestAnimationFrame(() => this.draw(false));

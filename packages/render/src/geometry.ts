@@ -72,25 +72,34 @@ export interface Bounds {
   radius: number;
 }
 
-/** A sphere around all the shapes, from the corners of each shape's 1×1×1 box. */
-export function creatureBounds(shapes: readonly LaidShape[]): Bounds {
+/**
+ * A sphere around all the shapes, from the corners of each shape's 1×1×1 box. With a focus point
+ * (`focuspoint`, docs/LANGUAGE.md section 11.8), the sphere is centred there and reaches the
+ * furthest corner; without one, it's centred in the middle of the box that holds them all.
+ */
+export function creatureBounds(
+  shapes: readonly LaidShape[],
+  focus?: readonly [number, number, number],
+): Bounds {
+  if (focus) {
+    let far = 0;
+    eachCorner(shapes, (v) => {
+      far = Math.max(far, Math.hypot(v[0] - focus[0], v[1] - focus[1], v[2] - focus[2]));
+    });
+    return {
+      centre: [focus[0], focus[1], focus[2]],
+      radius: shapes.length === 0 ? 1 : Math.max(1e-3, far),
+    };
+  }
   if (shapes.length === 0) return { centre: [0, 0, 0], radius: 1 };
   const lo = [Infinity, Infinity, Infinity];
   const hi = [-Infinity, -Infinity, -Infinity];
-  for (const s of shapes) {
-    const m = s.matrix;
-    for (const x of [-0.5, 0.5]) {
-      for (const y of [-0.5, 0.5]) {
-        for (const z of [-0.5, 0.5]) {
-          for (let i = 0; i < 3; i++) {
-            const v = m[i]! * x + m[4 + i]! * y + m[8 + i]! * z + m[12 + i]!;
-            lo[i] = Math.min(lo[i]!, v);
-            hi[i] = Math.max(hi[i]!, v);
-          }
-        }
-      }
+  eachCorner(shapes, (v) => {
+    for (let i = 0; i < 3; i++) {
+      lo[i] = Math.min(lo[i]!, v[i]!);
+      hi[i] = Math.max(hi[i]!, v[i]!);
     }
-  }
+  });
   const centre: [number, number, number] = [
     (lo[0]! + hi[0]!) / 2,
     (lo[1]! + hi[1]!) / 2,
@@ -98,4 +107,22 @@ export function creatureBounds(shapes: readonly LaidShape[]): Bounds {
   ];
   const radius = Math.max(1e-3, Math.hypot(hi[0]! - lo[0]!, hi[1]! - lo[1]!, hi[2]! - lo[2]!) / 2);
   return { centre, radius };
+}
+
+/** Calls `f` with each corner of each shape's 1×1×1 box, in world space. */
+function eachCorner(shapes: readonly LaidShape[], f: (v: [number, number, number]) => void): void {
+  for (const s of shapes) {
+    const m = s.matrix;
+    for (const x of [-0.5, 0.5]) {
+      for (const y of [-0.5, 0.5]) {
+        for (const z of [-0.5, 0.5]) {
+          f([
+            m[0]! * x + m[4]! * y + m[8]! * z + m[12]!,
+            m[1]! * x + m[5]! * y + m[9]! * z + m[13]!,
+            m[2]! * x + m[6]! * y + m[10]! * z + m[14]!,
+          ]);
+        }
+      }
+    }
+  }
 }

@@ -34,7 +34,7 @@ export function pictureOf(text: string, width = 200, height = 150): string | und
   canvas.width = Math.round(width * ratio);
   canvas.height = Math.round(height * ratio);
   const { built, background } = buildCreature(fromProgram(program));
-  thumbnails.draw(canvas, built.shapes, background);
+  thumbnails.draw(canvas, built.shapes, background, built.focus);
   const src = canvas.toDataURL();
   pictures.set(text, src);
   return src;

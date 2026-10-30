@@ -68,6 +68,7 @@ export const TOOLBOX = {
       block({ type: "g_mirror", fields: { AXIS: "x" } }),
       block({ type: "g_branch" }),
       block({ type: "g_symmetric", fields: { AXIS: "x" } }),
+      block({ type: "g_focuspoint" }),
       block({ type: "g_turtle", fields: { FIELD: "position" } }),
     ]),
     category("Shapes and colour", HUES.look, [

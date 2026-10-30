@@ -553,7 +553,7 @@ function showCurrent(keepView: boolean, panel = true): void {
   }
   const frame = (keep: boolean | "unless-inside") => {
     const { built, background } = buildCreature(c, inputs.now());
-    view.setCreature(built.shapes, keep);
+    view.setCreature(built.shapes, keep, built.focus);
     view.setBackground(background);
     blocks.setBackground(background);
     report(built.diagnostics, built.shapes.length, live);

@@ -553,6 +553,9 @@ class Parser {
         }
         return this.endSimple({ kind: "Lay", ...this.base(start), block: undefined });
       }
+      case "focuspoint":
+        this.next();
+        return this.endSimple({ kind: "FocusPoint", ...this.base(start) });
       case "reshape": {
         this.next();
         const block = this.parseBlock("reshape");

@@ -249,6 +249,8 @@ class CreatureScene {
   private backgroundPattern: { texture: DataTexture; field: string; look: string } | undefined;
   private aspect = 1;
   shapes: readonly LaidShape[] = [];
+  /** The creature's focus point, if it has one: where the camera looks. */
+  focus: readonly [number, number, number] | undefined;
   private readonly lights: { light: DirectionalLight; direction: Vector3 }[] = [];
 
   constructor() {
@@ -276,7 +278,11 @@ class CreatureScene {
     }
   }
 
-  setCreature(shapes: readonly LaidShape[], detail: Detail): void {
+  setCreature(
+    shapes: readonly LaidShape[],
+    detail: Detail,
+    focus?: readonly [number, number, number],
+  ): void {
     for (const child of [...this.creature.children]) {
       this.creature.remove(child);
       const mesh = child as InstancedMesh;
@@ -284,6 +290,7 @@ class CreatureScene {
       mesh.dispose();
     }
     this.shapes = shapes;
+    this.focus = focus;
     const groups = new Map<string, LaidShape[]>();
     for (const s of shapes) {
       if (s.colour.a <= 0) continue;
@@ -501,7 +508,7 @@ class CreatureScene {
   frame(camera: PerspectiveCamera, aspect: number, side?: Side): CameraPlacement {
     this.aspect = aspect;
     this.coverBackground();
-    const placement = frameCamera(creatureBounds(this.shapes), aspect, side);
+    const placement = frameCamera(creatureBounds(this.shapes, this.focus), aspect, side);
     camera.position.set(...placement.position);
     camera.near = placement.near / 4;
     camera.far = placement.far * 4;
@@ -542,7 +549,7 @@ export class CreatureView {
     this.resize();
     // A texture's picture drawn elsewhere is ready: show it.
     this.stopListening = onFieldReady(() => {
-      this.look.setCreature(this.look.shapes, "high");
+      this.look.setCreature(this.look.shapes, "high", this.look.focus);
       this.look.setBackground(this.look.fill);
       this.requestFrame();
     });
@@ -553,20 +560,28 @@ export class CreatureView {
    * With `"unless-inside"`, it stays too, unless the new creature has grown round it, such as a much
    * bigger one pasted over a small one, which would show nothing from inside: that's framed afresh.
    * A camera zoomed in on purpose stays. Morphing and dancing keep the camera whatever the creature
-   * does.
+   * does. `focus` is the creature's focus point, if it has one: where the camera looks.
    */
-  setCreature(shapes: readonly LaidShape[], keepView: boolean | "unless-inside" = false): void {
-    const wasInside = this.cameraInside(this.look.shapes);
-    this.look.setCreature(shapes, "high");
-    const swallowed = keepView === "unless-inside" && !wasInside && this.cameraInside(shapes);
+  setCreature(
+    shapes: readonly LaidShape[],
+    keepView: boolean | "unless-inside" = false,
+    focus?: readonly [number, number, number],
+  ): void {
+    const wasInside = this.cameraInside(this.look.shapes, this.look.focus);
+    this.look.setCreature(shapes, "high", focus);
+    const swallowed =
+      keepView === "unless-inside" && !wasInside && this.cameraInside(shapes, focus);
     if (!keepView || swallowed) this.resetView();
     this.requestFrame();
   }
 
   /** Whether the camera is within these shapes' bounds. */
-  private cameraInside(shapes: readonly LaidShape[]): boolean {
+  private cameraInside(
+    shapes: readonly LaidShape[],
+    focus: readonly [number, number, number] | undefined,
+  ): boolean {
     if (shapes.length === 0) return false;
-    const { centre, radius } = creatureBounds(shapes);
+    const { centre, radius } = creatureBounds(shapes, focus);
     return this.camera.position.distanceTo(new Vector3(...centre)) < radius;
   }
 
@@ -701,17 +716,21 @@ export class Thumbnails {
     this.renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   }
 
-  /** Draws a creature and its background to fill `target`, at the target's own pixel size. */
+  /**
+   * Draws a creature and its background to fill `target`, at the target's own pixel size, looking
+   * at its focus point if it has one.
+   */
   draw(
     target: HTMLCanvasElement,
     shapes: readonly LaidShape[],
     background: Value | undefined,
+    focus?: readonly [number, number, number],
   ): void {
     const w = target.width;
     const h = target.height;
     if (w === 0 || h === 0) return;
     this.renderer.setSize(w, h, false);
-    this.look.setCreature(shapes, "low");
+    this.look.setCreature(shapes, "low", focus);
     this.look.setBackground(background);
     this.look.frame(this.camera, w / h);
     this.renderer.render(this.look.scene, this.camera);

@@ -225,6 +225,7 @@ export type Stmt =
   | BranchStmt
   | Symmetric
   | Lay
+  | FocusPoint
   | Reshape
   | Command
   | Rotate
@@ -398,6 +399,10 @@ export interface Symmetric extends StmtBase {
 export interface Lay extends StmtBase {
   kind: "Lay";
   block: Block | undefined;
+}
+
+export interface FocusPoint extends StmtBase {
+  kind: "FocusPoint";
 }
 
 export interface Reshape extends StmtBase {

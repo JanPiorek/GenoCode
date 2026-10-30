@@ -213,6 +213,7 @@ const TURTLE_STATEMENTS = new Set([
   "Branch",
   "Symmetric",
   "Lay",
+  "FocusPoint",
   "Reshape",
   "Command",
   "Rotate",
@@ -1176,6 +1177,10 @@ class Checker {
       );
       return;
     }
+    if (ctx.where === "function" && ctx.section === "creature" && stmt.kind === "FocusPoint") {
+      this.error(stmt.span, "A function can't set the focus point; use a part for that.");
+      return;
+    }
     if (
       ctx.where === "function" &&
       ctx.section === "creature" &&
@@ -1393,6 +1398,8 @@ class Checker {
         return;
       case "Reshape":
         this.checkBlock(stmt.block, { ...ctx, inShape: true });
+        return;
+      case "FocusPoint":
         return;
       case "Command": {
         const t = this.checkExpr(stmt.value, ctx);
