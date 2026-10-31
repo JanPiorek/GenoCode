@@ -5,11 +5,19 @@ import { readFileSync } from "node:fs";
 import { posix } from "node:path";
 import { Marked } from "marked";
 import { shell, type SiteFile } from "./site.js";
+import { withTree, type Heading } from "./tree.js";
 
 const repo = new URL("../../", import.meta.url);
 
 /** The pages: where each is published, the Markdown it's made from, and what search results say. */
-const PAGES: { path: string; source: string; title: string; description: string }[] = [
+const PAGES: {
+  path: string;
+  source: string;
+  title: string;
+  description: string;
+  /** For a long page, the name of the tree of its sections at its side. */
+  tree?: string;
+}[] = [
   {
     path: "docs/index.html",
     source: "docs/GETTING_STARTED.md",
@@ -30,6 +38,7 @@ const PAGES: { path: string; source: string; title: string; description: string 
     title: "Reference",
     description:
       "Every GenoCode statement, function, input and constant: its syntax, parameters, what it returns, and an example.",
+    tree: "Reference",
   },
   {
     path: "credits.html",
@@ -50,12 +59,20 @@ function slug(text: string): string {
     .replace(/\s/g, "-");
 }
 
-/** Markdown made into HTML for the page at `path`: links to the other documents go to their pages. */
-function render(markdown: string, from: (typeof PAGES)[number]): string {
+/**
+ * Markdown made into HTML for the page at `path`: links to the other documents go to their pages.
+ * The headings come too, for the tree of a long page.
+ */
+function render(
+  markdown: string,
+  from: (typeof PAGES)[number],
+): { html: string; headings: Heading[] } {
+  const headings: Heading[] = [];
   const marked = new Marked({
     renderer: {
       heading({ tokens, depth }) {
         const text = this.parser.parseInline(tokens);
+        headings.push({ depth, text, id: slug(text) });
         return `<h${depth} id="${slug(text)}">${text}</h${depth}>\n`;
       },
       link({ href, tokens }) {
@@ -69,7 +86,15 @@ function render(markdown: string, from: (typeof PAGES)[number]): string {
       },
     },
   });
-  return marked.parse(markdown) as string;
+  return { html: marked.parse(markdown) as string, headings };
+}
+
+/** A page's body, with the tree at its side in place of the document's own list of contents. */
+function page(p: (typeof PAGES)[number]): { head?: string; body: string } {
+  const markdown = readFileSync(new URL(p.source, repo), "utf8");
+  if (!p.tree) return { body: render(markdown, p).html };
+  const { html, headings } = render(markdown.replace(/^## Contents\n[\s\S]*?(?=^## )/m, ""), p);
+  return withTree(html, headings, p.tree);
 }
 
 /** The documentation pages and the credits, in the website's colours, and the licence. */
@@ -87,7 +112,8 @@ export function docs(): SiteFile[] {
         path: p.path,
         title: `${p.title} · GenoCode`,
         description: p.description,
-        body: render(readFileSync(new URL(p.source, repo), "utf8"), p),
+        ...page(p),
+        wide: Boolean(p.tree),
       }),
   }));
   return [...pages, licence];
