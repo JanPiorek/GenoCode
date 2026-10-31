@@ -6,9 +6,9 @@ creature Tentacles
 // pushes out of the base tip first, stays a while, then shrinks back into the base and dies, and
 // after a rest it is born again.
 
-gene tentacles = 10 in 5..16 // how many tentacles grow out of the base
-gene shortest = 6 in 4..12 // how many segments the shortest tentacle has
-gene extra = 3 in 1..5 // how many more segments each tentacle has than the next shorter one
+gene tentacles = 12 in 5..20 step 1 // how many tentacles grow out of the base
+gene shortest = 6 in 4..12 step 1 // how many segments the shortest tentacle has
+gene extra = 3 in 1..5 step 1 // how many more segments each tentacle has than the next shorter one
 gene segment_length = 1.8 in 1..3 // how long the first segment of each tentacle is
 gene thickest = 2.2 in 1..3.5 // how thick the thickest tentacle is where it leaves the base
 gene thinnest = 0.4 in 0.2..0.8 // how thick the thinnest is, as a share of the thickest
