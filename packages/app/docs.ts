@@ -31,6 +31,7 @@ const PAGES: {
     title: "The language",
     description:
       "How the GenoCode language works: shapes, the turtle, genes, variants, colours, patterns, backgrounds and dances.",
+    tree: "The language",
   },
   {
     path: "docs/reference.html",
