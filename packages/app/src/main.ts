@@ -1141,7 +1141,12 @@ function startDance(keepStyle = false): void {
   if (!current) return;
   fillStyleMenu(keepStyle);
   floor.setFaceOn(faceOn);
-  floor.start(loopMembers(current), chosenStyle());
+  floor.start(loopMembers(current), chosenStyle(), songName(), new Set(locked.keys()));
+}
+
+/** The song playing, to give the creature its look for it; live music has no song to name. */
+function songName(): string | undefined {
+  return player.source === "file" || player.source === "url" ? player.name : undefined;
 }
 
 styleSelect.addEventListener("change", () => {
@@ -1180,6 +1185,24 @@ const floor = new DanceFloor(view, player, (f: DanceFrame) => {
   showDanceHint(f.styleOk);
 });
 
+floor.songLooks = (() => {
+  try {
+    return localStorage.getItem("genocode.songLooks") !== "off";
+  } catch {
+    return true;
+  }
+})();
+$("song-looks").setAttribute("aria-pressed", String(floor.songLooks));
+$("song-looks").addEventListener("click", () => {
+  floor.setSongLooks(!floor.songLooks);
+  $("song-looks").setAttribute("aria-pressed", String(floor.songLooks));
+  try {
+    localStorage.setItem("genocode.songLooks", floor.songLooks ? "on" : "off");
+  } catch {
+    // Not remembered, then.
+  }
+});
+
 /** A time in seconds as minutes and seconds: 3:07. */
 function minutes(seconds: number): string {
   const s = Math.floor(seconds);
@@ -1213,6 +1236,7 @@ async function playMusic(start: () => Promise<void>): Promise<void> {
   } catch (e) {
     await tell(`That music can't be played: ${e instanceof Error ? e.message : String(e)}`);
   }
+  floor.setSong(songName());
   showDanceHint();
 }
 
@@ -1247,7 +1271,10 @@ $("music-tab").addEventListener(
       }
     }),
 );
-player.onEnd = () => showDanceHint();
+player.onEnd = () => {
+  floor.setSong(songName());
+  showDanceHint();
+};
 $("music-play").addEventListener("click", () => void playMusic(() => player.togglePause()));
 
 const isMusic = (f: File) =>
