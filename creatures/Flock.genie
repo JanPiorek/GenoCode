@@ -100,10 +100,14 @@ part paper_plane(paper_colour) {
       lay { grow (0.6, 0.02, 2) }
     }
   }
+  // The fold underneath is turned about the nose the same way, until its top edge lies along the
+  // middle, so it hangs from the wings all the way from the nose to the tail.
   colour hsv(paper_colour.hue, paper_colour.sat, paper_colour.val * (1 - fold))
   branch {
-    move (0, -0.12, -0.1)
-    lay { grow (0.02, 0.24, 1.8) }
+    forward 1
+    pitch -5.1
+    back 1
+    lay { grow (0.03, 0.36, 2) }
   }
 }
 
