@@ -1,0 +1,175 @@
+creature Flock
+// A flock of paper planes flying round together like birds. Each plane keeps its own place in the
+// flock, never too close to the others, steers the way the flock is heading and leans into its
+// turns. Their colours are a few hues that go well together.
+// The flock is worked out afresh at every moment from the time, so the speed genes are best left
+// alone in variants: morphing them would whip the flock round its circle.
+
+gene planes = 18 in 8..30 step 1 // how many paper planes fly in the flock
+gene plane_size = 1.5 in 0.6..2.5 // how big each plane is
+gene circle = 9 in 4..14 // how wide the circle is that the flock flies round
+gene tilt = 30 in 0..60 // how far the circle tips towards you, so you see the flock fly round it
+gene circle_speed = 20 in 5..50 // how fast the flock flies round its circle, in degrees a second
+gene wander = 0.25 in 0..0.5 // how far the flock strays in and out from its circle and up and down, as a share of the circle's width
+gene restless = 1.5 in 0.3..2.5 // how many times the flock changes where it strays in each lap of its circle
+gene spread = 4 in 2..6 // how far the planes spread out round the middle of the flock
+gene trail = 1.2 in 0..3 // how long the flock stretches out along its path, in seconds of flight from the front to the middle
+gene drift = 2 in 0.5..4 // how many times each plane wanders about its place in the flock in each lap
+gene wobble = 0.3 in 0..0.45 // how far each plane wanders about its place, as a share of the space between planes
+gene alignment = 0.4 in 0..1 // how much each plane points the way the whole flock is flying
+gene bank = 1 in 0..2 // how far the planes lean into their turns
+
+gene hue = 15 in 0..360 // the first hue of the planes' colours
+gene harmony = 25 in 0..180 // how far apart the hues are: small for neighbouring hues, about 120 for three hues spread round the colour circle, 180 for opposites
+gene tones = 3 in 2..4 step 1 // how many hues the planes are coloured with
+gene paper = 0.5 in 0.15..0.85 // how strong the colours are, from pale paper to rich paper
+gene brightness = 0.95 in 0.6..1 // how bright the paper is
+gene fold = 0.25 in 0..0.6 // how much darker the fold under each plane is
+
+gene huddle = 0.5 in 0..0.9 // how much tighter the flock gathers with the bass
+gene scatter = 0.25 in 0..0.8 // how much further apart the planes spread on each hit
+
+let count = round(planes)
+let hues = round(tones)
+let moment = 0.2 // seconds: the planes are worked out this long before and after now, to see which way they fly
+
+// Each plane has its own place in the flock, spread evenly through a ball so that no two are
+// close together, and one of the flock's hues at random.
+let places_in_flock = []
+let homes = []
+let colours = []
+repeat count as i {
+  let up = 1 - 2 * (i + 0.5) / count
+  let angle = i * 360 / golden ^ 2
+  let out = ((i + 0.5) / count) ^ (1 / 3)
+  let width = sqrt(1 - up * up)
+  places_in_flock += [out * (width * cos(angle), up, width * sin(angle))]
+  homes += [(random(0, 100), random(0, 100), random(0, 100))]
+  let slot = floor(random(0, hues))
+  colours += [hsv(hue + harmony * slot / (hues - 1), paper * random(0.85, 1.15), brightness * random(0.9, 1))]
+}
+let between = 1.6 / count ^ (1 / 3) // the space between neighbouring places, as a share of the spread
+
+let now = places(time)
+let before = places(time - moment)
+let after = places(time + moment)
+let flow = (0, 0, 0)
+repeat count as i {
+  flow += after[i] - before[i]
+}
+flow = normalize(flow)
+
+focuspoint // the camera looks at the middle of the circle, and a dance turns the flock round it
+// An invisible speck at the edge of the sky, so the camera stands far enough back to see the
+// flock all the way round its circle.
+branch {
+  move (circle * (1 + 0.5 * wander) + min(spread, 0.45 * circle) + plane_size, 0, 0)
+  colour transparent
+  lay { grow 0.01 }
+}
+
+shine 0.1
+sharpness 0.2
+repeat count as i {
+  let flying = normalize(after[i] - before[i])
+  let heading = normalize(flying * (1 - alignment) + flow * alignment)
+  let turning = (after[i] - 2 * now[i] + before[i]) / moment ^ 2
+  let side = normalize(cross(y_axis, heading))
+  branch {
+    move now[i]
+    yaw atan2(heading.x, heading.z)
+    pitch -asin(heading.y)
+    roll clamp(-12 * bank * dot(turning, side), -60, 60)
+    grow plane_size
+    paper_plane(colours[i])
+  }
+}
+
+// A paper dart: two flat wings meeting at the nose, folded down into a keel underneath.
+part paper_plane(paper_colour) {
+  shape cone
+  colour paper_colour
+  symmetric x {
+    // Each wing is a long thin triangle turned about the nose until its inner edge lies along the
+    // fold down the middle.
+    branch {
+      forward 1
+      roll 8
+      yaw -8.5
+      back 1
+      lay { grow (0.6, 0.02, 2) }
+    }
+  }
+  colour hsv(paper_colour.hue, paper_colour.sat, paper_colour.val * (1 - fold))
+  branch {
+    move (0, -0.12, -0.1)
+    lay { grow (0.02, 0.24, 1.8) }
+  }
+}
+
+// The middle of the flock flies round and round a circle, straying in and out from it and up and
+// down as it goes, but always onwards, so the flock never turns too sharply.
+function leader(t) {
+  let a = t * circle_speed
+  let s = t * circle_speed / 360 * restless
+  let out = circle * (1 + wander * noise(s + 0.31))
+  return (out * cos(a), out * sin(a) * sin(tilt) + circle * wander * noise(s + 7.77), out * sin(a) * cos(tilt))
+}
+
+// Where every plane is at the time `t`. A plane's place in the flock is measured along the
+// leader's path: the planes at the front of the flock are where the leader will be a little
+// later, those at the back where it was a little before, and each is moved off the path to the
+// side and up or down by the rest of its place. So the flock bends round its turns like a flock of
+// birds, its planes keep their distance and none of them ever flies through another.
+function places(t) {
+  // The flock is kept narrower than its circle, since planes too far out on the inside of a turn
+  // would fly backwards.
+  let size = min(spread, 0.45 * circle) * (1 - huddle * music.bass) * (1 + scatter * music.hit)
+  let d = t * circle_speed / 360 * drift
+  let ps = []
+  repeat count as i {
+    let place = places_in_flock[i]
+    let home = homes[i]
+    place += wobble * between * (noise(home.x + d), noise(home.y + d), noise(home.z + d))
+    let when = t + trail * place.z
+    let here = leader(when)
+    let ahead = normalize(leader(when + 0.01) - leader(when - 0.01))
+    let side = normalize(cross(ahead, y_axis))
+    let up = cross(side, ahead)
+    let off = size * (place.x * side + place.y * up)
+    ps += [here + off]
+  }
+  return ps
+}
+
+background {
+  gene sky = 225 in 0..360 // the hue of the evening sky
+  gene glow = 30 in -60..60 // how far the hue near the ground turns from the sky's hue
+
+  fill gradient(hsv(sky + glow, 0.35, 0.55), hsv(sky, 0.6, 0.22))
+}
+
+variant Lagoon {
+  circle = 6
+  spread = 2.7
+  trail = 2
+  alignment = 0.8
+  bank = 1.5
+  hue = 160
+  harmony = 50
+  paper = 0.4
+  background.sky = 200
+}
+
+variant Dusk {
+  circle = 13
+  spread = 5.8
+  trail = 0.5
+  wobble = 0.45
+  alignment = 0.2
+  hue = 280
+  harmony = 70
+  paper = 0.55
+  background.sky = 250
+  background.glow = 50
+}
