@@ -54,4 +54,15 @@ describe("the website", () => {
     }
     expect(broken).toEqual([]);
   });
+
+  it("gives the reference a tree with every section and entry, in place of its own contents", () => {
+    const html = docs()
+      .find((f) => f.path === "docs/reference.html")!
+      .make() as string;
+    const tree = html.match(/<nav class="tree"[\s\S]*?<\/nav>/)![0];
+    const ids = [...html.matchAll(/<h[23] id="([^"]+)"/g)].map((m) => m[1]!);
+    expect(ids.length).toBeGreaterThan(100);
+    expect(ids.filter((id) => !tree.includes(`href="#${id}"`))).toEqual([]);
+    expect(ids).not.toContain("contents");
+  });
 });
