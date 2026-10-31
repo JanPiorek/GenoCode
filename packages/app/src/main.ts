@@ -38,6 +38,7 @@ import {
   type Creature,
 } from "./creature.js";
 import { DanceFloor, type DanceFrame } from "./dance.js";
+import { RecentSongs, songLabel } from "./recent.js";
 import { ask, askText, choose, tell } from "./dialog.js";
 import { CodeEditor } from "./editor.js";
 import { drawFieldsInWorkers } from "./fields.js";
@@ -1240,12 +1241,67 @@ async function playMusic(start: () => Promise<void>): Promise<void> {
   showDanceHint();
 }
 
+/** Plays a music file, and puts it at the top of the recent songs. */
+function playFile(file: File): Promise<void> {
+  return playMusic(async () => {
+    await player.playFile(file);
+    await recent.played(file);
+  });
+}
+
+/** Plays music from a web address, and puts it at the top of the recent songs. */
+function playUrl(url: string): Promise<void> {
+  return playMusic(async () => {
+    await player.playUrl(url);
+    await recent.played(url);
+  });
+}
+
+// The recent songs, at the bottom of the Music menu, nearest the button: each plays at a click,
+// and the cross beside it takes it off the list.
+const recent = new RecentSongs();
+void recent.load().then(showRecent);
+function showRecent(): void {
+  const list = $("music-recent-list");
+  list.replaceChildren(
+    ...recent.songs.map((song) => {
+      const row = document.createElement("div");
+      row.className = "recent-row";
+      const play = document.createElement("button");
+      play.type = "button";
+      play.setAttribute("role", "menuitem");
+      play.title = song.kind === "url" ? `Dance to ${song.name}` : `Dance to ${song.name} again`;
+      play.innerHTML = `<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></svg>`;
+      play.append(songLabel(song));
+      play.addEventListener("click", () => {
+        if (song.kind === "url") void playUrl(song.name);
+        else if (song.file)
+          void playFile(new File([song.file], song.name, { type: song.file.type }));
+      });
+      const forget = document.createElement("button");
+      forget.type = "button";
+      forget.className = "recent-forget";
+      forget.title = "Take it off this list";
+      forget.setAttribute("aria-label", `Take ${songLabel(song)} off the recent songs`);
+      forget.textContent = "×";
+      forget.addEventListener("click", () => {
+        void recent.forget(song.key);
+        showRecent();
+        $("music-menu").querySelector<HTMLElement>("[role=menuitem]")?.focus();
+      });
+      row.append(play, forget);
+      return row;
+    }),
+  );
+  $("music-recent").hidden = recent.songs.length === 0;
+}
+
 const musicInput = $<HTMLInputElement>("music-input");
-dropdown($("music-button"), $("music-menu"));
+dropdown($("music-button"), $("music-menu"), showRecent);
 $("music-file").addEventListener("click", () => musicInput.click());
 musicInput.addEventListener("change", () => {
   const file = musicInput.files?.[0];
-  if (file) void playMusic(() => player.playFile(file));
+  if (file) void playFile(file);
   musicInput.value = "";
 });
 $("music-url").addEventListener("click", async () => {
@@ -1254,7 +1310,7 @@ $("music-url").addEventListener("click", async () => {
     "Play",
     { placeholder: "https://…" },
   );
-  if (url) void playMusic(() => player.playUrl(url));
+  if (url) void playUrl(url);
 });
 $("music-mic").addEventListener("click", () => void playMusic(() => player.listen()));
 // Phone browsers can't share another tab, so they don't get the button.
@@ -1583,7 +1639,7 @@ window.addEventListener("drop", async (e) => {
   const file = e.dataTransfer?.files[0];
   if (file && isMusic(file)) {
     if (current && mode !== "dance") setMode("dance");
-    await playMusic(() => player.playFile(file));
+    await playFile(file);
   } else if (file) await openFile(file);
 });
 
