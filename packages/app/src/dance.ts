@@ -3,12 +3,19 @@
 // zoom and turn from it, and the creature is built with the same music, so live creatures move to
 // it as well.
 
-import { buildDance, type CheckResult, type DanceStyle, type MusicInputs } from "@genocode/core";
+import {
+  buildDance,
+  type CheckResult,
+  type DanceStyle,
+  type LaidShape,
+  type MusicInputs,
+} from "@genocode/core";
 import { Dancer } from "@genocode/dance";
 import type { MusicPlayer } from "@genocode/music";
 import type { CreatureView } from "@genocode/render";
 import { buildCreature, type Creature } from "./creature.js";
 import { morphAt, type MorphFrame } from "./morph.js";
+import { songLook } from "./songlook.js";
 
 export interface DanceFrame extends MorphFrame {
   music: MusicInputs;
@@ -19,9 +26,22 @@ export interface DanceFrame extends MorphFrame {
 
 /** The longest step a frame may take, so the dance doesn't leap after the tab was hidden. */
 const LONGEST_STEP = 0.1;
+/** Seconds the creature takes to shrink away and grow back in a new song's look. */
+const CHANGE_SECONDS = 2;
+/** How small it gets, at the moment the look changes. */
+const SMALLEST = 0.02;
 
 export class DanceFloor {
+  /** The creature's family as it is, and as it looks for the song playing. */
+  private family: Creature[] = [];
   private members: Creature[] = [];
+  /** The look it's shrinking away from, after the song changed, and since when. */
+  private leaving: Creature[] | undefined;
+  private changed = 0;
+  private song: string | undefined;
+  private locked: ReadonlySet<string> = new Set();
+  /** Whether each song gets a look of its own (songlook.ts). */
+  songLooks = true;
   private style: CheckResult | undefined;
   private dancer = new Dancer();
   private frame = 0;
@@ -36,9 +56,21 @@ export class DanceFloor {
     private readonly onFrame: (f: DanceFrame) => void,
   ) {}
 
-  /** Starts dancing through these creatures (its morph loop) with a style. */
-  start(members: Creature[], style: CheckResult | undefined): void {
-    this.members = members;
+  /**
+   * Starts dancing through these creatures (its morph loop) with a style, in the look for the
+   * song playing, if any. Locked genes keep their values whatever the song.
+   */
+  start(
+    members: Creature[],
+    style: CheckResult | undefined,
+    song: string | undefined,
+    locked: ReadonlySet<string>,
+  ): void {
+    this.family = members;
+    this.song = song;
+    this.locked = locked;
+    this.members = this.look();
+    this.leaving = undefined;
     this.style = style;
     this.dancer = new Dancer();
     this.dancer.faceOn = this.faceOn;
@@ -61,6 +93,43 @@ export class DanceFloor {
     this.view.lockCamera(on);
     if (on) this.view.viewFrom("front");
     else this.view.resetView();
+  }
+
+  /**
+   * A new song (or none, for live music): the creature shrinks away and grows back in the song's
+   * look. Turning song looks on or off does the same.
+   */
+  setSong(song: string | undefined): void {
+    if (song === this.song) return;
+    this.song = song;
+    this.relook();
+  }
+
+  setSongLooks(on: boolean): void {
+    this.songLooks = on;
+    this.relook();
+  }
+
+  private look(): Creature[] {
+    return this.songLooks && this.song !== undefined
+      ? songLook(this.family, this.song, this.locked)
+      : this.family;
+  }
+
+  private relook(): void {
+    if (!this.dancing) return;
+    const now = performance.now();
+    const t = (now - this.changed) / 1000 / CHANGE_SECONDS;
+    if (this.leaving === undefined || t >= 1) {
+      this.leaving = this.members;
+      this.changed = now;
+    } else if (t >= 0.5) {
+      // Already growing back: shrink the look on show away again from the size it's at.
+      this.leaving = this.members;
+      this.changed = now - (1 - t) * CHANGE_SECONDS * 1000;
+    }
+    // While it's still shrinking, it just grows back in the newer look.
+    this.members = this.look();
   }
 
   /** Changes style while dancing; the dance carries on from where it is. */
@@ -101,8 +170,22 @@ export class DanceFloor {
     this.dancer.step(style, dt);
 
     // The dancer counts in creatures; the loop runs from 0 to 1.
-    const f = morphAt(this.members, this.dancer.morph / this.members.length);
+    const at = this.dancer.morph / this.members.length;
+    const f = morphAt(this.members, at);
+    // After the song changes, the old look shrinks away, and the new one takes its place while
+    // it's tiny and grows back: the two looks can differ in ways that can't blend, such as where
+    // things are placed at random, so they're never seen changing.
+    let size = 1;
+    if (this.leaving !== undefined) {
+      const t = (now - this.changed) / 1000 / CHANGE_SECONDS;
+      if (t >= 1) this.leaving = undefined;
+      else {
+        if (t < 0.5) f.creature = morphAt(this.leaving, at).creature;
+        size = Math.max(SMALLEST, (1 + Math.cos(2 * Math.PI * t)) / 2);
+      }
+    }
     const { built, background } = buildCreature(f.creature, inputs);
+    if (size < 1) built.shapes = shrunk(built.shapes, built.focus, size);
     f.problems = built.diagnostics;
     this.view.setCreature(built.shapes, !first, built.focus);
     if (first && this.faceOn) {
@@ -114,4 +197,32 @@ export class DanceFloor {
     this.onFrame({ ...f, music, beat, styleOk });
     this.frame = requestAnimationFrame(() => this.draw(false));
   }
+}
+
+/**
+ * The shapes scaled by `k` round the creature's middle: its focus point, or, without one, the
+ * middle of its shapes, which the view then still finds in the same place.
+ */
+function shrunk(
+  shapes: readonly LaidShape[],
+  focus: readonly [number, number, number] | undefined,
+  k: number,
+): LaidShape[] {
+  let middle = focus;
+  if (middle === undefined) {
+    const lo = [Infinity, Infinity, Infinity];
+    const hi = [-Infinity, -Infinity, -Infinity];
+    for (const s of shapes) {
+      for (let i = 0; i < 3; i++) {
+        lo[i] = Math.min(lo[i]!, s.matrix[12 + i]!);
+        hi[i] = Math.max(hi[i]!, s.matrix[12 + i]!);
+      }
+    }
+    middle = [(lo[0]! + hi[0]!) / 2, (lo[1]! + hi[1]!) / 2, (lo[2]! + hi[2]!) / 2];
+  }
+  return shapes.map((s) => {
+    const m = s.matrix.map((v, i) => (i < 12 && i % 4 !== 3 ? v * k : v));
+    for (let i = 0; i < 3; i++) m[12 + i] = middle[i]! + (s.matrix[12 + i]! - middle[i]!) * k;
+    return { ...s, matrix: m };
+  });
 }
