@@ -47,6 +47,12 @@ const STYLE = `<style>
 .tree summary a { flex: 1; }
 .tree li.leaf > a { margin-left: 20px; }
 .tree-none { color: var(--muted); padding: 4px 8px; }
+/* On a wide screen the top bar stays, and the tree and headings sit below it. */
+@media (min-width: 900px) {
+  header { position: sticky; top: 0; z-index: 10; }
+  .tree { top: var(--bar, 61px); height: calc(100vh - var(--bar, 61px)); }
+  .doc h1, .doc h2, .doc h3 { scroll-margin-top: calc(var(--bar, 61px) + 12px); }
+}
 @media (max-width: 899px) {
   .doc, .doc.closed { display: block; }
   .tree { position: static; height: auto; max-height: 70vh; margin: 12px 0; padding: 12px;
@@ -65,6 +71,12 @@ const SCRIPT = `<script>
   const search = tree.querySelector("input");
   const none = tree.querySelector(".tree-none");
   const narrow = matchMedia("(max-width: 899px)");
+  // How tall the top bar is, for what sits below it.
+  const bar = document.querySelector("header");
+  const barHeight = () => (narrow.matches ? 0 : bar.offsetHeight);
+  const measure = () => document.documentElement.style.setProperty("--bar", bar.offsetHeight + "px");
+  new ResizeObserver(measure).observe(bar);
+  measure();
   const links = [...list.querySelectorAll("a")];
   const groups = [...list.querySelectorAll("details")];
   const headings = links
@@ -150,7 +162,7 @@ const SCRIPT = `<script>
   const follow = (force) => {
     let at = headings[0];
     for (const h of headings) {
-      if (h.getBoundingClientRect().top > 90) break;
+      if (h.getBoundingClientRect().top > barHeight() + 24) break;
       at = h;
     }
     const a = at && links.find((l) => l.hash.slice(1) === encodeURIComponent(at.id));
