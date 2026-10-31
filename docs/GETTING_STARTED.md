@@ -136,7 +136,8 @@ variant Tall { balls = 6; shrink = 0.9 }
 
 Add that line at the end of the snowman and press **Morph**: the snowman grows into the tall one
 and back. In **Dance**, music carries it through the same loop. Pick a music file, or the
-microphone, and a dance style.
+microphone, and a dance style. Songs you've danced to are kept under **Recent** in the Music menu,
+ready to play again.
 
 The app can write variants for you too:
 
