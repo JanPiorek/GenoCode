@@ -3,7 +3,7 @@
 
 import { readFileSync } from "node:fs";
 import { posix } from "node:path";
-import { Marked } from "marked";
+import { Marked, type Tokens } from "marked";
 import { shell, type SiteFile } from "./site.js";
 import { withTree, type Heading } from "./tree.js";
 
@@ -62,19 +62,22 @@ function slug(text: string): string {
 
 /**
  * Markdown made into HTML for the page at `path`: links to the other documents go to their pages.
- * The headings come too, for the tree of a long page.
+ * The headings come too, for the tree of a long page. The section whose heading has the anchor
+ * `skip` is left out.
  */
 function render(
   markdown: string,
   from: (typeof PAGES)[number],
+  skip?: string,
 ): { html: string; headings: Heading[] } {
   const headings: Heading[] = [];
   const marked = new Marked({
     renderer: {
       heading({ tokens, depth }) {
         const text = this.parser.parseInline(tokens);
-        headings.push({ depth, text, id: slug(text) });
-        return `<h${depth} id="${slug(text)}">${text}</h${depth}>\n`;
+        const id = slug(text);
+        headings.push({ depth, text, id });
+        return `<h${depth} id="${id}">${text}</h${depth}>\n`;
       },
       link({ href, tokens }) {
         const [file, anchor] = href.split("#");
@@ -87,14 +90,28 @@ function render(
       },
     },
   });
-  return { html: marked.parse(markdown) as string, headings };
+  const tokens = marked.lexer(markdown);
+  if (skip) {
+    // The section from the heading with that anchor up to the next heading as big or bigger.
+    const start = tokens.findIndex((t) => t.type === "heading" && slug(t.text) === skip);
+    if (start < 0) throw new Error(`${from.source} has no section #${skip} to leave out.`);
+    const depth = (tokens[start] as Tokens.Heading).depth;
+    let end = start + 1;
+    while (end < tokens.length) {
+      const t = tokens[end]!;
+      if (t.type === "heading" && (t as Tokens.Heading).depth <= depth) break;
+      end++;
+    }
+    tokens.splice(start, end - start);
+  }
+  return { html: marked.parser(tokens), headings };
 }
 
 /** A page's body, with the tree at its side in place of the document's own list of contents. */
 function page(p: (typeof PAGES)[number]): { head?: string; body: string } {
   const markdown = readFileSync(new URL(p.source, repo), "utf8");
   if (!p.tree) return { body: render(markdown, p).html };
-  const { html, headings } = render(markdown.replace(/^## Contents\n[\s\S]*?(?=^## )/m, ""), p);
+  const { html, headings } = render(markdown, p, "contents");
   return withTree(html, headings, p.tree);
 }
 

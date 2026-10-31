@@ -66,5 +66,19 @@ describe("the website", () => {
       expect(ids.filter((id) => !tree.includes(`href="#${id}"`))).toEqual([]);
       expect(ids).not.toContain("contents");
     });
+
+    it(`gives ${path}'s sections an arrow button beside the link, not around it`, () => {
+      const html = docs()
+        .find((f) => f.path === path)!
+        .make() as string;
+      const tree = html.match(/<nav class="tree"[\s\S]*?<\/nav>/)![0];
+      expect(tree).not.toContain("<summary");
+      const buttons = [...tree.matchAll(/<button class="tree-toggle"[^>]*><\/button>/g)];
+      expect(buttons.length).toBeGreaterThan(5);
+      for (const [b] of buttons) {
+        const controls = b.match(/aria-controls="([^"]+)"/)![1]!;
+        expect(tree).toContain(`<ul id="${controls}" hidden>`);
+      }
+    });
   }
 });
