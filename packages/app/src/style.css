@@ -1300,9 +1300,12 @@ input[type="range"] {
   padding-right: 8px;
 }
 
-/* Long values (vectors, colours spelt out) wrap rather than pushing the panel sideways. */
+/* Long values (vectors, colours spelt out) wrap rather than pushing the panel sideways. The
+   minimum width keeps a plain number on one line however long the gene's description is. */
 #genes td.gene-value {
+  min-width: 8ch;
   max-width: 120px;
+  padding-left: 8px;
   text-align: right;
   font-family: var(--mono);
   font-size: 0.9em;
