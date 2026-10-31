@@ -1287,8 +1287,8 @@ keeps the text it was written with. Variants are kept as they are. A variant sho
 changed the same way: its new values are written into its block, adding a line for a gene it didn't
 set, and a gene put back to the creature's value loses its line. The new values are written
 readably: stepped numbers exactly, other numbers to four significant figures, colours as `hsv(…)`,
-and choices by name, always within the gene's range. The automatic `seed` gene has no line of its own, so it isn't saved yet: a saved
-creature that uses `random` starts again from seed 0.
+and choices by name, always within the gene's range. The automatic `seed` gene has no line of its
+own, so it isn't saved yet: a saved creature that uses `random` starts again from seed 0.
 
 ## 20. Building a creature
 
