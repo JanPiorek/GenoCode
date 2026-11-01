@@ -28,16 +28,19 @@ language is defined in [the language reference](https://genocode.piorek.co.za/do
 
 ## Repository layout
 
-| Folder            | Contents                                                           |
-| ----------------- | ------------------------------------------------------------------ |
-| `packages/core`   | the language: parser, checker, formatter, interpreter and genetics |
-| `packages/render` | draws creatures, textures and backgrounds (three.js)               |
-| `packages/music`  | turns music into the inputs creatures react to                     |
-| `packages/dance`  | the dance effects: morph, zoom, spin, turn, reverse and flat       |
-| `packages/blocks` | the block editor                                                   |
-| `packages/app`    | the web app                                                        |
-| `creatures`       | the starter library of `.genie` creatures                          |
-| `docs`            | documentation                                                      |
+| Folder              | Contents                                                           |
+| ------------------- | ------------------------------------------------------------------ |
+| `packages/core`     | the language: parser, checker, formatter, interpreter and genetics |
+| `packages/render`   | draws creatures, textures and backgrounds (three.js)               |
+| `packages/music`    | turns music into the inputs creatures react to                     |
+| `packages/dance`    | the dance effects: morph, zoom, spin, turn, reverse and flat       |
+| `packages/blocks`   | the block editor                                                   |
+| `packages/controls` | gene, time and music controls for trying creatures in a web page   |
+| `packages/app`      | the web app                                                        |
+| `creatures`         | the starter library of `.genie` creatures                          |
+| `dances`            | the starter dance styles                                           |
+| `patterns`          | the starter texture and background recipes                         |
+| `docs`              | documentation                                                      |
 
 ## Development
 
@@ -99,10 +102,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 [`@genocode/render`](https://www.npmjs.com/package/@genocode/render), so tools can live in
 repositories of their own:
 
-| Repository                                                         | Contents                                                      |
-| ------------------------------------------------------------------ | ------------------------------------------------------------- |
-| [GenoCode-cli](https://github.com/genocode-org/GenoCode-cli)       | `genie`, the command line: check, format and render creatures |
-| [GenoCode-vscode](https://github.com/genocode-org/GenoCode-vscode) | the VS Code extension and language server                     |
+| Repository                                                         | Contents                                                           |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| [GenoCode-cli](https://github.com/genocode-org/GenoCode-cli)       | `genie`, the command line: check, format and render creatures      |
+| [GenoCode-vscode](https://github.com/genocode-org/GenoCode-vscode) | the VS Code extension and language server                          |
+| [GenoCode-agent](https://github.com/genocode-org/GenoCode-agent)   | an AI agent that designs creatures from a description, with Claude |
 
 A version tag (such as `v0.2.0`) publishes `core` and `render` to npm.
 
