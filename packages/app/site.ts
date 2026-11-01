@@ -14,6 +14,8 @@ export interface SiteFile {
   path: string;
   type: string;
   make(): string | Uint8Array;
+  /** For a page: the file in the repo its words come from, so the sitemap can date the page. */
+  source?: string;
 }
 
 /** The address of a page, as search engines should list it. */
@@ -35,12 +37,24 @@ export function escape(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** The sitemap: every page of the website, so search engines find them all. */
-export function sitemap(pages: readonly string[]): string {
-  const urls = [SITE, `${SITE}app/`, ...pages.map(address)];
+/** A page for the sitemap: its published path, and the day its words last changed, if known. */
+export interface SitemapPage {
+  path: string;
+  modified?: string | undefined;
+}
+
+/**
+ * The sitemap: every page of the website, so search engines find them all, each with the day it
+ * last changed, so they know which pages to read again.
+ */
+export function sitemap(pages: readonly SitemapPage[]): string {
+  const url = (p: SitemapPage) => {
+    const lastmod = p.modified ? `<lastmod>${p.modified}</lastmod>` : "";
+    return `  <url><loc>${address(p.path)}</loc>${lastmod}</url>`;
+  };
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((u) => `  <url><loc>${u}</loc></url>`).join("\n")}
+${pages.map(url).join("\n")}
 </urlset>
 `;
 }
