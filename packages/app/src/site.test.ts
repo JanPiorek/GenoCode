@@ -3,6 +3,7 @@ import { posix } from "node:path";
 import { describe, expect, it } from "vitest";
 import { creatureFiles } from "../creatures.js";
 import { docs } from "../docs.js";
+import { sitemap } from "../site.js";
 
 const app = new URL("../", import.meta.url);
 
@@ -81,4 +82,22 @@ describe("the website", () => {
       }
     });
   }
+});
+
+describe("the sitemap", () => {
+  it("lists each page's address, with the day it last changed when that's known", () => {
+    const xml = sitemap([
+      { path: "index.html", modified: "2026-10-29" },
+      { path: "creatures/index.html" },
+    ]);
+    expect(xml).toContain(
+      "<url><loc>https://genocode.piorek.co.za/</loc><lastmod>2026-10-29</lastmod></url>",
+    );
+    expect(xml).toContain("<url><loc>https://genocode.piorek.co.za/creatures/</loc></url>");
+  });
+
+  it("dates every page from a file in the repo", () => {
+    const pages = [...docs(), ...creatureFiles()].filter((f) => f.path.endsWith(".html"));
+    expect(pages.filter((f) => !f.source).map((f) => f.path)).toEqual([]);
+  });
 });

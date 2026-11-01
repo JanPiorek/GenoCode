@@ -234,11 +234,16 @@ export function creatureFiles(): SiteFile[] {
   const all = creatures().filter((c) => c.program.ok && c.program.file.kind === "creature");
   const html = "text/html; charset=utf-8";
   const files: SiteFile[] = [
-    { path: "creatures/index.html", type: html, make: () => listPage(all) },
+    { path: "creatures/index.html", type: html, source: "creatures", make: () => listPage(all) },
   ];
   for (const c of all) {
     files.push(
-      { path: `creatures/${c.name}.html`, type: html, make: () => creaturePage(c, all) },
+      {
+        path: `creatures/${c.name}.html`,
+        type: html,
+        source: `creatures/${c.name}.genie`,
+        make: () => creaturePage(c, all),
+      },
       { path: `creatures/${c.name}.genie`, type: "text/plain; charset=utf-8", make: () => c.text },
       {
         path: `creatures/pictures/${fileName(c.name)}.png`,

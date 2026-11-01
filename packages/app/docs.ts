@@ -125,6 +125,7 @@ export function docs(): SiteFile[] {
   const pages = PAGES.map((p) => ({
     path: p.path,
     type: "text/html; charset=utf-8",
+    source: p.source,
     make: () =>
       shell({
         path: p.path,

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, extname, join } from "node:path";
@@ -53,10 +54,30 @@ function blocklyMedia(): Plugin {
   };
 }
 
+/**
+ * The day a file or folder of the repo last changed, from git, as in `2026-10-29`; nothing when
+ * git doesn't know (outside a repo, or a file not yet committed).
+ */
+function modified(source: string): string | undefined {
+  try {
+    const day = execFileSync("git", ["log", "-1", "--format=%cs", "--", source], {
+      cwd: repo,
+      encoding: "utf8",
+    }).trim();
+    return day || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** The website's own pages around the app (see site.ts): every one, and the sitemap. */
 function siteFiles(): SiteFile[] {
   const files = [...docs(), ...creatureFiles()];
-  const pages = files.filter((f) => f.path.endsWith(".html")).map((f) => f.path);
+  const pages = [
+    { path: "index.html", source: "packages/app/index.html" },
+    { path: "app/index.html", source: "packages/app/app/index.html" },
+    ...files.filter((f) => f.path.endsWith(".html")),
+  ].map((p) => ({ path: p.path, modified: p.source && modified(p.source) }));
   return [...files, { path: "sitemap.xml", type: "application/xml", make: () => sitemap(pages) }];
 }
 
